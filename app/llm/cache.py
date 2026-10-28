@@ -73,6 +73,18 @@ def get(conn: sqlite3.Connection, key: str) -> dict[str, Any] | None:
     return None if row is None else dict(json.loads(row[0]))
 
 
+def _stored_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Messages as stored for inspection: system prompts (long, and already covered by the key
+    through `prompt_version`) are replaced by their sha256, keeping the committed cache small."""
+    out = []
+    for m in _key_messages(messages):
+        if m.get("role") == "system" and isinstance(m.get("content"), str):
+            digest = hashlib.sha256(m["content"].encode()).hexdigest()
+            m = {"role": "system", "sha256": digest, "chars": len(m["content"])}
+        out.append(m)
+    return out
+
+
 def put(
     conn: sqlite3.Connection,
     key: str,
@@ -85,9 +97,8 @@ def put(
     request_json = json.dumps(
         {
             "role": req.role.value,
-            "messages": _key_messages(req.messages),
+            "messages": _stored_messages(req.messages),
             "tools": req.tools,
-            "response_schema": req.response_schema,
             "temperature": req.temperature,
             "max_tokens": req.max_tokens,
         },

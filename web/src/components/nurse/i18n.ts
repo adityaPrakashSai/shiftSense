@@ -1,0 +1,62 @@
+// Nurse view labels in English and Hindi (Roman script, as the ward writes on WhatsApp).
+// Replies themselves come from the server's templates in the sender's language.
+export type Lang = "en" | "hi";
+
+const L = {
+  en: {
+    myShifts: "My shifts",
+    chat: "Chat",
+    you: "You",
+    confirm: "Confirm",
+    edit: "Edit",
+    send: "Send",
+    placeholder: "Type a message: sick call, day off, leave, swap…",
+    mic: "Voice notes arrive in M12",
+    camera: "Photos arrive in M12",
+    empty: "Tell me if you are sick, need a day off, leave or a swap.",
+    notPublished: "Later days are not published yet.",
+    changed: "changed",
+    off: "Off",
+    thinking: "Reading your message…",
+    status: {
+      pending_confirm: "Waiting for your confirmation",
+      active: "Confirmed",
+      pending_approval: "Waiting for the charge nurse's approval",
+      rejected: "Dropped",
+      withdrawn: "Cancelled",
+      applied: "Done",
+    } as Record<string, string>,
+    granted: "granted in the latest roster",
+    denied: "not granted in the latest roster",
+  },
+  hi: {
+    myShifts: "Meri shifts",
+    chat: "Chat",
+    you: "Aap",
+    confirm: "Confirm karein",
+    edit: "Badlein",
+    send: "Bhejein",
+    placeholder: "Message likhiye: sick call, off, chhutti, swap…",
+    mic: "Voice notes M12 mein aayenge",
+    camera: "Photos M12 mein aayengi",
+    empty: "Bimaar hain, off chahiye, chhutti ya swap? Yahan likhiye.",
+    notPublished: "Aage ke din abhi publish nahi hue.",
+    changed: "badla",
+    off: "Off",
+    thinking: "Message padh rahe hain…",
+    status: {
+      pending_confirm: "Aapke confirm ka intezaar",
+      active: "Confirm ho gaya",
+      pending_approval: "Charge nurse ki approval ka intezaar",
+      rejected: "Hata diya",
+      withdrawn: "Cancel ho gaya",
+      applied: "Ho gaya",
+    } as Record<string, string>,
+    granted: "naye roster mein mil gaya",
+    denied: "naye roster mein nahi mil paya",
+  },
+};
+
+export function t(lang: Lang) {
+  return L[lang];
+}

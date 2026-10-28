@@ -1,13 +1,16 @@
-// Charge nurse view (design doc 10.3), M4 scope: header with Generate and the live run timer,
-// roster grid with coverage footer, stage strip, and Publish for a draft. Live via useWardSocket.
+// Charge nurse view (design doc 10.3): header with Generate and the live run timer, roster grid
+// with coverage footer, stage strip, Publish for a draft, and leave / swap approvals (Q7). A
+// confirmed nurse request starts a solve whose draft shows here live via useWardSocket.
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError, type EventOut } from "../api/client";
 import { useWardSocket, type SocketMode, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
 import ProviderBadge from "../components/common/ProviderBadge";
 import RunTimer, { type TierTick } from "../components/common/RunTimer";
 import RosterGrid from "../components/roster/RosterGrid";
+import PendingApprovals from "../components/panel/PendingApprovals";
 import StageStrip from "../components/roster/StageStrip";
 
 type Timer = {
@@ -67,6 +70,7 @@ export default function ChargePage() {
         if (m.status === "proposed") setViewRunId(m.run_id);
         void qc.invalidateQueries({ queryKey: ["roster", m.run_id] });
       }
+      if (m.type === "request_updated") void qc.invalidateQueries({ queryKey: ["requests"] });
       if (m.type === "roster_published") {
         setViewRunId(null);
         void qc.invalidateQueries({ queryKey: ["roster"] });
@@ -138,6 +142,9 @@ export default function ChargePage() {
             {usage.data && <ProviderBadge usage={usage.data} />}
             {health.data && <ModeBadge mode={health.data.llm_mode} />}
             <SocketDot mode={mode} />
+            <Link to="/nurse" className="text-xs text-indigo-600 hover:underline">
+              Nurse view
+            </Link>
           </div>
           <div className="ml-auto flex items-center gap-4">
             <RunTimer
@@ -199,6 +206,7 @@ export default function ChargePage() {
             {publish.error && <span className="text-sm text-red-600">{publish.error.message}</span>}
           </div>
         )}
+        {ward.data && <PendingApprovals nurses={ward.data.nurses} />}
         {roster.data && <StageStrip stages={roster.data.stages} detail={detail.data} />}
         {noRoster && (
           <p className="rounded border border-slate-200 bg-white p-4 text-sm text-slate-600">

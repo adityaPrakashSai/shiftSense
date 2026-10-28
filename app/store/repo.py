@@ -81,6 +81,12 @@ def _request_row(r: sqlite3.Row) -> Request:
         shifts=json.loads(r["shifts_json"]) if r["shifts_json"] else None,
         leave_type=r["leave_type"],
         counterpart_id=r["counterpart_id"],
+        counterpart_dates=json.loads(r["counterpart_dates_json"] or "[]"),
+        counterpart_shifts=(
+            json.loads(r["counterpart_shifts_json"]) if r["counterpart_shifts_json"] else None
+        ),
+        target_total=r["target_total"],
+        ref_request_id=r["ref_request_id"],
         hard=bool(r["hard"]),
         weight=r["weight"],
         status=r["status"],
@@ -94,8 +100,9 @@ def insert_request(
 ) -> None:
     conn.execute(
         "INSERT INTO request(id, ward_id, nurse_id, kind, dates_json, shifts_json, leave_type, "
-        "counterpart_id, hard, weight, status, source_message_id, edit_json, created_at) "
-        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "counterpart_id, hard, weight, status, source_message_id, edit_json, created_at, "
+        "counterpart_dates_json, counterpart_shifts_json, target_total, ref_request_id) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             req.id,
             ward_id,
@@ -111,6 +118,12 @@ def insert_request(
             req.source_message_id,
             edit_json,
             req.created_at.isoformat(),
+            json.dumps([d.isoformat() for d in req.counterpart_dates]),
+            None
+            if req.counterpart_shifts is None
+            else json.dumps([s.value for s in req.counterpart_shifts]),
+            req.target_total,
+            req.ref_request_id,
         ),
     )
     conn.commit()
@@ -160,9 +173,109 @@ def next_request_id(conn: sqlite3.Connection) -> str:
     return f"R-{best + 1:04d}"
 
 
+def get_request_edit(conn: sqlite3.Connection, request_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT edit_json FROM request WHERE id = ?", (request_id,)).fetchone()
+    return None if row is None or not row[0] else dict(json.loads(row[0]))
+
+
+def requests_from_message(conn: sqlite3.Connection, message_id: str) -> list[Request]:
+    rows = conn.execute(
+        "SELECT * FROM request WHERE source_message_id = ? ORDER BY id", (message_id,)
+    )
+    return [_request_row(r) for r in rows]
+
+
+def latest_outcomes(conn: sqlite3.Connection, ward_id: str) -> dict[str, dict[str, Any]]:
+    """request_id -> its outcome in the newest solved run that has one."""
+    rows = conn.execute(
+        "SELECT o.* FROM request_outcome o JOIN run r ON r.run_id = o.run_id "
+        "WHERE r.ward_id = ? ORDER BY r.created_at, r.run_id",
+        (ward_id,),
+    )
+    return {str(r["request_id"]): {**dict(r)} for r in rows}
+
+
 def delete_request(conn: sqlite3.Connection, request_id: str) -> None:
     conn.execute("DELETE FROM request WHERE id = ?", (request_id,))
     conn.commit()
+
+
+# ---------------------------------------------------------------- messages (intake, 7.3)
+
+
+def insert_message(
+    conn: sqlite3.Connection,
+    *,
+    message_id: str,
+    ward_id: str,
+    nurse_id: str,
+    body: str,
+    created_at: str,
+    channel: str = "text",
+) -> None:
+    conn.execute(
+        "INSERT INTO message(id, ward_id, nurse_id, channel, body, created_at) "
+        "VALUES(?, ?, ?, ?, ?, ?)",
+        (message_id, ward_id, nurse_id, channel, body, created_at),
+    )
+    conn.commit()
+
+
+def set_message_reply(
+    conn: sqlite3.Connection,
+    message_id: str,
+    *,
+    language: str | None,
+    parse: dict[str, Any] | None,
+    reply: str,
+    reply_kind: str,
+    request_ids: list[str],
+) -> None:
+    conn.execute(
+        "UPDATE message SET language = ?, parse_json = ?, reply = ?, reply_kind = ?, "
+        "request_ids_json = ? WHERE id = ?",
+        (
+            language,
+            None if parse is None else json.dumps(parse, ensure_ascii=False),
+            reply,
+            reply_kind,
+            json.dumps(request_ids),
+            message_id,
+        ),
+    )
+    conn.commit()
+
+
+def _message_row(r: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "message_id": r["id"],
+        "nurse_id": r["nurse_id"],
+        "channel": r["channel"],
+        "body": r["body"],
+        "created_at": r["created_at"],
+        "language": r["language"],
+        "parse": json.loads(r["parse_json"]) if r["parse_json"] else None,
+        "reply": r["reply"],
+        "reply_kind": r["reply_kind"],
+        "request_ids": json.loads(r["request_ids_json"] or "[]"),
+    }
+
+
+def get_message(conn: sqlite3.Connection, message_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM message WHERE id = ?", (message_id,)).fetchone()
+    return None if row is None else _message_row(row)
+
+
+def list_messages(
+    conn: sqlite3.Connection, ward_id: str, nurse_id: str, limit: int = 100
+) -> list[dict[str, Any]]:
+    """A sender's newest messages, oldest first."""
+    rows = conn.execute(
+        "SELECT * FROM (SELECT rowid AS rid, * FROM message WHERE ward_id = ? AND nurse_id = ? "
+        "ORDER BY rid DESC LIMIT ?) ORDER BY rid",
+        (ward_id, nurse_id, limit),
+    ).fetchall()
+    return [_message_row(r) for r in rows]
 
 
 # ---------------------------------------------------------------- runs and assignments

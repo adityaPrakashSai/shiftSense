@@ -36,8 +36,10 @@ reference:
 e2e:
 	@echo "make e2e arrives in M10 (Playwright demo script)"; exit 1
 
+# live intake eval against Baseten (spends credits, at most 3 full runs a day, 9.4);
+# EVAL_ARGS="--mode replay" re-runs it from data/llm_cache.jsonl for free
 eval:
-	@echo "make eval arrives in M6 (evals/run.py)"; exit 1
+	uv run python -m evals.run --suite intake --provider baseten $(EVAL_ARGS)
 
 docker:
 	docker build -t shiftsense .

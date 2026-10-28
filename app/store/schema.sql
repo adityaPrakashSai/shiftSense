@@ -7,11 +7,15 @@ CREATE TABLE IF NOT EXISTS ward_history(                                        
   ward_id TEXT PRIMARY KEY, periods INT, json TEXT NOT NULL);                      -- WardHistory model
 CREATE TABLE IF NOT EXISTS message(
   id TEXT PRIMARY KEY, ward_id TEXT, nurse_id TEXT, channel TEXT,                  -- text|voice|photo
-  body TEXT, media_path TEXT, transcript TEXT, created_at TEXT);
+  body TEXT, media_path TEXT, transcript TEXT, created_at TEXT,
+  language TEXT, parse_json TEXT, reply TEXT, reply_kind TEXT,                     -- intake (7.3)
+  request_ids_json TEXT);
 CREATE TABLE IF NOT EXISTS request(
   id TEXT PRIMARY KEY, ward_id TEXT, nurse_id TEXT, kind TEXT, dates_json TEXT,
   shifts_json TEXT, leave_type TEXT, counterpart_id TEXT, hard INT, weight INT, status TEXT,
-  source_message_id TEXT, edit_json TEXT, created_at TEXT, confirmed_at TEXT);
+  source_message_id TEXT, edit_json TEXT, created_at TEXT, confirmed_at TEXT,
+  counterpart_dates_json TEXT, counterpart_shifts_json TEXT,                       -- swap
+  target_total INT, ref_request_id TEXT);                                          -- demand, cancel
 
 CREATE TABLE IF NOT EXISTS run(
   run_id TEXT PRIMARY KEY, ward_id TEXT, parent_run TEXT, kind TEXT, status TEXT,

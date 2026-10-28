@@ -6,8 +6,12 @@ Dates are ISO `YYYY-MM-DD` at the edges; the solver works with day indices
 
 from datetime import date, datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from app.domain.edits import Edit
 
 DEFAULT_PRIORITIES: tuple[str, ...] = ("coverage", "stability", "contract", "requests", "fairness")
 
@@ -124,6 +128,10 @@ class RequestKind(StrEnum):
     SHIFT_WANTED = "shift_wanted"  # preference: SOFT
     SHIFT_AVOID = "shift_avoid"  # preference: SOFT ("no nights this week")
     SWAP = "swap"  # two nurses exchange cells: becomes forced edits after approval
+    # not constraints: confirmed actions applied once (cancel withdraws ref_request_id,
+    # demand sets target_total for each (date, shift)); never read by build_input
+    CANCEL = "cancel"
+    DEMAND = "demand"
 
 
 HARD_KINDS = frozenset({RequestKind.UNAVAILABLE, RequestKind.LEAVE})
@@ -132,8 +140,10 @@ HARD_KINDS = frozenset({RequestKind.UNAVAILABLE, RequestKind.LEAVE})
 class RequestStatus(StrEnum):
     PENDING_CONFIRM = "pending_confirm"  # parsed, waiting for the nurse to confirm
     ACTIVE = "active"  # confirmed, used by the next solve
+    PENDING_APPROVAL = "pending_approval"  # leave and swaps wait for the charge nurse (Q7)
     REJECTED = "rejected"  # nurse said the parse was wrong
     WITHDRAWN = "withdrawn"
+    APPLIED = "applied"  # a cancel or demand action that has been carried out
 
 
 class Request(BaseModel):
@@ -144,11 +154,50 @@ class Request(BaseModel):
     shifts: list[ShiftCode] | None = None  # None = whole day
     leave_type: LeaveType | None = None  # LEAVE only; shown as a banner on the grid
     counterpart_id: str | None = None  # for SWAP
+    counterpart_dates: list[date] = []  # SWAP: the counterpart's cell(s) the sender takes
+    counterpart_shifts: list[ShiftCode] | None = None
+    target_total: int | None = None  # DEMAND
+    ref_request_id: str | None = None  # CANCEL
     hard: bool  # derived from kind, never from the LLM
     weight: int = 1  # within the preferences tier
     status: RequestStatus
     source_message_id: str | None = None
     created_at: datetime
+
+    @classmethod
+    def from_edit(
+        cls,
+        edit: "Edit",
+        *,
+        id: str,
+        nurse_id: str,
+        created_at: datetime,
+        counterpart_id: str | None = None,
+        source_message_id: str | None = None,
+    ) -> "Request":
+        """A `pending_confirm` request from a validated edit. `hard` comes from HARD_KINDS, never
+        from the model; `nurse_id` / `counterpart_id` are the resolved ids, not names."""
+        from app.domain.edits import OP_KIND
+
+        kind = OP_KIND[edit.op]
+        return cls(
+            id=id,
+            nurse_id=nurse_id,
+            kind=kind,
+            dates=sorted(set(edit.dates)),
+            shifts=None if edit.shifts is None else sorted(set(edit.shifts)),
+            counterpart_id=counterpart_id,
+            counterpart_dates=sorted(set(edit.counterpart_dates)),
+            counterpart_shifts=(
+                None if edit.counterpart_shifts is None else sorted(set(edit.counterpart_shifts))
+            ),
+            target_total=edit.target_total,
+            ref_request_id=edit.request_id,
+            hard=kind in HARD_KINDS,
+            status=RequestStatus.PENDING_CONFIRM,
+            source_message_id=source_message_id,
+            created_at=created_at,
+        )
 
 
 class Assignment(BaseModel):

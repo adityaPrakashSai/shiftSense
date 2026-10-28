@@ -76,6 +76,12 @@ class OpenAICompatProvider:
         elif req.tools:
             kw["tools"] = req.tools
         if req.response_schema is not None and not (req.tools and json_protocol):
+            # the schema always goes in the prompt too: with strict decoding alone, Muse Spark Open
+            # reasons about a format it cannot see and the grammar then forces a wrong answer
+            messages = [
+                {"role": "system", "content": schema_prompt(req.response_schema)},
+                *messages,
+            ]
             if self.caps.json_schema:
                 kw["response_format"] = {
                     "type": "json_schema",
@@ -87,10 +93,6 @@ class OpenAICompatProvider:
                 }
             else:
                 kw["response_format"] = {"type": "json_object"}
-                messages = [
-                    {"role": "system", "content": schema_prompt(req.response_schema)},
-                    *messages,
-                ]
         kw["messages"] = messages
         return kw
 
@@ -152,7 +154,9 @@ def build_providers(s: Settings) -> dict[str, OpenAICompatProvider]:
             s.baseten_base_url,
             s.baseten_api_key,
             s.baseten_model,
-            ProviderCaps(native_tools=True, json_schema=True, vision=True, audio=True),
+            # strict json_schema works on toy schemas but gave wrong ConstraintEdit parses and one
+            # run-away answer in M6 probes; json_object + the schema in the prompt is reliable
+            ProviderCaps(native_tools=True, json_schema=False, vision=True, audio=True),
         )
     if s.meta_api_key and s.meta_base_url and s.meta_model:
         out["meta"] = OpenAICompatProvider(

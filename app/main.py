@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import errors, routes_llm, routes_misc, routes_runs, routes_ward, ws
+from app.api import errors, routes_intake, routes_llm, routes_misc, routes_runs, routes_ward, ws
 from app.config import get_settings
 from app.llm import cache as llm_cache
 from app.store import repo
@@ -42,6 +42,7 @@ app.include_router(routes_misc.router)
 app.include_router(routes_ward.router)
 app.include_router(routes_runs.router)
 app.include_router(routes_llm.router)
+app.include_router(routes_intake.router)
 app.include_router(ws.router)
 
 if (WEB_DIST / "assets").is_dir():

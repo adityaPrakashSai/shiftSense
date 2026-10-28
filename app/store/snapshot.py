@@ -33,7 +33,13 @@ def restore(conn: sqlite3.Connection, path: Path) -> None:
         ]
         with conn:
             for t in tables:
+                # by column name, so a snapshot taken before a column was added still restores
+                main_cols = {r[1] for r in conn.execute(f"PRAGMA main.table_info({t})")}
+                cols = [
+                    r[1] for r in conn.execute(f"PRAGMA snap.table_info({t})") if r[1] in main_cols
+                ]
+                names = ", ".join(cols)
                 conn.execute(f"DELETE FROM main.{t}")  # noqa: S608 - names from sqlite_master
-                conn.execute(f"INSERT INTO main.{t} SELECT * FROM snap.{t}")  # noqa: S608
+                conn.execute(f"INSERT INTO main.{t}({names}) SELECT {names} FROM snap.{t}")  # noqa: S608
     finally:
         conn.execute("DETACH DATABASE snap")

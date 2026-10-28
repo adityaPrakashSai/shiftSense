@@ -125,13 +125,15 @@ def test_demo_reset_restores_baseline_and_keeps_cache(client: TestClient, db_pat
     conn = connect(db_path)
     conn.execute("INSERT INTO llm_cache(cache_key, provider) VALUES('k1', 'baseten')")
     conn.commit()
+    # the committed cache (data/llm_cache.jsonl) is imported at startup, so compare counts
+    cached = conn.execute("SELECT COUNT(*) FROM llm_cache").fetchone()[0]
     t0 = time.perf_counter()
     r = client.post("/api/demo/reset")
     assert r.status_code == 200 and time.perf_counter() - t0 < 3
     assert r.json()["run_id"] == base and r.json()["seed"] == "mini"
     assert client.get("/api/roster").json()["run"]["run_id"] == base
     assert client.get(f"/api/runs/{run_id}").status_code == 404
-    assert conn.execute("SELECT COUNT(*) FROM llm_cache").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM llm_cache").fetchone()[0] == cached
     assert client.get("/api/events").json()[-1]["kind"] == "demo.reset"
     conn.close()
 

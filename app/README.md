@@ -17,3 +17,9 @@ re-solves a stored run.
 `llm/`: `gateway.py` (cache, modes, spend cap, `llm_call` logging), `providers.py`
 (`OpenAICompatProvider` for Baseten / Meta Model API / Modal), `jsonproto.py` (JSON tool protocol
 fallback), `cache.py`, `mock.py`, `prices.toml`, `prompts/` and `smoke.py`.
+
+`intake/`: `pipeline.py` (message -> prompt -> ConstraintEdit -> repair -> semantic checks ->
+pending requests and a templated reply), `semantic.py` (step 5 checks), `resolve_names.py`,
+`dates.py` (ward time, `DEMO_NOW`, 35-day calendar) and `templates/{en,hi}.toml`.
+`planner/requests.py` confirms, rejects and approves requests; `domain/edits.py` is the 7.2 edit
+language.

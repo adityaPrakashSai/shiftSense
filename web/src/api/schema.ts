@@ -206,10 +206,122 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Messages
+         * @description A sender's chat history, oldest first, with the current status of each parsed request.
+         */
+        get: operations["list_messages_api_messages_get"];
+        put?: never;
+        /**
+         * Post Message
+         * @description Intake (7.3): parse a message into a ConstraintEdit, then confirm or clarify.
+         */
+        post: operations["post_message_api_messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Requests */
+        get: operations["list_requests_api_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/requests/{request_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Request
+         * @description The sender confirms (7.3 step 7); a full re-solve starts when the roster inputs changed.
+         */
+        post: operations["confirm_request_api_requests__request_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/requests/{request_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Request
+         * @description The parse was wrong (sender), or the charge nurse declines a leave or swap.
+         */
+        post: operations["reject_request_api_requests__request_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Request
+         * @description The charge nurse approves a leave or swap (Q7).
+         */
+        post: operations["approve_request_api_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Body_post_message_api_messages_post */
+        Body_post_message_api_messages_post: {
+            /** Sender Id */
+            sender_id: string;
+            /** Text */
+            text?: string | null;
+            /** Audio */
+            audio?: string | null;
+            /** Image */
+            image?: string | null;
+        };
         /** Cell */
         Cell: {
             /** Nurse Id */
@@ -247,6 +359,35 @@ export interface components {
             to_shift: string | null;
             /** Cause */
             cause: string | null;
+        };
+        /** ConstraintEdit */
+        ConstraintEdit: {
+            /**
+             * Intent
+             * @enum {string}
+             */
+            intent: "edit" | "question" | "greeting" | "out_of_scope";
+            /**
+             * Edits
+             * @default []
+             */
+            edits: components["schemas"]["Edit"][];
+            /** Question */
+            question?: string | null;
+            /**
+             * Needs Clarification
+             * @default false
+             */
+            needs_clarification: boolean;
+            /** Clarification */
+            clarification?: string | null;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "hi" | "hinglish";
+            /** Confidence */
+            confidence: number;
         };
         /** CostSummary */
         CostSummary: {
@@ -306,6 +447,44 @@ export interface components {
              */
             min_senior: number;
         };
+        /** Edit */
+        Edit: {
+            op: components["schemas"]["EditOp"];
+            /**
+             * Nurse
+             * @default self
+             */
+            nurse: string;
+            /**
+             * Dates
+             * @default []
+             */
+            dates: string[];
+            /** Shifts */
+            shifts?: components["schemas"]["ShiftCode"][] | null;
+            /** Counterpart */
+            counterpart?: string | null;
+            /**
+             * Counterpart Dates
+             * @default []
+             */
+            counterpart_dates: string[];
+            /** Counterpart Shifts */
+            counterpart_shifts?: components["schemas"]["ShiftCode"][] | null;
+            /** Request Id */
+            request_id?: string | null;
+            /** Target Total */
+            target_total?: number | null;
+            /** Reason Category */
+            reason_category?: ("sick" | "family" | "personal" | "training" | "other") | null;
+            /** Evidence Span */
+            evidence_span: string;
+        };
+        /**
+         * EditOp
+         * @enum {string}
+         */
+        EditOp: "mark_unavailable" | "request_leave" | "request_day_off" | "request_shift" | "avoid_shift" | "propose_swap" | "cancel_request" | "change_demand";
         /** EventOut */
         EventOut: {
             /** Seq */
@@ -396,6 +575,46 @@ export interface components {
             /** Ts */
             ts: string;
         };
+        /** MessageRecord */
+        MessageRecord: {
+            /** Message Id */
+            message_id: string;
+            /** Nurse Id */
+            nurse_id: string;
+            /** Body */
+            body: string;
+            /** Created At */
+            created_at: string;
+            /** Language */
+            language: string | null;
+            /** Reply */
+            reply: string | null;
+            /** Reply Kind */
+            reply_kind: string | null;
+            /** Request Ids */
+            request_ids: string[];
+            /** Requests */
+            requests: components["schemas"]["RequestOut"][];
+        };
+        /** MessageReply */
+        MessageReply: {
+            /** Message Id */
+            message_id: string;
+            parse: components["schemas"]["ConstraintEdit"] | null;
+            /** Request Id */
+            request_id: string | null;
+            /** Request Ids */
+            request_ids: string[];
+            /** Reply */
+            reply: string;
+            /**
+             * Reply Kind
+             * @enum {string}
+             */
+            reply_kind: "confirm" | "clarify" | "answer" | "refuse";
+            /** Language */
+            language: string;
+        };
         /** Nurse */
         Nurse: {
             /** Id */
@@ -479,6 +698,55 @@ export interface components {
              */
             by: string;
         };
+        /** RequestAction */
+        RequestAction: {
+            request: components["schemas"]["RequestOut"];
+            /** Requests */
+            requests: components["schemas"]["RequestOut"][];
+            /** Run Id */
+            run_id: string | null;
+        };
+        /** RequestOut */
+        RequestOut: {
+            /** Id */
+            id: string;
+            /** Nurse Id */
+            nurse_id: string;
+            /** Kind */
+            kind: string;
+            /** Dates */
+            dates: string[];
+            /** Shifts */
+            shifts: string[] | null;
+            /** Leave Type */
+            leave_type: string | null;
+            /** Counterpart Id */
+            counterpart_id: string | null;
+            /** Counterpart Dates */
+            counterpart_dates: string[];
+            /** Counterpart Shifts */
+            counterpart_shifts: string[] | null;
+            /** Target Total */
+            target_total: number | null;
+            /** Ref Request Id */
+            ref_request_id: string | null;
+            /** Hard */
+            hard: boolean;
+            /** Weight */
+            weight: number;
+            /** Status */
+            status: string;
+            /** Source Message Id */
+            source_message_id: string | null;
+            /** Created At */
+            created_at: string;
+            outcome: components["schemas"]["Outcome"] | null;
+        };
+        /**
+         * RequestStatus
+         * @enum {string}
+         */
+        RequestStatus: "pending_confirm" | "active" | "pending_approval" | "rejected" | "withdrawn" | "applied";
         /** ResetOut */
         ResetOut: {
             /** Ok */
@@ -1010,6 +1278,196 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LLMUsage"];
+                };
+            };
+        };
+    };
+    list_messages_api_messages_get: {
+        parameters: {
+            query: {
+                nurse_id: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageRecord"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_message_api_messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_post_message_api_messages_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageReply"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_requests_api_requests_get: {
+        parameters: {
+            query?: {
+                nurse_id?: string | null;
+                status?: components["schemas"]["RequestStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_request_api_requests__request_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestAction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_request_api_requests__request_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestAction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_request_api_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestAction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

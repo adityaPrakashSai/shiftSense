@@ -20,6 +20,15 @@ def connect(path: str | Path) -> sqlite3.Connection:
 ADDED_COLUMNS = [
     ("llm_call", "reasoning", "TEXT"),
     ("llm_call", "reasoning_tokens", "INT"),
+    ("message", "language", "TEXT"),
+    ("message", "parse_json", "TEXT"),
+    ("message", "reply", "TEXT"),
+    ("message", "reply_kind", "TEXT"),
+    ("message", "request_ids_json", "TEXT"),
+    ("request", "counterpart_dates_json", "TEXT"),
+    ("request", "counterpart_shifts_json", "TEXT"),
+    ("request", "target_total", "INT"),
+    ("request", "ref_request_id", "TEXT"),
 ]
 
 

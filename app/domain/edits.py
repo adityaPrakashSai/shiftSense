@@ -1,7 +1,8 @@
 """The constraint edit language (design doc 7.2): the only structure the intake model may emit.
 
-It is a closed set of operations; anything else is `out_of_scope` or a clarification. The mapping
-from an edit to a stored `Request` (`Request.from_edit`) arrives with the intake pipeline in M6.
+It is a closed set of operations; anything else is `out_of_scope` or a clarification. A validated
+edit becomes a stored `Request` through `Request.from_edit` (kind from OP_KIND, `hard` from
+HARD_KINDS).
 """
 
 from datetime import date
@@ -10,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.domain.models import ShiftCode
+from app.domain.models import RequestKind, ShiftCode
 
 
 class EditOp(StrEnum):
@@ -22,6 +23,20 @@ class EditOp(StrEnum):
     PROPOSE_SWAP = "propose_swap"  # two nurses, two cells -> forcings after approval
     CANCEL_REQUEST = "cancel_request"
     CHANGE_DEMAND = "change_demand"  # charge nurse only: target for (date, shift)
+
+
+OP_KIND: dict[EditOp, RequestKind] = {
+    EditOp.MARK_UNAVAILABLE: RequestKind.UNAVAILABLE,
+    EditOp.REQUEST_LEAVE: RequestKind.LEAVE,
+    EditOp.REQUEST_DAY_OFF: RequestKind.DAY_OFF,
+    EditOp.REQUEST_SHIFT: RequestKind.SHIFT_WANTED,
+    EditOp.AVOID_SHIFT: RequestKind.SHIFT_AVOID,
+    EditOp.PROPOSE_SWAP: RequestKind.SWAP,
+    EditOp.CANCEL_REQUEST: RequestKind.CANCEL,
+    EditOp.CHANGE_DEMAND: RequestKind.DEMAND,
+}
+CHARGE_ONLY = frozenset({EditOp.CHANGE_DEMAND})
+CHARGE_ID = "charge"  # sender id of the charge nurse (demo: no auth, 10.1)
 
 
 class Edit(BaseModel):

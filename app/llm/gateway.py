@@ -15,11 +15,11 @@ import threading
 import time
 import uuid
 from collections.abc import Callable, Mapping
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.config import Settings, get_settings
+from app.config import ProviderName, Settings, get_settings
 from app.llm import cache
 from app.llm.jsonproto import loads_json, parse_reply
 from app.llm.mock import MockProvider
@@ -31,6 +31,7 @@ from app.llm.types import (
     LLMRequest,
     LLMResponse,
     MalformedToolCall,
+    ProviderCaps,
     ProviderError,
     ProviderResult,
     Role,
@@ -43,7 +44,7 @@ from app.store.repo import now_iso_ms
 MALFORMED_LIMIT = 2  # native tool calls with bad arguments before a role switches to JSON protocol
 
 
-def role_provider(s: Settings, role: Role) -> str:
+def role_provider(s: Settings, role: Role) -> ProviderName:
     override = {
         Role.INTAKE: s.llm_provider_intake,
         Role.EXPLAIN: s.llm_provider_explain,
@@ -54,6 +55,18 @@ def role_provider(s: Settings, role: Role) -> str:
         Role.VOICE: s.llm_provider_vision,
     }.get(role)
     return override or s.llm_provider_default
+
+
+@dataclass
+class ReplayOnly:
+    """Stands in for an unconfigured provider in replay mode (CI has no API keys)."""
+
+    name: str
+    model: str
+    caps: ProviderCaps = field(default_factory=ProviderCaps)
+
+    async def complete(self, req: LLMRequest, *, json_protocol: bool) -> ProviderResult:
+        raise CacheMiss(f"replay mode: no cached response and no {self.name} key")
 
 
 class LLMGateway:
@@ -87,6 +100,10 @@ class LLMGateway:
             return self.mock
         name = role_provider(self.s, role)
         p = self.providers.get(name)
+        model = self.s.model_for(name)
+        if p is None and self.mode == "replay" and model:
+            # replay needs only the provider's name and model for the cache key, not a key
+            return ReplayOnly(name, model)
         if p is None:
             raise ProviderError(f"provider {name!r} is not configured (set its key in .env)")
         return p

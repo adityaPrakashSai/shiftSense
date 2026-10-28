@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
+from app.domain.edits import ConstraintEdit
+
 
 class Health(BaseModel):
     ok: bool
@@ -179,3 +181,51 @@ class LLMUsage(BaseModel):
     json_protocol_roles: list[str]
     by_provider: list[ProviderUsage]
     last_call: LastCall | None
+
+
+class RequestOut(BaseModel):
+    id: str
+    nurse_id: str
+    kind: str
+    dates: list[date]
+    shifts: list[str] | None
+    leave_type: str | None
+    counterpart_id: str | None
+    counterpart_dates: list[date]
+    counterpart_shifts: list[str] | None
+    target_total: int | None
+    ref_request_id: str | None
+    hard: bool
+    weight: int
+    status: str  # pending_confirm | active | pending_approval | rejected | withdrawn | applied
+    source_message_id: str | None
+    created_at: str
+    outcome: Outcome | None  # in the newest solved run that includes it
+
+
+class MessageReply(BaseModel):
+    message_id: str
+    parse: ConstraintEdit | None
+    request_id: str | None
+    request_ids: list[str]
+    reply: str
+    reply_kind: Literal["confirm", "clarify", "answer", "refuse"]
+    language: str
+
+
+class MessageRecord(BaseModel):
+    message_id: str
+    nurse_id: str
+    body: str
+    created_at: str
+    language: str | None
+    reply: str | None
+    reply_kind: str | None
+    request_ids: list[str]
+    requests: list[RequestOut]  # their current status, so a reloaded chat shows Confirm only once
+
+
+class RequestAction(BaseModel):
+    request: RequestOut
+    requests: list[RequestOut]  # every request the action changed (a message confirms at once)
+    run_id: str | None  # the solve it started, if the roster inputs changed

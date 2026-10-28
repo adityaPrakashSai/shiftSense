@@ -94,6 +94,27 @@ def _history(ward: Ward, history: WardHistory | None) -> dict[str, NurseHistory]
     return out
 
 
+def _swap_forcings(ward: Ward, requests: Iterable[Request], in_horizon: set[int]) -> list[Forcing]:
+    """An approved swap: the sender gives (d1, s1) to the counterpart and takes (d2, s2). Each
+    takes the other's shift, and is forced off on their own day when the days differ."""
+    out: list[Forcing] = []
+    for r in sorted(requests, key=lambda r: r.id):
+        if r.kind is not RequestKind.SWAP or r.status is not RequestStatus.ACTIVE:
+            continue
+        if not (r.counterpart_id and r.dates and r.counterpart_dates):
+            continue
+        if not (r.shifts and r.counterpart_shifts):
+            continue
+        d1, d2 = day_index(ward, r.dates[0]), day_index(ward, r.counterpart_dates[0])
+        s1, s2 = r.shifts[0].value, r.counterpart_shifts[0].value
+        a, b = r.nurse_id, r.counterpart_id
+        cells: list[tuple[str, int, str | None]] = [(b, d1, s1), (a, d2, s2)]
+        if d1 != d2:
+            cells += [(a, d1, None), (b, d2, None)]
+        out += [Forcing("swap", n, d, sh) for n, d, sh in cells if d in in_horizon]
+    return out
+
+
 def build_input(
     ward: Ward,
     requests: Iterable[Request],
@@ -101,6 +122,7 @@ def build_input(
     *,
     standby_allowed: bool = False,
 ) -> SolveInput:
+    requests = list(requests)
     days = ward.horizon_days
     dates = horizon_dates(ward)
     in_horizon = set(range(days))
@@ -141,8 +163,8 @@ def build_input(
                     wanted += [Pref(r.id, r.nurse_id, d, s, r.weight) for s in shifts or []]
                 case RequestKind.SHIFT_AVOID:
                     avoids += [Pref(r.id, r.nurse_id, d, s, r.weight) for s in shifts or []]
-                case RequestKind.SWAP:
-                    pass  # becomes forcings only after approval (M6+), never directly
+                case RequestKind.SWAP | RequestKind.CANCEL | RequestKind.DEMAND:
+                    pass  # swaps become forcings below; cancel / demand are applied on confirm
 
     # a person who is away that day cannot be forced onto a fixed duty
     away = {(n, d) for n, d, s in unavailable if s is None} | leave
@@ -156,6 +178,8 @@ def build_input(
                 shift = n.fixed_duty.get(dates[d].weekday())
                 if shift is not None and (n.id, d) not in away:
                     forced.append(Forcing("fixed_duty", n.id, d, shift.value))
+
+    forced += _swap_forcings(ward, requests, in_horizon)
 
     return SolveInput(
         nurses=_nurse_specs(ward),

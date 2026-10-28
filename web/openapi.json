@@ -509,10 +509,353 @@
      }
     }
    }
+  },
+  "/api/messages": {
+   "post": {
+    "tags": [
+     "intake"
+    ],
+    "summary": "Post Message",
+    "description": "Intake (7.3): parse a message into a ConstraintEdit, then confirm or clarify.",
+    "operationId": "post_message_api_messages_post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_post_message_api_messages_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageReply"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "intake"
+    ],
+    "summary": "List Messages",
+    "description": "A sender's chat history, oldest first, with the current status of each parsed request.",
+    "operationId": "list_messages_api_messages_get",
+    "parameters": [
+     {
+      "name": "nurse_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Nurse Id"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 100,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MessageRecord"
+         },
+         "title": "Response List Messages Api Messages Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/requests": {
+   "get": {
+    "tags": [
+     "intake"
+    ],
+    "summary": "List Requests",
+    "operationId": "list_requests_api_requests_get",
+    "parameters": [
+     {
+      "name": "nurse_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Nurse Id"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/RequestStatus"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/RequestOut"
+         },
+         "title": "Response List Requests Api Requests Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/requests/{request_id}/confirm": {
+   "post": {
+    "tags": [
+     "intake"
+    ],
+    "summary": "Confirm Request",
+    "description": "The sender confirms (7.3 step 7); a full re-solve starts when the roster inputs changed.",
+    "operationId": "confirm_request_api_requests__request_id__confirm_post",
+    "parameters": [
+     {
+      "name": "request_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Request Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RequestAction"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/requests/{request_id}/reject": {
+   "post": {
+    "tags": [
+     "intake"
+    ],
+    "summary": "Reject Request",
+    "description": "The parse was wrong (sender), or the charge nurse declines a leave or swap.",
+    "operationId": "reject_request_api_requests__request_id__reject_post",
+    "parameters": [
+     {
+      "name": "request_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Request Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RequestAction"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/requests/{request_id}/approve": {
+   "post": {
+    "tags": [
+     "intake"
+    ],
+    "summary": "Approve Request",
+    "description": "The charge nurse approves a leave or swap (Q7).",
+    "operationId": "approve_request_api_requests__request_id__approve_post",
+    "parameters": [
+     {
+      "name": "request_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Request Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RequestAction"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
   "schemas": {
+   "Body_post_message_api_messages_post": {
+    "properties": {
+     "sender_id": {
+      "type": "string",
+      "title": "Sender Id"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Text"
+     },
+     "audio": {
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Audio"
+     },
+     "image": {
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sender_id"
+    ],
+    "title": "Body_post_message_api_messages_post"
+   },
    "Cell": {
     "properties": {
      "nurse_id": {
@@ -652,6 +995,77 @@
     ],
     "title": "Change"
    },
+   "ConstraintEdit": {
+    "properties": {
+     "intent": {
+      "type": "string",
+      "enum": [
+       "edit",
+       "question",
+       "greeting",
+       "out_of_scope"
+      ],
+      "title": "Intent"
+     },
+     "edits": {
+      "items": {
+       "$ref": "#/components/schemas/Edit"
+      },
+      "type": "array",
+      "title": "Edits",
+      "default": []
+     },
+     "question": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Question"
+     },
+     "needs_clarification": {
+      "type": "boolean",
+      "title": "Needs Clarification",
+      "default": false
+     },
+     "clarification": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Clarification"
+     },
+     "language": {
+      "type": "string",
+      "enum": [
+       "en",
+       "hi",
+       "hinglish"
+      ],
+      "title": "Language"
+     },
+     "confidence": {
+      "type": "number",
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence"
+     }
+    },
+    "type": "object",
+    "required": [
+     "intent",
+     "language",
+     "confidence"
+    ],
+    "title": "ConstraintEdit"
+   },
    "CostSummary": {
     "properties": {
      "tier": {
@@ -774,6 +1188,139 @@
      "target_total"
     ],
     "title": "Demand"
+   },
+   "Edit": {
+    "properties": {
+     "op": {
+      "$ref": "#/components/schemas/EditOp"
+     },
+     "nurse": {
+      "type": "string",
+      "title": "Nurse",
+      "default": "self"
+     },
+     "dates": {
+      "items": {
+       "type": "string",
+       "format": "date"
+      },
+      "type": "array",
+      "title": "Dates",
+      "default": []
+     },
+     "shifts": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/ShiftCode"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shifts"
+     },
+     "counterpart": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Counterpart"
+     },
+     "counterpart_dates": {
+      "items": {
+       "type": "string",
+       "format": "date"
+      },
+      "type": "array",
+      "title": "Counterpart Dates",
+      "default": []
+     },
+     "counterpart_shifts": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/ShiftCode"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Counterpart Shifts"
+     },
+     "request_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request Id"
+     },
+     "target_total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Total"
+     },
+     "reason_category": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "sick",
+         "family",
+         "personal",
+         "training",
+         "other"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Category"
+     },
+     "evidence_span": {
+      "type": "string",
+      "title": "Evidence Span"
+     }
+    },
+    "type": "object",
+    "required": [
+     "op",
+     "evidence_span"
+    ],
+    "title": "Edit"
+   },
+   "EditOp": {
+    "type": "string",
+    "enum": [
+     "mark_unavailable",
+     "request_leave",
+     "request_day_off",
+     "request_shift",
+     "avoid_shift",
+     "propose_swap",
+     "cancel_request",
+     "change_demand"
+    ],
+    "title": "EditOp"
    },
    "EventOut": {
     "properties": {
@@ -1031,6 +1578,151 @@
     ],
     "title": "LastCall"
    },
+   "MessageRecord": {
+    "properties": {
+     "message_id": {
+      "type": "string",
+      "title": "Message Id"
+     },
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "body": {
+      "type": "string",
+      "title": "Body"
+     },
+     "created_at": {
+      "type": "string",
+      "title": "Created At"
+     },
+     "language": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Language"
+     },
+     "reply": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reply"
+     },
+     "reply_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reply Kind"
+     },
+     "request_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Request Ids"
+     },
+     "requests": {
+      "items": {
+       "$ref": "#/components/schemas/RequestOut"
+      },
+      "type": "array",
+      "title": "Requests"
+     }
+    },
+    "type": "object",
+    "required": [
+     "message_id",
+     "nurse_id",
+     "body",
+     "created_at",
+     "language",
+     "reply",
+     "reply_kind",
+     "request_ids",
+     "requests"
+    ],
+    "title": "MessageRecord"
+   },
+   "MessageReply": {
+    "properties": {
+     "message_id": {
+      "type": "string",
+      "title": "Message Id"
+     },
+     "parse": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ConstraintEdit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "request_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request Id"
+     },
+     "request_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Request Ids"
+     },
+     "reply": {
+      "type": "string",
+      "title": "Reply"
+     },
+     "reply_kind": {
+      "type": "string",
+      "enum": [
+       "confirm",
+       "clarify",
+       "answer",
+       "refuse"
+      ],
+      "title": "Reply Kind"
+     },
+     "language": {
+      "type": "string",
+      "title": "Language"
+     }
+    },
+    "type": "object",
+    "required": [
+     "message_id",
+     "parse",
+     "request_id",
+     "request_ids",
+     "reply",
+     "reply_kind",
+     "language"
+    ],
+    "title": "MessageReply"
+   },
    "Nurse": {
     "properties": {
      "id": {
@@ -1221,6 +1913,212 @@
     },
     "type": "object",
     "title": "PublishBody"
+   },
+   "RequestAction": {
+    "properties": {
+     "request": {
+      "$ref": "#/components/schemas/RequestOut"
+     },
+     "requests": {
+      "items": {
+       "$ref": "#/components/schemas/RequestOut"
+      },
+      "type": "array",
+      "title": "Requests"
+     },
+     "run_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Run Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "request",
+     "requests",
+     "run_id"
+    ],
+    "title": "RequestAction"
+   },
+   "RequestOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "dates": {
+      "items": {
+       "type": "string",
+       "format": "date"
+      },
+      "type": "array",
+      "title": "Dates"
+     },
+     "shifts": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shifts"
+     },
+     "leave_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Leave Type"
+     },
+     "counterpart_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Counterpart Id"
+     },
+     "counterpart_dates": {
+      "items": {
+       "type": "string",
+       "format": "date"
+      },
+      "type": "array",
+      "title": "Counterpart Dates"
+     },
+     "counterpart_shifts": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Counterpart Shifts"
+     },
+     "target_total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target Total"
+     },
+     "ref_request_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ref Request Id"
+     },
+     "hard": {
+      "type": "boolean",
+      "title": "Hard"
+     },
+     "weight": {
+      "type": "integer",
+      "title": "Weight"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "source_message_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Message Id"
+     },
+     "created_at": {
+      "type": "string",
+      "title": "Created At"
+     },
+     "outcome": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Outcome"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "nurse_id",
+     "kind",
+     "dates",
+     "shifts",
+     "leave_type",
+     "counterpart_id",
+     "counterpart_dates",
+     "counterpart_shifts",
+     "target_total",
+     "ref_request_id",
+     "hard",
+     "weight",
+     "status",
+     "source_message_id",
+     "created_at",
+     "outcome"
+    ],
+    "title": "RequestOut"
+   },
+   "RequestStatus": {
+    "type": "string",
+    "enum": [
+     "pending_confirm",
+     "active",
+     "pending_approval",
+     "rejected",
+     "withdrawn",
+     "applied"
+    ],
+    "title": "RequestStatus"
    },
    "ResetOut": {
     "properties": {

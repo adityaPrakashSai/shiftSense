@@ -1,0 +1,55 @@
+# Deterministic intake replies, Hindi in Roman script (design doc 7.3 step 6). Used when the
+# sender writes in Hindi (Devanagari or Roman) or Hinglish.
+
+[confirm]
+mark_unavailable = "Aapko {duty} se hata diya jayega."
+request_leave = "{days} ke liye chhutti. Yeh charge nurse ke paas approval ke liye jayegi."
+request_day_off = "{days} ko off ki request. Koshish karenge, par pakka nahi hai."
+request_shift = "Request: {days} ko {shifts} shift, agar ho sake."
+avoid_shift = "Request: {days} ko {shifts} shift nahi, agar ho sake."
+propose_swap = "Swap: aapki {mine} {counterpart} ko, aur unki {theirs} aapko. Iske liye charge nurse ki approval chahiye."
+cancel_request = "Request {request_id} ({summary}) cancel ho jayegi."
+change_demand = "{days} ki {shifts} shift ka target {target} nurse ho jayega."
+question = "Confirm karein?"
+
+[duty]
+shifts = "{days} ki {shifts} duty"
+whole_day = "{days} ki poore din ki duty"
+
+[clarify]
+rephrase = "Maaf kijiye, samajh nahi aaya. Kripya ek chhote message mein dobara bataiye."
+generic = "Kaunsa din aur kaunsi shift? Thoda bata dijiye."
+unknown_nurse = "\"{name}\" naam ki koi nurse nahi mili. Kripya poora naam bataiye."
+ambiguous_nurse = "Kaunsi {name}: {candidates}?"
+not_own = "Yahan sirf apni request bhejiye. Doosron ki duty ke liye charge nurse se baat kijiye."
+charge_only = "Shift ka target sirf charge nurse dwara badla ja sakta hai."
+missing_dates = "Kis din ke liye?"
+missing_shifts = "Kaunsi shift: Morning, Evening ya Night?"
+past_date = "{day} nikal chuka hai. Kaunsa din?"
+outside_window = "Sirf {last} tak ki request li ja sakti hai. Kaunsa din?"
+shift_started = "{day} ki {shift} shift shuru ho chuki hai. Kripya charge nurse ko seedha call karein."
+no_evidence = "Maaf kijiye, request samajh nahi aayi. Kripya dobara bataiye."
+swap_one_cell = "Swap ke liye apni ek shift aur unki ek shift bataiye."
+swap_self = "Aap kisse swap karna chahti hain?"
+swap_cells = "Published roster mein {who} ki {cell} nahi hai. Kripya din aur shift check karein."
+unknown_request = "Request {request_id} aapki open requests mein nahi mili. Kaunsi cancel karni hai?"
+demand_target = "Us shift mein kitni nurse chahiye?"
+outside_period = "{day} abhi ke roster period ({first} se {last}) se bahar hai."
+
+[reply]
+greeting = "Namaste! Sick call, off, chhutti ya swap ke baare mein bataiye; request charge nurse tak pahunch jayegi."
+refuse = "Yahan sirf duty requests aur roster ke sawaal liye jaate hain. Dawai ya sehat ke liye doctor se baat kijiye."
+question = "Shukriya, aapka sawaal note kar liya hai. Roster ke sawaalon ke jawaab jald aayenge."
+confirmed = "Ho gaya. Aapki request darj ho gayi."
+confirmed_pending = "Ho gaya. Yeh charge nurse ki approval ka intezaar kar rahi hai."
+rejected = "Theek hai, hata diya. Kripya dobara bataiye aapko kya chahiye."
+
+[shift]
+M = "Morning"
+E = "Evening"
+N = "Night"
+G = "General"
+
+[words]
+and = "aur"
+whole_day = "poora din"

@@ -15,6 +15,10 @@ export type RunDetail = S["RunDetail"];
 export type EventOut = S["EventOut"];
 export type ResetOut = S["ResetOut"];
 export type LLMUsage = S["LLMUsage"];
+export type RequestOut = S["RequestOut"];
+export type MessageReply = S["MessageReply"];
+export type MessageRecord = S["MessageRecord"];
+export type RequestAction = S["RequestAction"];
 
 export class ApiError extends Error {
   constructor(
@@ -27,9 +31,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // multipart bodies (FormData) set their own Content-Type with the boundary
+  const json = !(init?.body instanceof FormData);
   const res = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: { ...(json ? { "Content-Type": "application/json" } : {}), ...(init?.headers ?? {}) },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -64,4 +70,16 @@ export const api = {
   lastEvents: (n: number) => request<EventOut[]>(`/api/events${qs({ last: n })}`),
   reset: () => request<ResetOut>("/api/demo/reset", { method: "POST" }),
   llmUsage: () => request<LLMUsage>("/api/llm/usage"),
+  sendMessage: (senderId: string, text: string) => {
+    const form = new FormData();
+    form.set("sender_id", senderId);
+    form.set("text", text);
+    return request<MessageReply>("/api/messages", { method: "POST", body: form });
+  },
+  messages: (nurseId: string) => request<MessageRecord[]>(`/api/messages${qs({ nurse_id: nurseId })}`),
+  requests: (params: { nurse_id?: string; status?: string }) =>
+    request<RequestOut[]>(`/api/requests${qs(params)}`),
+  confirm: (id: string) => request<RequestAction>(`/api/requests/${id}/confirm`, { method: "POST" }),
+  reject: (id: string) => request<RequestAction>(`/api/requests/${id}/reject`, { method: "POST" }),
+  approve: (id: string) => request<RequestAction>(`/api/requests/${id}/approve`, { method: "POST" }),
 };

@@ -1,0 +1,3749 @@
+{
+ "suite": "intake",
+ "provider": "baseten",
+ "mode": "live",
+ "date": "2026-10-28",
+ "summary": {
+  "cases": 50,
+  "first_pass_accuracy": 100.0,
+  "accuracy_after_repair": 100.0,
+  "clarification_precision": 100.0,
+  "clarification_recall": 100.0,
+  "first_pass_schema_failure_rate": 0.0,
+  "schema_failure_rate": 0.0,
+  "errors": 0,
+  "latency_p50_ms": 3887,
+  "latency_p95_ms": 7273,
+  "cost_usd_total": 0.1767,
+  "cost_usd_per_case": 0.00353,
+  "cache_hits": 2,
+  "by_tag": {
+   "ambiguous": "5/5",
+   "charge": "3/3",
+   "day_off": "3/3",
+   "leave": "4/4",
+   "oos": "5/5",
+   "pref": "5/5",
+   "relative": "6/6",
+   "sick": "15/15",
+   "swap": "4/4"
+  }
+ },
+ "cases": [
+  {
+   "id": "in-001",
+   "tags": [
+    "sick",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N05",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N05",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off your Night duty on Tue 3 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-03"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "Can't come in for my night shift tonight"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.97
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 2816,
+   "cost_usd": 0.00288,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-002",
+   "tags": [
+    "sick",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N02",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N02",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off your Morning duty on Wed 4 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-04"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "won't be able to do tomorrow morning"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 2631,
+   "cost_usd": 0.0030365,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-003",
+   "tags": [
+    "sick",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N10",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "E"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N10",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off your Evening duty on Tue 3 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-03"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "I can't do my evening shift today"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 2730,
+   "cost_usd": 0.0028315,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-004",
+   "tags": [
+    "sick",
+    "en",
+    "weekday"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N14",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N14",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off all duty on Thu 5 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-05"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "I won't make it for Thursday's duty"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3485,
+   "cost_usd": 0.003215,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-005",
+   "tags": [
+    "sick",
+    "en",
+    "weekday"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N20",
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N20",
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off your Night duty on Fri 6 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-06"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "please take me off the Friday night shift"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3410,
+   "cost_usd": 0.003276,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-006",
+   "tags": [
+    "sick",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N04",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N04",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off your Morning duty on Wed 4 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-04"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "can't do the morning shift"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.9
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 5719,
+   "cost_usd": 0.0043055,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-007",
+   "tags": [
+    "sick",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N07",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N07",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 3 Nov (Mangalvaar) ki Morning duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-03"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "aaj subah ki duty nahi kar paungi"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 2,
+   "cost_usd": 0.0,
+   "cache_hits": 1,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-008",
+   "tags": [
+    "sick",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N01",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N01",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 4 Nov (Budhvaar) ki Night duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-04"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "kal raat ki duty nahi kar paungi"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3465,
+   "cost_usd": 0.003274,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-009",
+   "tags": [
+    "sick",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N03",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N03",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 5 Nov (Guruvaar) ki poore din ki duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-05"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "parson ki duty nahi aa paungi"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4753,
+   "cost_usd": 0.00374,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-010",
+   "tags": [
+    "sick",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N12",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "E"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N12",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 3 Nov (Mangalvaar) ki Evening duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-03"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "aaj shaam nahi aa sakti"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4094,
+   "cost_usd": 0.00364,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-011",
+   "tags": [
+    "sick",
+    "hinglish",
+    "weekday"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N16",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N16",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 5 Nov (Guruvaar) ki Morning duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-05"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "Guruvaar subah ki duty nahi kar paungi"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3428,
+   "cost_usd": 0.0033305,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-012",
+   "tags": [
+    "sick",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N18",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "E",
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N18",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "E",
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 4 Nov (Budhvaar) ki Evening aur Morning duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-04"
+       ],
+       "shifts": [
+        "M",
+        "E"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "kal ki morning aur evening dono nahi ho payegi, accident ho gaya"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 5586,
+   "cost_usd": 0.0041725,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-013",
+   "tags": [
+    "sick",
+    "devanagari"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N09",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N09",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 4 Nov (Budhvaar) ki Night duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-04"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "कल रात की ड्यूटी नहीं कर पाऊँगी"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hi",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3131,
+   "cost_usd": 0.0032435,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-014",
+   "tags": [
+    "sick",
+    "devanagari"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N15",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N15",
+      "dates": [
+       "2026-11-03"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 3 Nov (Mangalvaar) ki Morning duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-03"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "आज सुबह की ड्यूटी पर नहीं आ पाऊँगी"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hi",
+     "confidence": 0.97
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 2549,
+   "cost_usd": 0.002922,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-015",
+   "tags": [
+    "sick",
+    "devanagari",
+    "weekday"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N17",
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "E"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N17",
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 6 Nov (Shukravaar) ki Evening duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-06"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "शुक्रवार की शाम की ड्यूटी नहीं कर पाऊँगी"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hi",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3247,
+   "cost_usd": 0.003134,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-016",
+   "tags": [
+    "relative",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N11",
+      "dates": [
+       "2026-11-13"
+      ],
+      "shifts": [
+       "E"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N11",
+      "dates": [
+       "2026-11-13"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off your Evening duty on Fri 13 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-13"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "training",
+       "evidence_span": "I won't be able to come next Friday evening"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.93
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 7273,
+   "cost_usd": 0.0049315,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-017",
+   "tags": [
+    "relative",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N06",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N06",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 5 Nov (Guruvaar) ki Morning duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-05"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "parson subah ki duty nahi kar paungi"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3571,
+   "cost_usd": 0.003328,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-018",
+   "tags": [
+    "relative",
+    "hinglish",
+    "weekday"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N08",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N08",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Aapko 8 Nov (Ravivaar) ki Night duty se hata diya jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-08"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "sick",
+       "evidence_span": "Ravivaar raat ki duty nahi kar paungi"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3935,
+   "cost_usd": 0.0034975,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-019",
+   "tags": [
+    "relative",
+    "en",
+    "day_off"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N19",
+      "dates": [
+       "2026-11-12"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N19",
+      "dates": [
+       "2026-11-12"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Day off requested for Thu 12 Nov. I will try, but it is not guaranteed.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_day_off",
+       "nurse": "self",
+       "dates": [
+        "2026-11-12"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "Can I get the 12th off?"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3482,
+   "cost_usd": 0.0032605,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-020",
+   "tags": [
+    "relative",
+    "en",
+    "pref"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N14",
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N14",
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Request: Morning on Sat 7 Nov, if possible.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_shift",
+       "nurse": "self",
+       "dates": [
+        "2026-11-07"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "This Saturday I'd prefer the morning shift if possible"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.93
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4521,
+   "cost_usd": 0.003664,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-021",
+   "tags": [
+    "relative",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N20",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "mark_unavailable",
+      "nurse": "N20",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "You will be taken off your Night duty on Sun 8 Nov.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "mark_unavailable",
+       "nurse": "self",
+       "dates": [
+        "2026-11-08"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "Tomorrow night I can't come"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4030,
+   "cost_usd": 0.003429,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-022",
+   "tags": [
+    "pref",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "avoid_shift",
+      "nurse": "N10",
+      "dates": [
+       "2026-11-16",
+       "2026-11-17",
+       "2026-11-18",
+       "2026-11-19",
+       "2026-11-20",
+       "2026-11-21",
+       "2026-11-22"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "avoid_shift",
+      "nurse": "N10",
+      "dates": [
+       "2026-11-16",
+       "2026-11-17",
+       "2026-11-18",
+       "2026-11-19",
+       "2026-11-20",
+       "2026-11-21",
+       "2026-11-22"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Request: no Night on Mon 16 Nov, Tue 17 Nov, Wed 18 Nov, Thu 19 Nov, Fri 20 Nov, Sat 21 Nov and Sun 22 Nov, if possible.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "avoid_shift",
+       "nurse": "self",
+       "dates": [
+        "2026-11-16",
+        "2026-11-17",
+        "2026-11-18",
+        "2026-11-19",
+        "2026-11-20",
+        "2026-11-21",
+        "2026-11-22"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "no nights the week of 16th"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.91
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3577,
+   "cost_usd": 0.0033645,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-023",
+   "tags": [
+    "day_off",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N05",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N05",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Day off requested for Sun 8 Nov. I will try, but it is not guaranteed.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_day_off",
+       "nurse": "self",
+       "dates": [
+        "2026-11-08"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "other",
+       "evidence_span": "Please give me Sunday off"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.93
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 11256,
+   "cost_usd": 0.006528,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-024",
+   "tags": [
+    "pref",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N02",
+      "dates": [
+       "2026-11-09",
+       "2026-11-10"
+      ],
+      "shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N02",
+      "dates": [
+       "2026-11-09",
+       "2026-11-10"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Request: Morning on Mon 9 Nov and Tue 10 Nov, if possible.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_shift",
+       "nurse": "self",
+       "dates": [
+        "2026-11-09",
+        "2026-11-10"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "I'd like morning shifts on 9th and 10th"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4609,
+   "cost_usd": 0.0035735,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-025",
+   "tags": [
+    "day_off",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N07",
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N07",
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "7 Nov (Shanivaar) ko off ki request. Koshish karenge, par pakka nahi hai.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_day_off",
+       "nurse": "self",
+       "dates": [
+        "2026-11-07"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "Shanivaar ko off chahiye"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.94
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4355,
+   "cost_usd": 0.0036465,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-026",
+   "tags": [
+    "pref",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N01",
+      "dates": [
+       "2026-11-09"
+      ],
+      "shifts": [
+       "E"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N01",
+      "dates": [
+       "2026-11-09"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Request: 9 Nov (Somvaar) ko Evening shift, agar ho sake.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_shift",
+       "nurse": "self",
+       "dates": [
+        "2026-11-09"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "agle Somvaar ko evening shift mil jaye toh accha"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.92
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3966,
+   "cost_usd": 0.00374,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-027",
+   "tags": [
+    "pref",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "avoid_shift",
+      "nurse": "N04",
+      "dates": [
+       "2026-11-05",
+       "2026-11-06"
+      ],
+      "shifts": [
+       "E"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "avoid_shift",
+      "nurse": "N04",
+      "dates": [
+       "2026-11-05",
+       "2026-11-06"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Request: no Evening on Thu 5 Nov and Fri 6 Nov, if possible.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "avoid_shift",
+       "nurse": "self",
+       "dates": [
+        "2026-11-05",
+        "2026-11-06"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "Could I avoid evening shifts on the 5th and 6th?"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3088,
+   "cost_usd": 0.003256,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-028",
+   "tags": [
+    "day_off",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N12",
+      "dates": [
+       "2026-11-20"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_day_off",
+      "nurse": "N12",
+      "dates": [
+       "2026-11-20"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "20 Nov (Shukravaar) ko off ki request. Koshish karenge, par pakka nahi hai.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_day_off",
+       "nurse": "self",
+       "dates": [
+        "2026-11-20"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "mujhe 20 tareekh ko off chahiye"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3167,
+   "cost_usd": 0.003333,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-029",
+   "tags": [
+    "pref",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N16",
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_shift",
+      "nurse": "N16",
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Request: 6 Nov (Shukravaar) ko Night shift, agar ho sake.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_shift",
+       "nurse": "self",
+       "dates": [
+        "2026-11-06"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "Friday ko night shift de dijiye please"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.93
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 2884,
+   "cost_usd": 0.0031375,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-030",
+   "tags": [
+    "leave",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N15",
+      "dates": [
+       "2026-11-20",
+       "2026-11-21",
+       "2026-11-22"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N15",
+      "dates": [
+       "2026-11-20",
+       "2026-11-21",
+       "2026-11-22"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Leave for Fri 20 Nov, Sat 21 Nov and Sun 22 Nov. This goes to the charge nurse for approval.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_leave",
+       "nurse": "self",
+       "dates": [
+        "2026-11-20",
+        "2026-11-21",
+        "2026-11-22"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "I need leave from 20 to 22 Nov for my sister's wedding"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.97
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4013,
+   "cost_usd": 0.003376,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-031",
+   "tags": [
+    "leave",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N03",
+      "dates": [
+       "2026-11-25",
+       "2026-11-26",
+       "2026-11-27"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N03",
+      "dates": [
+       "2026-11-25",
+       "2026-11-26",
+       "2026-11-27"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "25 Nov (Budhvaar), 26 Nov (Guruvaar) aur 27 Nov (Shukravaar) ke liye chhutti. Yeh charge nurse ke paas approval ke liye jayegi.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_leave",
+       "nurse": "self",
+       "dates": [
+        "2026-11-25",
+        "2026-11-26",
+        "2026-11-27"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "personal",
+       "evidence_span": "Mujhe 25 se 27 November tak chhutti chahiye, gaon jaana hai"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 6386,
+   "cost_usd": 0.004523,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-032",
+   "tags": [
+    "leave",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N11",
+      "dates": [
+       "2026-12-01",
+       "2026-12-02"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N11",
+      "dates": [
+       "2026-12-01",
+       "2026-12-02"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Leave for Tue 1 Dec and Wed 2 Dec. This goes to the charge nurse for approval.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_leave",
+       "nurse": "self",
+       "dates": [
+        "2026-12-01",
+        "2026-12-02"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "Applying for leave on 1st and 2nd December, family function"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.97
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3227,
+   "cost_usd": 0.0032115,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-033",
+   "tags": [
+    "leave",
+    "devanagari"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N17",
+      "dates": [
+       "2026-11-09",
+       "2026-11-10",
+       "2026-11-11"
+      ],
+      "shifts": null
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "request_leave",
+      "nurse": "N17",
+      "dates": [
+       "2026-11-09",
+       "2026-11-10",
+       "2026-11-11"
+      ],
+      "shifts": null,
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "9 Nov (Somvaar), 10 Nov (Mangalvaar) aur 11 Nov (Budhvaar) ke liye chhutti. Yeh charge nurse ke paas approval ke liye jayegi.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "request_leave",
+       "nurse": "self",
+       "dates": [
+        "2026-11-09",
+        "2026-11-10",
+        "2026-11-11"
+       ],
+       "shifts": null,
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": null,
+       "reason_category": "family",
+       "evidence_span": "अगले सोमवार से बुधवार तक छुट्टी चाहिए"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hi",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 6538,
+   "cost_usd": 0.0045775,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-034",
+   "tags": [
+    "swap",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N07",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": "N04",
+      "counterpart_dates": [
+       "2026-11-07"
+      ],
+      "counterpart_shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N07",
+      "dates": [
+       "2026-11-08"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": "N04",
+      "counterpart_dates": [
+       "2026-11-07"
+      ],
+      "counterpart_shifts": [
+       "N"
+      ],
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Swap: Kavya Reddy takes your Sun 8 Nov Morning and you take their Sat 7 Nov Night. This needs the charge nurse's approval.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "propose_swap",
+       "nurse": "self",
+       "dates": [
+        "2026-11-08"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": "Kavya",
+       "counterpart_dates": [
+        "2026-11-07"
+       ],
+       "counterpart_shifts": [
+        "N"
+       ],
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "her Sat night for my Sun morning"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.92
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3,
+   "cost_usd": 0.0,
+   "cache_hits": 1,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-035",
+   "tags": [
+    "swap",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N02",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": "N05",
+      "counterpart_dates": [
+       "2026-11-06"
+      ],
+      "counterpart_shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N02",
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": "N05",
+      "counterpart_dates": [
+       "2026-11-06"
+      ],
+      "counterpart_shifts": [
+       "M"
+      ],
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Swap: Priya Nair takes your Thu 5 Nov Evening and you take their Fri 6 Nov Morning. This needs the charge nurse's approval.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "propose_swap",
+       "nurse": "self",
+       "dates": [
+        "2026-11-05"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": "Priya",
+       "counterpart_dates": [
+        "2026-11-06"
+       ],
+       "counterpart_shifts": [
+        "M"
+       ],
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "She takes my Thursday evening and I take her Friday morning"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.93
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3374,
+   "cost_usd": 0.003405,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-036",
+   "tags": [
+    "swap",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N06",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": "N08",
+      "counterpart_dates": [
+       "2026-11-05"
+      ],
+      "counterpart_shifts": [
+       "M"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N06",
+      "dates": [
+       "2026-11-04"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": "N08",
+      "counterpart_dates": [
+       "2026-11-05"
+      ],
+      "counterpart_shifts": [
+       "M"
+      ],
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Swap: aapki 4 Nov (Budhvaar) Night Ritu Singh ko, aur unki 5 Nov (Guruvaar) Morning aapko. Iske liye charge nurse ki approval chahiye.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "propose_swap",
+       "nurse": "self",
+       "dates": [
+        "2026-11-04"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": "Ritu",
+       "counterpart_dates": [
+        "2026-11-05"
+       ],
+       "counterpart_shifts": [
+        "M"
+       ],
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "meri kal ki night, uski parson ki morning ke badle"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.93
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3442,
+   "cost_usd": 0.0033175,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-037",
+   "tags": [
+    "swap",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N14",
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": "N10",
+      "counterpart_dates": [
+       "2026-11-09"
+      ],
+      "counterpart_shifts": [
+       "N"
+      ]
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "propose_swap",
+      "nurse": "N14",
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": [
+       "E"
+      ],
+      "counterpart": "N10",
+      "counterpart_dates": [
+       "2026-11-09"
+      ],
+      "counterpart_shifts": [
+       "N"
+      ],
+      "request_id": null,
+      "target_total": null
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "Swap: Asha Kurian takes your Sat 7 Nov Evening and you take their Mon 9 Nov Night. This needs the charge nurse's approval.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "propose_swap",
+       "nurse": "self",
+       "dates": [
+        "2026-11-07"
+       ],
+       "shifts": [
+        "E"
+       ],
+       "counterpart": "Asha",
+       "counterpart_dates": [
+        "2026-11-09"
+       ],
+       "counterpart_shifts": [
+        "N"
+       ],
+       "request_id": null,
+       "target_total": null,
+       "reason_category": null,
+       "evidence_span": "I'll do her Monday night (9th), she does my Saturday evening (7th)"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.95
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3923,
+   "cost_usd": 0.0035755,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-038",
+   "tags": [
+    "ambiguous",
+    "en",
+    "weekday"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": true,
+    "edits": []
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": true,
+    "edits": [],
+    "reply_kind": "clarify",
+    "reply": "Do you mean today, Thursday 5th November, or next Thursday 12th November, and is it the whole day or a specific shift?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [],
+     "question": null,
+     "needs_clarification": true,
+     "clarification": "Do you mean today, Thursday 5th November, or next Thursday 12th November, and is it the whole day or a specific shift?",
+     "language": "en",
+     "confidence": 0.4
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4399,
+   "cost_usd": 0.003686,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-039",
+   "tags": [
+    "ambiguous",
+    "hinglish",
+    "swap"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": true,
+    "edits": []
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": true,
+    "edits": [],
+    "reply_kind": "clarify",
+    "reply": "Meena se kaunsi date aur shift swap karni hai, please batao?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [],
+     "question": null,
+     "needs_clarification": true,
+     "clarification": "Meena se kaunsi date aur shift swap karni hai, please batao?",
+     "language": "hinglish",
+     "confidence": 0.35
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 5608,
+   "cost_usd": 0.0040285,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-040",
+   "tags": [
+    "ambiguous",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": true,
+    "edits": []
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": true,
+    "edits": [],
+    "reply_kind": "clarify",
+    "reply": "Which dates next month do you need off?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [],
+     "question": null,
+     "needs_clarification": true,
+     "clarification": "Which dates next month do you need off?",
+     "language": "en",
+     "confidence": 0.35
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 2387,
+   "cost_usd": 0.0028515,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-041",
+   "tags": [
+    "ambiguous",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": true,
+    "edits": []
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": true,
+    "edits": [],
+    "reply_kind": "clarify",
+    "reply": "Kaunse din chahiye, kripya tareekh bataiye?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [],
+     "question": null,
+     "needs_clarification": true,
+     "clarification": "Kaunse din chahiye, kripya tareekh bataiye?",
+     "language": "hinglish",
+     "confidence": 0.35
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 7597,
+   "cost_usd": 0.005036,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-042",
+   "tags": [
+    "ambiguous",
+    "en",
+    "swap"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": true,
+    "edits": []
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": true,
+    "edits": [],
+    "reply_kind": "clarify",
+    "reply": "Which weekend day and shift do you want to swap, and is it with Kavya or Priya?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [],
+     "question": null,
+     "needs_clarification": true,
+     "clarification": "Which weekend day and shift do you want to swap, and is it with Kavya or Priya?",
+     "language": "en",
+     "confidence": 0.35
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 6127,
+   "cost_usd": 0.0044225,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-043",
+   "tags": [
+    "charge",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "change_demand",
+      "nurse": null,
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "target_total": 5
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "change_demand",
+      "nurse": null,
+      "dates": [
+       "2026-11-07"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": 5
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "The target for Night on Sat 7 Nov becomes 5 nurses.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "change_demand",
+       "nurse": "self",
+       "dates": [
+        "2026-11-07"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": 5,
+       "reason_category": null,
+       "evidence_span": "we need one more on Saturday night"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4610,
+   "cost_usd": 0.004249,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-044",
+   "tags": [
+    "charge",
+    "en"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "change_demand",
+      "nurse": null,
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "target_total": 5
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "change_demand",
+      "nurse": null,
+      "dates": [
+       "2026-11-05"
+      ],
+      "shifts": [
+       "N"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": 5
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "The target for Night on Thu 5 Nov becomes 5 nurses.\nConfirm?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "change_demand",
+       "nurse": "self",
+       "dates": [
+        "2026-11-05"
+       ],
+       "shifts": [
+        "N"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": 5,
+       "reason_category": null,
+       "evidence_span": "Thursday night needs 5, not 4"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.96
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4170,
+   "cost_usd": 0.00408,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-045",
+   "tags": [
+    "charge",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "edit",
+    "needs_clarification": false,
+    "edits": [
+     {
+      "op": "change_demand",
+      "nurse": null,
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "target_total": 6
+     }
+    ]
+   },
+   "got": {
+    "intent": "edit",
+    "clarify": false,
+    "edits": [
+     {
+      "op": "change_demand",
+      "nurse": null,
+      "dates": [
+       "2026-11-06"
+      ],
+      "shifts": [
+       "M"
+      ],
+      "counterpart": null,
+      "counterpart_dates": [],
+      "counterpart_shifts": null,
+      "request_id": null,
+      "target_total": 6
+     }
+    ],
+    "reply_kind": "confirm",
+    "reply": "6 Nov (Shukravaar) ki Morning shift ka target 6 nurse ho jayega.\nConfirm karein?",
+    "problems": [],
+    "parse": {
+     "intent": "edit",
+     "edits": [
+      {
+       "op": "change_demand",
+       "nurse": "self",
+       "dates": [
+        "2026-11-06"
+       ],
+       "shifts": [
+        "M"
+       ],
+       "counterpart": null,
+       "counterpart_dates": [],
+       "counterpart_shifts": null,
+       "request_id": null,
+       "target_total": 6,
+       "reason_category": null,
+       "evidence_span": "Friday morning ek nurse kam chalegi"
+      }
+     ],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.94
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 7079,
+   "cost_usd": 0.005265,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-046",
+   "tags": [
+    "oos",
+    "medical",
+    "en"
+   ],
+   "expect": {
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "edits": []
+   },
+   "got": {
+    "intent": "out_of_scope",
+    "clarify": false,
+    "edits": [],
+    "reply_kind": "refuse",
+    "reply": "I can only help with duty requests and roster questions. For anything medical, please speak to a doctor.",
+    "problems": [],
+    "parse": {
+     "intent": "out_of_scope",
+     "edits": [],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.99
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4110,
+   "cost_usd": 0.003468,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-047",
+   "tags": [
+    "oos",
+    "injection",
+    "en"
+   ],
+   "expect": {
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "edits": []
+   },
+   "got": {
+    "intent": "out_of_scope",
+    "clarify": false,
+    "edits": [],
+    "reply_kind": "refuse",
+    "reply": "I can only help with duty requests and roster questions. For anything medical, please speak to a doctor.",
+    "problems": [],
+    "parse": {
+     "intent": "out_of_scope",
+     "edits": [],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.99
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 4123,
+   "cost_usd": 0.003413,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-048",
+   "tags": [
+    "oos",
+    "medical",
+    "hinglish"
+   ],
+   "expect": {
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "edits": []
+   },
+   "got": {
+    "intent": "out_of_scope",
+    "clarify": false,
+    "edits": [],
+    "reply_kind": "refuse",
+    "reply": "Yahan sirf duty requests aur roster ke sawaal liye jaate hain. Dawai ya sehat ke liye doctor se baat kijiye.",
+    "problems": [],
+    "parse": {
+     "intent": "out_of_scope",
+     "edits": [],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "hinglish",
+     "confidence": 0.98
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3795,
+   "cost_usd": 0.003486,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-049",
+   "tags": [
+    "oos",
+    "injection",
+    "en"
+   ],
+   "expect": {
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "edits": []
+   },
+   "got": {
+    "intent": "out_of_scope",
+    "clarify": false,
+    "edits": [],
+    "reply_kind": "refuse",
+    "reply": "I can only help with duty requests and roster questions. For anything medical, please speak to a doctor.",
+    "problems": [],
+    "parse": {
+     "intent": "out_of_scope",
+     "edits": [],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.99
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3851,
+   "cost_usd": 0.00373,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "in-050",
+   "tags": [
+    "oos",
+    "en"
+   ],
+   "expect": {
+    "intent": "out_of_scope",
+    "needs_clarification": false,
+    "edits": []
+   },
+   "got": {
+    "intent": "out_of_scope",
+    "clarify": false,
+    "edits": [],
+    "reply_kind": "refuse",
+    "reply": "I can only help with duty requests and roster questions. For anything medical, please speak to a doctor.",
+    "problems": [],
+    "parse": {
+     "intent": "out_of_scope",
+     "edits": [],
+     "question": null,
+     "needs_clarification": false,
+     "clarification": null,
+     "language": "en",
+     "confidence": 0.98
+    }
+   },
+   "first_pass_ok": true,
+   "repaired": false,
+   "schema_failed": false,
+   "latency_ms": 3087,
+   "cost_usd": 0.0032665,
+   "cache_hits": 0,
+   "pass": true,
+   "reasons": []
+  }
+ ]
+}

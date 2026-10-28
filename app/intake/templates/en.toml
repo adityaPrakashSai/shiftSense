@@ -1,0 +1,55 @@
+# Deterministic intake replies, English (design doc 7.3 step 6). The model never writes a
+# confirmation: these templates do, so a confirmation can never misstate the edit.
+
+[confirm]
+mark_unavailable = "You will be taken off {duty}."
+request_leave = "Leave for {days}. This goes to the charge nurse for approval."
+request_day_off = "Day off requested for {days}. I will try, but it is not guaranteed."
+request_shift = "Request: {shifts} on {days}, if possible."
+avoid_shift = "Request: no {shifts} on {days}, if possible."
+propose_swap = "Swap: {counterpart} takes your {mine} and you take their {theirs}. This needs the charge nurse's approval."
+cancel_request = "Request {request_id} ({summary}) will be cancelled."
+change_demand = "The target for {shifts} on {days} becomes {target} nurses."
+question = "Confirm?"
+
+[duty]
+shifts = "your {shifts} duty on {days}"
+whole_day = "all duty on {days}"
+
+[clarify]
+rephrase = "Sorry, I could not understand that. Could you say it again in one short message?"
+generic = "Could you tell me which day and which shift you mean?"
+unknown_nurse = "I could not find a nurse called \"{name}\". Who do you mean?"
+ambiguous_nurse = "Which {name} do you mean: {candidates}?"
+not_own = "You can only send requests for yourself. The charge nurse can change other nurses' duties."
+charge_only = "Only the charge nurse can change how many nurses a shift needs."
+missing_dates = "Which day do you mean?"
+missing_shifts = "Which shift do you mean: Morning, Evening or Night?"
+past_date = "{day} has already passed. Which day do you mean?"
+outside_window = "I can only take requests up to {last}. Which day do you mean?"
+shift_started = "The {shift} shift on {day} has already started. Please call the charge nurse directly."
+no_evidence = "Sorry, I could not tell what you are asking for. Could you say it again?"
+swap_one_cell = "For a swap, please name one shift of yours and one of theirs."
+swap_self = "Who do you want to swap with?"
+swap_cells = "The published roster does not show {who} on {cell}. Could you check the days and shifts?"
+unknown_request = "I could not find request {request_id} among your open requests. Which one should I cancel?"
+demand_target = "How many nurses should that shift have?"
+outside_period = "{day} is outside the current roster period ({first} to {last})."
+
+[reply]
+greeting = "Hello! Tell me about a sick call, a day off, leave or a swap, and I will pass it on."
+refuse = "I can only help with duty requests and roster questions. For anything medical, please speak to a doctor."
+question = "Thanks, I have noted your question. Answers about the roster are coming soon."
+confirmed = "Done. Your request is in."
+confirmed_pending = "Done. It is waiting for the charge nurse's approval."
+rejected = "OK, I have dropped it. Please tell me again what you need."
+
+[shift]
+M = "Morning"
+E = "Evening"
+N = "Night"
+G = "General"
+
+[words]
+and = "and"
+whole_day = "whole day"

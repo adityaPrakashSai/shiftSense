@@ -26,6 +26,7 @@ from app.llm.types import LLMRequest, ProviderCaps, ProviderResult, Role
 
 FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "mock"
 _CTX = re.compile(r"<context>(.*?)</context>", re.DOTALL)
+_MSG = re.compile(r"<message>(.*?)</message>", re.DOTALL)
 
 SICK = [
     "sick",
@@ -98,13 +99,13 @@ HINGLISH = [
 ]
 
 WEEKDAYS = {
-    0: ["monday", "somvar", "somwar", "सोमवार"],
-    1: ["tuesday", "mangalvar", "mangalwar", "मंगलवार"],
-    2: ["wednesday", "budhvar", "budhwar", "बुधवार"],
-    3: ["thursday", "guruvar", "guruwar", "brihaspativar", "गुरुवार"],
-    4: ["friday", "shukravar", "shukrawar", "शुक्रवार"],
-    5: ["saturday", "shanivar", "shaniwar", "शनिवार"],
-    6: ["sunday", "ravivar", "raviwar", "रविवार"],
+    0: ["monday", "mon", "somvar", "somwar", "somvaar", "सोमवार"],
+    1: ["tuesday", "tue", "tues", "mangalvar", "mangalwar", "mangalvaar", "मंगलवार"],
+    2: ["wednesday", "wed", "budhvar", "budhwar", "budhvaar", "बुधवार"],
+    3: ["thursday", "thu", "thurs", "guruvar", "guruwar", "guruvaar", "गुरुवार"],
+    4: ["friday", "fri", "shukravar", "shukrawar", "shukravaar", "शुक्रवार"],
+    5: ["saturday", "sat", "shanivar", "shaniwar", "shanivaar", "शनिवार"],
+    6: ["sunday", "sun", "ravivar", "raviwar", "ravivaar", "रविवार"],
 }
 MONTHS = {
     m: i
@@ -143,6 +144,16 @@ def last_user_text(req: LLMRequest) -> str:
     return ""
 
 
+def message_text(req: LLMRequest) -> str:
+    """The sender's message: the first `<message>` block in a user turn (a repair turn has none),
+    else the last user turn without its context block."""
+    for m in req.messages:
+        content = m.get("content")
+        if m.get("role") == "user" and isinstance(content, str) and (hit := _MSG.search(content)):
+            return hit.group(1).strip()
+    return last_user_text(req)
+
+
 def _has(text: str, words: list[str]) -> bool:
     return any(w in text for w in words)
 
@@ -163,9 +174,16 @@ def _dates(low: str, today: date) -> list[date]:
     if _has(low, ["parson", "day after tomorrow", "परसों"]):
         found.append(today + timedelta(days=2))
     for wd, names in WEEKDAYS.items():
-        if _has(low, names):
+        if any(re.search(rf"(?<![a-z]){re.escape(n)}(?![a-z])", low) for n in names):
             ahead = (wd - today.weekday()) % 7 or 7
             found.append(today + timedelta(days=ahead))
+    num = r"(\d{1,2})(?:st|nd|rd|th)?"
+    rng = rf"\b{num}\s*(?:to|-|se|till|until)\s*{num}\s+([a-z]{{3}})"
+    for a, b, mon in re.findall(rng, low):
+        if mon in MONTHS and int(a) <= int(b):
+            year = today.year + (1 if MONTHS[mon] < today.month else 0)
+            with contextlib.suppress(ValueError):
+                found += [date(year, MONTHS[mon], d) for d in range(int(a), int(b) + 1)]
     for day, mon in re.findall(r"\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3})", low):
         if mon in MONTHS:
             year = today.year + (1 if MONTHS[mon] < today.month else 0)
@@ -179,11 +197,101 @@ def _shifts(low: str) -> list[str] | None:
     return got or None
 
 
+def _named(low: str, ctx: dict[str, Any]) -> list[str]:
+    """Names from the context nurse list ("N07 | Meena Sharma | Meena, मीना") found in the text,
+    longest first, as written in the list (the pipeline resolves them)."""
+    sender = str(ctx.get("sender", {}).get("id", ""))
+    found: list[tuple[int, str]] = []
+    for row in ctx.get("nurses", []):
+        parts = [p.strip() for p in str(row).split("|")]
+        if len(parts) < 2 or parts[0] == sender:
+            continue
+        names = [parts[1], *[a.strip() for a in (parts[2] if len(parts) > 2 else "").split(",")]]
+        for nm in sorted((n for n in names if n), key=len, reverse=True):
+            if re.search(rf"(?<!\w){re.escape(nm.lower())}(?!\w)", low):
+                found.append((low.index(nm.lower()), nm))
+                break
+    return [nm for _pos, nm in sorted(found)]
+
+
+def _edit(op: str, evidence: str, **kw: Any) -> dict[str, Any]:
+    edit: dict[str, Any] = {
+        "op": op,
+        "nurse": "self",
+        "dates": [],
+        "shifts": None,
+        "counterpart": None,
+        "counterpart_dates": [],
+        "counterpart_shifts": None,
+        "request_id": None,
+        "target_total": None,
+        "reason_category": None,
+        "evidence_span": evidence,
+    }
+    edit.update(kw)
+    return edit
+
+
+def _swap(text: str, low: str, today: date, ctx: dict[str, Any]) -> dict[str, Any] | None:
+    """ "her Sat night for my Sun morning": the sender gives "my ..." and takes "her ..."."""
+    names = _named(low, ctx)
+    me, them = r"\b(?:my|mera|meri|mere)\b", r"\b(?:her|his|their|uski|unki|uska)\b"
+    mine = re.search(rf"{me}(.*?)(?={them}|$)", low)
+    theirs = re.search(rf"{them}(.*?)(?={me}|$)", low)
+    if not (names and mine and theirs):
+        return None
+    d1, s1 = _dates(f" {mine.group(1)} ", today), _shifts(f" {mine.group(1)} ")
+    d2, s2 = _dates(f" {theirs.group(1)} ", today), _shifts(f" {theirs.group(1)} ")
+    if len(d1) != 1 or len(d2) != 1 or not s1 or not s2:
+        return None
+    return _edit(
+        "propose_swap",
+        text.strip(),
+        dates=[d1[0].isoformat()],
+        shifts=s1,
+        counterpart=names[0],
+        counterpart_dates=[d2[0].isoformat()],
+        counterpart_shifts=s2,
+    )
+
+
+def _demand(text: str, low: str, today: date, ctx: dict[str, Any]) -> dict[str, Any] | None:
+    """Charge nurse: "we need one more on Saturday night", "Thursday night needs 5"."""
+    dates, shifts = _dates(low, today), _shifts(low)
+    if len(dates) != 1 or not shifts or len(shifts) != 1:
+        return None
+    cur = next(
+        (
+            int(r.get("target", 0))
+            for r in ctx.get("demand", [])
+            if r.get("date") == dates[0].isoformat() and r.get("shift") == shifts[0]
+        ),
+        None,
+    )
+    if (m := re.search(r"needs?\s+(\d+)", low)) is not None:
+        target = int(m.group(1))
+    elif cur is not None and _has(low, ["one more", "1 more", "one extra", "ek aur"]):
+        target = cur + 1
+    elif cur is not None and _has(low, ["one less", "1 less", "ek kam"]):
+        target = cur - 1
+    else:
+        return None
+    return _edit(
+        "change_demand",
+        text.strip(),
+        nurse="self",
+        dates=[dates[0].isoformat()],
+        shifts=shifts,
+        target_total=target,
+    )
+
+
 def mock_intake(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
     """Rule-based ConstraintEdit for one message."""
     low = f" {text.lower()} "
     lang = _language(text)
     today = date.fromisoformat(str(ctx.get("today", date.today().isoformat())))
+    charge = ctx.get("sender", {}).get("role") == "charge"
     base: dict[str, Any] = {
         "edits": [],
         "question": None,
@@ -194,6 +302,14 @@ def mock_intake(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
 
     if _has(low, OUT_OF_SCOPE):
         return {**base, "intent": "out_of_scope", "confidence": 0.9}
+
+    if "swap" in low and (swap := _swap(text, low, today, ctx)) is not None:
+        return {**base, "intent": "edit", "edits": [swap], "confidence": 0.8}
+    if "cancel" in low and (rid := re.search(r"\br-\d{4}\b", low)):
+        edit = _edit("cancel_request", text.strip(), request_id=rid.group(0).upper())
+        return {**base, "intent": "edit", "edits": [edit], "confidence": 0.85}
+    if charge and (dm := _demand(text, low, today, ctx)) is not None:
+        return {**base, "intent": "edit", "edits": [dm], "confidence": 0.85}
 
     sick = _has(low, SICK)
     op = None
@@ -243,21 +359,15 @@ def mock_intake(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
     shifts = None if op in ("request_day_off", "request_leave") else _shifts(low)
     if op == "avoid_shift" and shifts is None:
         shifts = ["N"]
-    edit = {
-        "op": op,
-        "nurse": "self",
-        "dates": [d.isoformat() for d in dates],
-        "shifts": shifts,
-        "counterpart": None,
-        "counterpart_dates": [],
-        "counterpart_shifts": None,
-        "request_id": None,
-        "target_total": None,
-        "reason_category": "sick"
-        if sick
-        else ("personal" if op != "mark_unavailable" else "other"),
-        "evidence_span": text.strip(),
-    }
+    names = _named(low, ctx) if charge else []
+    edit = _edit(
+        op,
+        text.strip(),
+        nurse=names[0] if names else "self",
+        dates=[d.isoformat() for d in dates],
+        shifts=shifts,
+        reason_category="sick" if sick else ("personal" if op != "mark_unavailable" else "other"),
+    )
     return {**base, "intent": "edit", "edits": [edit], "confidence": 0.85}
 
 
@@ -299,7 +409,7 @@ class MockProvider:
         self.calls += 1
         ctx = read_context(req)
         if req.role is Role.INTAKE:
-            body: dict[str, Any] = mock_intake(last_user_text(req), ctx)
+            body: dict[str, Any] = mock_intake(message_text(req), ctx)
         elif req.role is Role.MESSAGE:
             body = mock_message(ctx)
         elif req.role is Role.NARRATE:
