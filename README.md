@@ -4,7 +4,7 @@ A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language
 photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
 the solver's actual results.
 
-> **Status:** milestone M3 (priority tiers, lexicographic solve, evidence and decision log).
+> **Status:** milestone M4 (REST API, live WebSocket updates and the charge nurse roster grid).
 > The build started on **28 Oct 2026**. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full
 > design and the milestone plan (section 12).
 
@@ -49,7 +49,8 @@ make setup     # uv sync, npm ci in web/, creates .env from .env.example
 make seed      # recreate data/shiftsense.db and publish a solved baseline (SEED=mini|real_a)
 uv run python -m app.solver.cli data/seed/ward.json   # solve a seed, print the grid
 uv run python -m app.tools.replay RUN_ID              # re-solve a stored run, compare tiers
-make dev       # API on :8000, Vite on :5173 (open http://localhost:5173)
+make dev       # API on :8000, Vite on :5173 (open http://localhost:5173/charge)
+make api       # regenerate web/openapi.json and the TypeScript client types
 make test      # ruff, mypy (strict for app/solver), pytest in mock mode
 make docker    # build the container image
 ```

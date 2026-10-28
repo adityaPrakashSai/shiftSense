@@ -1,5 +1,5 @@
 # ShiftSense developer targets (design doc 11.2)
-.PHONY: setup dev web seed test reference e2e eval docker deploy
+.PHONY: setup dev web api seed test reference e2e eval docker deploy
 
 PORT ?= 8000
 
@@ -16,6 +16,10 @@ dev:
 
 web:
 	npm --prefix web run build
+
+api:  # regenerate web/openapi.json and the TypeScript client types from the FastAPI schema
+	uv run python -m scripts.export_openapi
+	npm --prefix web run gen:api
 
 seed:
 	uv run python -m scripts.seed $(if $(SEED),--seed $(SEED))

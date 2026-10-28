@@ -11,10 +11,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from app.config import Settings, get_settings
-from app.domain.models import RequestStatus, RunKind, RunStatus
+from app.domain.models import Request, RequestStatus, RunKind, RunStatus, Ward
 from app.evidence.writer import write_evidence
 from app.log.decision_log import DecisionLog, SolverEvents
 from app.planner.build_input import build_input
+from app.solver.input import SolveInput
 from app.solver.solve import SolveResult, solve
 from app.store import repo
 
@@ -30,15 +31,24 @@ def new_run_id() -> str:
     return f"run-{datetime.now(UTC):%Y%m%d-%H%M%S}-{secrets.token_hex(2)}"
 
 
-def run_full(
+@dataclass
+class PreparedRun:
+    """A run row already inserted with status `solving`, ready to be solved."""
+
+    run_id: str
+    ward: Ward
+    inp: SolveInput
+    active: list[Request]
+
+
+def start_full(
     conn: sqlite3.Connection,
     ward_id: str | None = None,
     *,
     trigger: str = "generate",
-    settings: Settings | None = None,
     log: DecisionLog | None = None,
-) -> RunOutcome:
-    s = settings or get_settings()
+) -> PreparedRun:
+    """Build the SolveInput, insert the run (status `solving`) and log `run.started`. Fast."""
     ward = repo.get_ward(conn, ward_id)
     if ward is None:
         raise LookupError("no ward in the database")
@@ -74,7 +84,20 @@ def run_full(
         frozen_before_day=0,
         input_hash=inp.input_hash(),
     )
+    return PreparedRun(run_id, ward, inp, active)
 
+
+def finish_full(
+    conn: sqlite3.Connection,
+    prep: PreparedRun,
+    *,
+    settings: Settings | None = None,
+    log: DecisionLog | None = None,
+) -> RunOutcome:
+    """Solve a prepared run and write its evidence (seconds; runs in a worker thread)."""
+    s = settings or get_settings()
+    run_id, inp = prep.run_id, prep.inp
+    log = log or DecisionLog(conn, prep.ward.id)
     res = solve(
         inp,
         stage_seconds=s.solver_stage_seconds,
@@ -89,7 +112,7 @@ def run_full(
         log.emit("run.infeasible", "solver", run_id, stage=res.failed_tier, core=[])
         return RunOutcome(run_id, status, res)
 
-    write_evidence(conn, run_id, ward, inp, res, active)
+    write_evidence(conn, run_id, prep.ward, inp, res, prep.active)
     repo.update_run(
         conn,
         run_id,
@@ -108,6 +131,19 @@ def run_full(
         secs=round(res.secs, 3),
     )
     return RunOutcome(run_id, RunStatus.PROPOSED, res)
+
+
+def run_full(
+    conn: sqlite3.Connection,
+    ward_id: str | None = None,
+    *,
+    trigger: str = "generate",
+    settings: Settings | None = None,
+    log: DecisionLog | None = None,
+) -> RunOutcome:
+    """Build a fresh roster for the ward's period (status `proposed`)."""
+    prep = start_full(conn, ward_id, trigger=trigger, log=log)
+    return finish_full(conn, prep, settings=settings, log=log)
 
 
 def publish(

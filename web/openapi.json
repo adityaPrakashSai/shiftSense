@@ -1,0 +1,1596 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "ShiftSense",
+  "version": "0.0.0"
+ },
+ "paths": {
+  "/api/health": {
+   "get": {
+    "tags": [
+     "misc"
+    ],
+    "summary": "Health",
+    "operationId": "health_api_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Health"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/events": {
+   "get": {
+    "tags": [
+     "misc"
+    ],
+    "summary": "Events",
+    "description": "Events after `after_seq` in order; `last=N` returns the newest N instead (oldest first).",
+    "operationId": "events_api_events_get",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Run Id"
+      }
+     },
+     {
+      "name": "after_seq",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 0,
+       "title": "After Seq"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 2000,
+       "minimum": 1,
+       "default": 500,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "last",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "maximum": 2000,
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Last"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EventOut"
+         },
+         "title": "Response Events Api Events Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/demo/reset": {
+   "post": {
+    "tags": [
+     "misc"
+    ],
+    "summary": "Demo Reset",
+    "operationId": "demo_reset_api_demo_reset_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResetOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/dev/ws-off": {
+   "post": {
+    "tags": [
+     "misc"
+    ],
+    "summary": "Ws Off",
+    "description": "Close every WebSocket and refuse new ones for a while, to check the polling fallback.",
+    "operationId": "ws_off_api_dev_ws_off_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WsOff"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "integer"
+         },
+         "type": "object",
+         "title": "Response Ws Off Api Dev Ws Off Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ward": {
+   "get": {
+    "tags": [
+     "ward"
+    ],
+    "summary": "Get Ward",
+    "operationId": "get_ward_api_ward_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Ward"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/roster": {
+   "get": {
+    "tags": [
+     "ward"
+    ],
+    "summary": "Get Roster",
+    "description": "The published roster (or `run_id`), optionally limited to days `from`..`to`.",
+    "operationId": "get_roster_api_roster_get",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Run Id"
+      }
+     },
+     {
+      "name": "from",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "From"
+      }
+     },
+     {
+      "name": "to",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "To"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RosterOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/runs": {
+   "post": {
+    "tags": [
+     "runs"
+    ],
+    "summary": "Create Run",
+    "description": "Start a full solve in the background; progress and the result arrive over the WebSocket.",
+    "operationId": "create_run_api_runs_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/CreateRun"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunAccepted"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/runs/{run_id}": {
+   "get": {
+    "tags": [
+     "runs"
+    ],
+    "summary": "Get Run",
+    "operationId": "get_run_api_runs__run_id__get",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/runs/{run_id}/publish": {
+   "post": {
+    "tags": [
+     "runs"
+    ],
+    "summary": "Publish Run",
+    "operationId": "publish_run_api_runs__run_id__publish_post",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/PublishBody"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunSummary"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/runs/{run_id}/lineage": {
+   "get": {
+    "tags": [
+     "runs"
+    ],
+    "summary": "Lineage",
+    "description": "The run and its ancestors, oldest first (seed baseline -> ... -> this run).",
+    "operationId": "lineage_api_runs__run_id__lineage_get",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/RunSummary"
+         },
+         "title": "Response Lineage Api Runs  Run Id  Lineage Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Cell": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shift"
+     },
+     "display": {
+      "type": "string",
+      "title": "Display"
+     },
+     "leave_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Leave Type"
+     },
+     "prev_shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prev Shift"
+     },
+     "changed": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Changed"
+     },
+     "cause": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cause"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "day",
+     "shift",
+     "display",
+     "leave_type",
+     "prev_shift",
+     "changed",
+     "cause"
+    ],
+    "title": "Cell"
+   },
+   "Change": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "from_shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "From Shift"
+     },
+     "to_shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "To Shift"
+     },
+     "cause": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cause"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "day",
+     "from_shift",
+     "to_shift",
+     "cause"
+    ],
+    "title": "Change"
+   },
+   "CostSummary": {
+    "properties": {
+     "tier": {
+      "type": "string",
+      "title": "Tier"
+     },
+     "rule": {
+      "type": "string",
+      "title": "Rule"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     }
+    },
+    "type": "object",
+    "required": [
+     "tier",
+     "rule",
+     "total",
+     "rows"
+    ],
+    "title": "CostSummary"
+   },
+   "CreateRun": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "const": "full",
+      "title": "Kind",
+      "default": "full"
+     }
+    },
+    "type": "object",
+    "title": "CreateRun"
+   },
+   "DayTotal": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "shift": {
+      "type": "string",
+      "title": "Shift"
+     },
+     "assigned": {
+      "type": "integer",
+      "title": "Assigned"
+     },
+     "target": {
+      "type": "integer",
+      "title": "Target"
+     },
+     "min": {
+      "type": "integer",
+      "title": "Min"
+     },
+     "max": {
+      "type": "integer",
+      "title": "Max"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "shift",
+     "assigned",
+     "target",
+     "min",
+     "max"
+    ],
+    "title": "DayTotal"
+   },
+   "Demand": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "shift": {
+      "$ref": "#/components/schemas/ShiftCode"
+     },
+     "min_total": {
+      "type": "integer",
+      "title": "Min Total"
+     },
+     "target_total": {
+      "type": "integer",
+      "title": "Target Total"
+     },
+     "max_total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Total"
+     },
+     "min_senior": {
+      "type": "integer",
+      "title": "Min Senior",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "shift",
+     "min_total",
+     "target_total"
+    ],
+    "title": "Demand"
+   },
+   "EventOut": {
+    "properties": {
+     "seq": {
+      "type": "integer",
+      "title": "Seq"
+     },
+     "ward_id": {
+      "type": "string",
+      "title": "Ward Id"
+     },
+     "run_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Run Id"
+     },
+     "ts": {
+      "type": "string",
+      "title": "Ts"
+     },
+     "actor": {
+      "type": "string",
+      "title": "Actor"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "stage": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Stage"
+     },
+     "payload": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Payload"
+     }
+    },
+    "type": "object",
+    "required": [
+     "seq",
+     "ward_id",
+     "run_id",
+     "ts",
+     "actor",
+     "kind",
+     "stage",
+     "payload"
+    ],
+    "title": "EventOut"
+   },
+   "Grade": {
+    "type": "string",
+    "enum": [
+     "senior",
+     "staff",
+     "trainee"
+    ],
+    "title": "Grade"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "Health": {
+    "properties": {
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "llm_mode": {
+      "type": "string",
+      "title": "Llm Mode"
+     },
+     "provider": {
+      "type": "string",
+      "title": "Provider"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "db": {
+      "type": "string",
+      "title": "Db"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ok",
+     "llm_mode",
+     "provider",
+     "model",
+     "db"
+    ],
+    "title": "Health"
+   },
+   "HorizonPreset": {
+    "type": "string",
+    "enum": [
+     "week",
+     "fortnight",
+     "half_month",
+     "month"
+    ],
+    "title": "HorizonPreset"
+   },
+   "Nurse": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "aliases": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Aliases",
+      "default": []
+     },
+     "grade": {
+      "$ref": "#/components/schemas/Grade"
+     },
+     "role": {
+      "$ref": "#/components/schemas/Role",
+      "default": "staff"
+     },
+     "standby": {
+      "type": "boolean",
+      "title": "Standby",
+      "default": false
+     },
+     "can_night": {
+      "type": "boolean",
+      "title": "Can Night",
+      "default": true
+     },
+     "night_exempt_until": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Night Exempt Until"
+     },
+     "fixed_duty": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/ShiftCode"
+      },
+      "type": "object",
+      "title": "Fixed Duty",
+      "default": {}
+     },
+     "min_shifts_per_week": {
+      "type": "number",
+      "title": "Min Shifts Per Week"
+     },
+     "max_shifts_per_week": {
+      "type": "number",
+      "title": "Max Shifts Per Week"
+     },
+     "max_hours_per_week": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Hours Per Week"
+     },
+     "language": {
+      "type": "string",
+      "title": "Language",
+      "default": "hi"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "grade",
+     "min_shifts_per_week",
+     "max_shifts_per_week"
+    ],
+    "title": "Nurse"
+   },
+   "Outcome": {
+    "properties": {
+     "request_id": {
+      "type": "string",
+      "title": "Request Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "reason_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Code"
+     },
+     "detail": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "required": [
+     "request_id",
+     "status",
+     "reason_code",
+     "detail"
+    ],
+    "title": "Outcome"
+   },
+   "PublishBody": {
+    "properties": {
+     "by": {
+      "type": "string",
+      "title": "By",
+      "default": "charge"
+     }
+    },
+    "type": "object",
+    "title": "PublishBody"
+   },
+   "ResetOut": {
+    "properties": {
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "seed": {
+      "type": "string",
+      "title": "Seed"
+     },
+     "secs": {
+      "type": "number",
+      "title": "Secs"
+     },
+     "run_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Run Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ok",
+     "seed",
+     "secs",
+     "run_id"
+    ],
+    "title": "ResetOut"
+   },
+   "Role": {
+    "type": "string",
+    "enum": [
+     "staff",
+     "senior",
+     "in_charge",
+     "ans"
+    ],
+    "title": "Role"
+   },
+   "RosterOut": {
+    "properties": {
+     "run": {
+      "$ref": "#/components/schemas/RunSummary"
+     },
+     "days": {
+      "items": {
+       "type": "string",
+       "format": "date"
+      },
+      "type": "array",
+      "title": "Days"
+     },
+     "today": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Today"
+     },
+     "grid": {
+      "items": {
+       "$ref": "#/components/schemas/Cell"
+      },
+      "type": "array",
+      "title": "Grid"
+     },
+     "totals": {
+      "items": {
+       "$ref": "#/components/schemas/DayTotal"
+      },
+      "type": "array",
+      "title": "Totals"
+     },
+     "stages": {
+      "items": {
+       "$ref": "#/components/schemas/StageOut"
+      },
+      "type": "array",
+      "title": "Stages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run",
+     "days",
+     "today",
+     "grid",
+     "totals",
+     "stages"
+    ],
+    "title": "RosterOut"
+   },
+   "RosterStyle": {
+    "type": "string",
+    "enum": [
+     "grid",
+     "fixed_assignment"
+    ],
+    "title": "RosterStyle"
+   },
+   "RunAccepted": {
+    "properties": {
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run_id"
+    ],
+    "title": "RunAccepted"
+   },
+   "RunDetail": {
+    "properties": {
+     "run": {
+      "$ref": "#/components/schemas/RunSummary"
+     },
+     "stages": {
+      "items": {
+       "$ref": "#/components/schemas/StageOut"
+      },
+      "type": "array",
+      "title": "Stages"
+     },
+     "costs": {
+      "items": {
+       "$ref": "#/components/schemas/CostSummary"
+      },
+      "type": "array",
+      "title": "Costs"
+     },
+     "change_set": {
+      "items": {
+       "$ref": "#/components/schemas/Change"
+      },
+      "type": "array",
+      "title": "Change Set"
+     },
+     "request_outcomes": {
+      "items": {
+       "$ref": "#/components/schemas/Outcome"
+      },
+      "type": "array",
+      "title": "Request Outcomes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run",
+     "stages",
+     "costs",
+     "change_set",
+     "request_outcomes"
+    ],
+    "title": "RunDetail"
+   },
+   "RunSummary": {
+    "properties": {
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     },
+     "ward_id": {
+      "type": "string",
+      "title": "Ward Id"
+     },
+     "parent_run": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent Run"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "trigger": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trigger"
+     },
+     "created_at": {
+      "type": "string",
+      "title": "Created At"
+     },
+     "horizon_start": {
+      "type": "string",
+      "format": "date",
+      "title": "Horizon Start"
+     },
+     "priorities": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Priorities"
+     },
+     "frozen_before_day": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Frozen Before Day"
+     },
+     "input_hash": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Input Hash"
+     },
+     "total_secs": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Secs"
+     },
+     "changed_cells": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Changed Cells"
+     },
+     "published_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Published At"
+     },
+     "published_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Published By"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run_id",
+     "ward_id",
+     "parent_run",
+     "kind",
+     "status",
+     "trigger",
+     "created_at",
+     "horizon_start",
+     "priorities",
+     "frozen_before_day",
+     "input_hash",
+     "total_secs",
+     "changed_cells",
+     "published_at",
+     "published_by"
+    ],
+    "title": "RunSummary"
+   },
+   "ShiftCode": {
+    "type": "string",
+    "enum": [
+     "M",
+     "E",
+     "N",
+     "G"
+    ],
+    "title": "ShiftCode"
+   },
+   "ShiftType": {
+    "properties": {
+     "code": {
+      "$ref": "#/components/schemas/ShiftCode"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "start": {
+      "type": "string",
+      "title": "Start"
+     },
+     "end": {
+      "type": "string",
+      "title": "End"
+     },
+     "hours": {
+      "type": "number",
+      "title": "Hours",
+      "default": 8.0
+     }
+    },
+    "type": "object",
+    "required": [
+     "code",
+     "name",
+     "start",
+     "end"
+    ],
+    "title": "ShiftType"
+   },
+   "StageOut": {
+    "properties": {
+     "rank": {
+      "type": "integer",
+      "title": "Rank"
+     },
+     "tier": {
+      "type": "string",
+      "title": "Tier"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "best": {
+      "type": "integer",
+      "title": "Best"
+     },
+     "bound": {
+      "type": "integer",
+      "title": "Bound"
+     },
+     "proven": {
+      "type": "boolean",
+      "title": "Proven"
+     },
+     "secs": {
+      "type": "number",
+      "title": "Secs"
+     },
+     "locked": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Locked"
+     }
+    },
+    "type": "object",
+    "required": [
+     "rank",
+     "tier",
+     "status",
+     "best",
+     "bound",
+     "proven",
+     "secs",
+     "locked"
+    ],
+    "title": "StageOut"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   },
+   "Ward": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "default": "ward-7"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "tz": {
+      "type": "string",
+      "title": "Tz",
+      "default": "Asia/Kolkata"
+     },
+     "roster_style": {
+      "$ref": "#/components/schemas/RosterStyle",
+      "default": "grid"
+     },
+     "horizon_preset": {
+      "$ref": "#/components/schemas/HorizonPreset",
+      "default": "fortnight"
+     },
+     "horizon_start": {
+      "type": "string",
+      "format": "date",
+      "title": "Horizon Start"
+     },
+     "horizon_days": {
+      "type": "integer",
+      "title": "Horizon Days",
+      "default": 14
+     },
+     "shifts": {
+      "items": {
+       "$ref": "#/components/schemas/ShiftType"
+      },
+      "type": "array",
+      "title": "Shifts"
+     },
+     "nurses": {
+      "items": {
+       "$ref": "#/components/schemas/Nurse"
+      },
+      "type": "array",
+      "title": "Nurses"
+     },
+     "demand": {
+      "items": {
+       "$ref": "#/components/schemas/Demand"
+      },
+      "type": "array",
+      "title": "Demand"
+     },
+     "max_consecutive_days": {
+      "type": "integer",
+      "title": "Max Consecutive Days",
+      "default": 6
+     },
+     "night_block_min": {
+      "type": "integer",
+      "title": "Night Block Min",
+      "default": 2
+     },
+     "night_block_max": {
+      "type": "integer",
+      "title": "Night Block Max",
+      "default": 3
+     },
+     "max_nights_per_month": {
+      "type": "integer",
+      "title": "Max Nights Per Month",
+      "default": 6
+     },
+     "priorities": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Priorities",
+      "default": [
+       "coverage",
+       "stability",
+       "contract",
+       "requests",
+       "fairness"
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "horizon_start",
+     "shifts",
+     "nurses",
+     "demand"
+    ],
+    "title": "Ward"
+   },
+   "WsOff": {
+    "properties": {
+     "seconds": {
+      "type": "number",
+      "title": "Seconds",
+      "default": 30.0
+     }
+    },
+    "type": "object",
+    "title": "WsOff"
+   }
+  }
+ }
+}

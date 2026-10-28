@@ -405,5 +405,17 @@ def list_events(
     return [{**dict(r), "payload": json.loads(r["payload_json"] or "{}")} for r in rows]
 
 
+def list_last_events(
+    conn: sqlite3.Connection, ward_id: str, *, run_id: str | None = None, n: int = 1
+) -> list[dict[str, Any]]:
+    sql = "SELECT * FROM event WHERE ward_id = ?"
+    args: list[Any] = [ward_id]
+    if run_id is not None:
+        sql += " AND run_id = ?"
+        args.append(run_id)
+    rows = conn.execute(sql + " ORDER BY seq DESC LIMIT ?", (*args, n)).fetchall()
+    return [{**dict(r), "payload": json.loads(r["payload_json"] or "{}")} for r in reversed(rows)]
+
+
 def now_iso_ms() -> str:
     return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
