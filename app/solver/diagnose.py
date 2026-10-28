@@ -8,27 +8,59 @@ true), clears the objective, adds every guard as an assumption and reads
 
 from __future__ import annotations
 
+import time
+from typing import Any
+
 from ortools.sat.python import cp_model
 
 from app.solver.input import SolveInput
 from app.solver.model import RosterModel
 
 
-def infeasible_core(inp: SolveInput, seconds: float = 5.0) -> list[str] | None:
-    """The core names, [] when infeasible but no core was found in time, None when feasible."""
-    rm = RosterModel(inp, guarded=True)
-    names = list(rm.guards)
+def _check(rm: RosterModel, names: list[str], seconds: float) -> tuple[Any, list[str]]:
+    """Solve with only `names` enforced; (status, sufficient subset when infeasible)."""
+    rm.m.clear_assumptions()
     rm.m.add_assumptions([rm.guards[n] for n in names])
     solver = cp_model.CpSolver()
     solver.parameters.num_workers = 1
     solver.parameters.max_time_in_seconds = seconds
     status = solver.solve(rm.m)
+    if status != cp_model.INFEASIBLE:
+        return status, []
+    by_index = {rm.guards[n].index: n for n in names}
+    return status, sorted(by_index[i] for i in solver.sufficient_assumptions_for_infeasibility())
+
+
+def infeasible_core(
+    inp: SolveInput,
+    seconds: float = 5.0,
+    minimize_seconds: float = 3.0,
+    guard_groups: frozenset[str] | None = None,
+) -> list[str] | None:
+    """The core names, [] when infeasible but no core was found in time, None when feasible.
+
+    CP-SAT's sufficient set is not always minimal; a deletion pass then drops every name whose
+    removal keeps the rest infeasible (each check enforces only the remaining names), within
+    `minimize_seconds`. The result is what a person reads, so smaller is better.
+
+    With `guard_groups`, only those groups can appear (the rest always hold); if the problem is
+    infeasible even with every guarded name relaxed, the core is [] and the caller can retry
+    with all groups guarded."""
+    rm = RosterModel(inp, guarded=True, guard_groups=guard_groups)
+    status, core = _check(rm, list(rm.guards), seconds)
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return None
     if status != cp_model.INFEASIBLE:
         return []
-    by_index = {rm.guards[n].index: n for n in names}
-    return sorted(by_index[i] for i in solver.sufficient_assumptions_for_infeasibility())
+    deadline = time.perf_counter() + minimize_seconds
+    for name in list(core):
+        if time.perf_counter() > deadline:
+            break
+        rest = [n for n in core if n != name]
+        st, sub = _check(rm, rest, 1.0)
+        if st == cp_model.INFEASIBLE:
+            core = sub or rest
+    return sorted(core)
 
 
 def groups(core: list[str], skip: frozenset[str] = frozenset({"forced"})) -> list[str]:

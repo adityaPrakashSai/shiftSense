@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import (
     errors,
+    routes_conflicts,
     routes_explain,
     routes_intake,
     routes_llm,
@@ -55,6 +56,7 @@ app.include_router(routes_llm.router)
 app.include_router(routes_intake.router)
 app.include_router(routes_proposals.router)
 app.include_router(routes_explain.router)
+app.include_router(routes_conflicts.router)
 app.include_router(ws.router)
 
 if (WEB_DIST / "assets").is_dir():

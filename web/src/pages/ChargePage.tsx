@@ -80,9 +80,12 @@ export default function ChargePage() {
         );
       }
       if (m.type === "proposal_created") void qc.invalidateQueries({ queryKey: ["proposals"] });
+      if (m.type === "conflict_created") void qc.invalidateQueries({ queryKey: ["conflicts"] });
       if (m.type === "run_finished") {
         setSolving((cur) => (cur === m.run_id ? null : cur));
         if (m.status === "proposed") setViewRunId(m.run_id);
+        // no draft will appear for an infeasible or failed run: stop its timer now
+        else setTimer((t) => (t.runId === m.run_id && t.stoppedAt === null ? { ...t, stoppedAt: performance.now() } : t));
         void qc.invalidateQueries({ queryKey: ["roster", m.run_id] });
       }
       if (m.type === "request_updated") void qc.invalidateQueries({ queryKey: ["requests"] });

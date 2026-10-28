@@ -321,3 +321,50 @@ class ExplainOut(BaseModel):
     language: str
     run_id: str | None = None
     latency_ms: int | None = None
+
+
+class ConflictOption(BaseModel):
+    option_id: str
+    kind: str  # waive | float
+    label: str  # template text from code (5.5)
+    waive: str | None  # the hard-constraint name a person waives
+    nurse: str | None
+    day: date | None
+    shift: str | None
+
+
+class Blocked(BaseModel):
+    nurse: str
+    name: str
+    rules: list[str]  # non-waivable rules that stop this nurse filling the short cell
+
+
+class NarrativeOut(BaseModel):
+    summary: str
+    options: list[dict[str, str]]  # option_id + reworded label, same ids and order as `options`
+    source: str  # model | template
+    problems: list[str] = []
+
+
+class ConflictOut(BaseModel):
+    conflict_id: str
+    run_id: str
+    core: list[str]  # waivable hard-constraint names that cannot all hold
+    context: list[Blocked]
+    options: list[ConflictOption]
+    narrative: NarrativeOut | None
+    chosen_option: str | None
+    chosen_by: str | None
+    chosen_at: str | None
+    resolved_run: str | None
+
+
+class ResolveBody(BaseModel):
+    option_id: str
+    by: str = "charge"
+
+
+class ResolveOut(BaseModel):
+    conflict_id: str
+    option_id: str
+    run_id: str  # the new run that applies the choice

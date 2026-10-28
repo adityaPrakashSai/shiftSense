@@ -25,6 +25,7 @@ export type ExplainOut = S["ExplainOut"];
 export type ClaimOut = S["ClaimOut"];
 export type ToolCallOut = S["ToolCallOut"];
 export type ExplainBody = S["ExplainBody"];
+export type ConflictOut = S["ConflictOut"];
 
 export class ApiError extends Error {
   constructor(
@@ -89,6 +90,12 @@ export const api = {
   reject: (id: string) => request<RequestAction>(`/api/requests/${id}/reject`, { method: "POST" }),
   approve: (id: string) => request<RequestAction>(`/api/requests/${id}/approve`, { method: "POST" }),
   proposals: () => request<ProposalOut[]>("/api/proposals"),
+  conflicts: () => request<ConflictOut[]>("/api/conflicts"),
+  resolveConflict: (id: string, optionId: string) =>
+    request<S["ResolveOut"]>(`/api/conflicts/${id}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({ option_id: optionId, by: "charge" }),
+    }),
   explain: (body: ExplainBody) =>
     request<ExplainOut>("/api/explain", { method: "POST", body: JSON.stringify(body) }),
   cellEvidence: (runId: string, nurseId: string, day: string) =>

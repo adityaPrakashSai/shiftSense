@@ -13,6 +13,7 @@ export type WardMessage =
   | { type: "request_updated"; request_id: string }
   | { type: "proposal_created"; run_id: string; request_id: string | null }
   | { type: "message_for_nurse"; nurse_id: string }
+  | { type: "conflict_created"; conflict_id: string; run_id: string }
   | { type: "event"; seq: number };
 
 export type SocketMode = "connecting" | "live" | "polling";
@@ -34,6 +35,12 @@ function nudgeFor(e: EventOut): WardMessage | null {
     case "run.published":
     case "demo.reset":
       return { type: "roster_published", run_id: e.run_id ?? null };
+    case "conflict.created":
+    case "conflict.narrated":
+    case "conflict.resolved": {
+      const id = (e.payload as { conflict_id?: string }).conflict_id;
+      return id ? { type: "conflict_created", conflict_id: id, run_id: e.run_id ?? "" } : null;
+    }
     case "candidates.ranked":
       return e.run_id ? { type: "proposal_created", run_id: e.run_id, request_id: null } : null;
     case "request.confirmed":

@@ -13,6 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 from app.config import Settings, get_settings
 from app.domain.models import Request, RequestStatus, RunKind, RunStatus, Ward
@@ -31,6 +32,30 @@ class RunOutcome:
     run_id: str
     status: RunStatus
     result: SolveResult
+    conflict_id: str | None = None  # set when the run was infeasible and diagnosed (5.5)
+
+
+def infeasible(
+    conn: sqlite3.Connection,
+    run_id: str,
+    ward: Ward,
+    inp: SolveInput,
+    res: SolveResult,
+    status: RunStatus,
+    log: DecisionLog,
+) -> RunOutcome:
+    """Log a failed solve; an infeasible one is diagnosed into a conflict with options (5.5)."""
+    from app.planner import conflicts  # conflicts imports planner helpers
+
+    cid = None
+    core: list[str] = []
+    if status is RunStatus.INFEASIBLE:
+        cid = conflicts.create(conn, run_id, ward, inp, log)
+        c = repo.get_conflict(conn, cid)
+        core = [] if c is None else list(c["core"]["names"])
+    log.emit("run.infeasible", "solver", run_id, stage=res.failed_tier, core=core,
+             conflict_id=cid)  # fmt: skip
+    return RunOutcome(run_id, status, res, cid)
 
 
 def new_run_id() -> str:
@@ -60,7 +85,9 @@ def start_full(
         raise LookupError("no ward in the database")
     requests = repo.list_requests(conn, ward.id)
     active = [r for r in requests if r.status is RequestStatus.ACTIVE]
-    inp = build_input(ward, active, repo.get_history(conn, ward.id))
+    inp = build_input(
+        ward, active, repo.get_history(conn, ward.id), waived=repo.active_waivers(conn, ward.id)
+    )
     log = log or DecisionLog(conn, ward.id)
 
     published = repo.get_published_run(conn, ward.id)
@@ -115,8 +142,7 @@ def finish_full(
     if res.status != "solved":
         status = RunStatus.INFEASIBLE if res.status == "infeasible" else RunStatus.FAILED
         repo.update_run(conn, run_id, status=status.value, total_secs=round(res.secs, 3))
-        log.emit("run.infeasible", "solver", run_id, stage=res.failed_tier, core=[])
-        return RunOutcome(run_id, status, res)
+        return infeasible(conn, run_id, prep.ward, inp, res, status, log)
 
     write_evidence(conn, run_id, prep.ward, inp, res, prep.active)
     repo.update_run(
@@ -221,6 +247,42 @@ def added_slots(old: SolveInput | None, new: SolveInput) -> tuple[tuple[int, str
     return tuple(out)
 
 
+def resolve_input(
+    conn: sqlite3.Connection,
+    ward_id: str | None = None,
+    *,
+    affected: Iterable[date] = (),
+    now: datetime | None = None,
+) -> tuple[Ward, SolveInput, dict[str, Any], list[Request], datetime]:
+    """6.2 steps 1-3 without writing anything: (ward, input with previous / frozen point /
+    waivers, published run, active requests, now)."""
+    ward = repo.get_ward(conn, ward_id)
+    if ward is None:
+        raise LookupError("no ward in the database")
+    published = repo.get_published_run(conn, ward.id)
+    if published is None:
+        raise LookupError("no published run to re-solve from")
+    now = now or ward_now(ward.tz, get_settings().demo_now)
+    active = [r for r in repo.list_requests(conn, ward.id) if r.status is RequestStatus.ACTIVE]
+    inp = build_input(
+        ward,
+        active,
+        repo.get_history(conn, ward.id),
+        standby_allowed=True,
+        waived=repo.active_waivers(conn, ward.id),
+    )
+    previous = published_roster(conn, str(published["run_id"]), inp)
+    point, cells, blocked = frozen_point(ward, inp, previous, now, affected)
+    inp = replace(
+        inp,
+        previous=previous,
+        frozen_before_day=point,
+        frozen_cells=cells,
+        unavailable=inp.unavailable | blocked,
+    )
+    return ward, inp, published, active, now
+
+
 def start_resolve(
     conn: sqlite3.Connection,
     ward_id: str | None = None,
@@ -231,26 +293,10 @@ def start_resolve(
     now: datetime | None = None,
     log: DecisionLog | None = None,
 ) -> ResolvePlan:
-    """6.2 steps 1-3: current ward + active requests, the published roster as `previous` and
-    hint, the frozen point. Inserts the run (status `solving`) and logs `run.started`."""
-    ward = repo.get_ward(conn, ward_id)
-    if ward is None:
-        raise LookupError("no ward in the database")
-    published = repo.get_published_run(conn, ward.id)
-    if published is None:
-        raise LookupError("no published run to re-solve from")
-    now = now or ward_now(ward.tz, get_settings().demo_now)
-    active = [r for r in repo.list_requests(conn, ward.id) if r.status is RequestStatus.ACTIVE]
-    inp = build_input(ward, active, repo.get_history(conn, ward.id), standby_allowed=True)
-    previous = published_roster(conn, str(published["run_id"]), inp)
-    point, cells, blocked = frozen_point(ward, inp, previous, now, affected)
-    inp = replace(
-        inp,
-        previous=previous,
-        frozen_before_day=point,
-        frozen_cells=cells,
-        unavailable=inp.unavailable | blocked,
-    )
+    """6.2 steps 1-3 (`resolve_input`), then insert the run (status `solving`) and log
+    `run.started`."""
+    ward, inp, published, active, now = resolve_input(conn, ward_id, affected=affected, now=now)
+    point = inp.frozen_before_day
     old = SolveInput.from_json(published["input_json"]) if published["input_json"] else None
     log = log or DecisionLog(conn, ward.id)
     run_id = new_run_id()
@@ -355,8 +401,7 @@ def run_resolve(
     if res.status != "solved":
         status = RunStatus.INFEASIBLE if res.status == "infeasible" else RunStatus.FAILED
         repo.update_run(conn, plan.run_id, status=status.value, total_secs=round(res.secs, 3))
-        log.emit("run.infeasible", "solver", plan.run_id, stage=res.failed_tier, core=[])
-        return RunOutcome(plan.run_id, status, res)
+        return infeasible(conn, plan.run_id, plan.ward, plan.inp, res, status, log)
     write_solved(
         conn, plan.run_id, plan.ward, plan.inp, res, plan.active, added=plan.added_slots, log=log
     )

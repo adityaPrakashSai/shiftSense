@@ -31,7 +31,7 @@ from app.domain.models import RunKind, RunStatus, ShiftCode
 from app.intake.dates import shift_start
 from app.log.decision_log import DecisionLog
 from app.planner.build_input import horizon_dates
-from app.planner.runs import ResolvePlan, RunOutcome, new_run_id, write_solved
+from app.planner.runs import ResolvePlan, RunOutcome, infeasible, new_run_id, write_solved
 from app.solver.changes import away_cells, change_set, count_changed
 from app.solver.input import Forcing, SolveInput
 from app.solver.rules import rule_check
@@ -170,8 +170,7 @@ def rank(conn: sqlite3.Connection, plan: ResolvePlan, *, settings: Settings | No
     if base.status != "solved" and not cands:
         status = RunStatus.INFEASIBLE if base.status == "infeasible" else RunStatus.FAILED
         repo.update_run(conn, plan.run_id, status=status.value, total_secs=round(base.secs, 3))
-        log.emit("run.infeasible", "solver", plan.run_id, stage=base.failed_tier, core=[])
-        return RunOutcome(plan.run_id, status, base)
+        return infeasible(conn, plan.run_id, plan.ward, inp, base, status, log)
 
     standby = {x.id for x in inp.nurses if x.standby}
     best = _vector(cands[0][2], pr) if cands else None

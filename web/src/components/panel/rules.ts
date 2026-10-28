@@ -16,6 +16,9 @@ const LABEL: Record<string, string> = {
   frozen: "shift already fixed",
   forced: "fixed duty",
   no_feasible_roster: "no legal roster with this nurse",
+  min_cover: "minimum cover",
+  max_cover: "shift already full",
+  fixed_duty: "fixed duty",
 };
 
 export function ruleLabels(rules: string[]): string[] {

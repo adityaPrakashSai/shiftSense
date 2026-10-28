@@ -619,3 +619,100 @@ def proposal_for_run(conn: sqlite3.Connection, run_id: str) -> dict[str, Any] | 
 def set_proposal_chosen(conn: sqlite3.Connection, run_id: str, nurse_id: str | None) -> None:
     conn.execute("UPDATE proposal SET chosen_nurse = ? WHERE run_id = ?", (nurse_id, run_id))
     conn.commit()
+
+
+# ---------------------------------------------------------------- conflicts (5.5)
+
+
+def next_conflict_id(conn: sqlite3.Connection) -> str:
+    best = 0
+    for (cid,) in conn.execute("SELECT conflict_id FROM conflict"):
+        tail = str(cid).rsplit("-", 1)[-1]
+        if tail.isdigit():
+            best = max(best, int(tail))
+    return f"C-{best + 1:04d}"
+
+
+def insert_conflict(
+    conn: sqlite3.Connection,
+    conflict_id: str,
+    run_id: str,
+    core: dict[str, Any],
+    options: list[dict[str, Any]],
+) -> None:
+    conn.execute(
+        "INSERT INTO conflict(conflict_id, run_id, core_json, options_json) VALUES(?, ?, ?, ?)",
+        (
+            conflict_id,
+            run_id,
+            json.dumps(core, ensure_ascii=False),
+            json.dumps(options, ensure_ascii=False),
+        ),
+    )
+    conn.commit()
+
+
+def _conflict_row(r: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "conflict_id": r["conflict_id"],
+        "run_id": r["run_id"],
+        "core": json.loads(r["core_json"] or "{}"),
+        "options": json.loads(r["options_json"] or "[]"),
+        "narrative": json.loads(r["narrative"]) if r["narrative"] else None,
+        "chosen_option": r["chosen_option"],
+        "chosen_by": r["chosen_by"],
+        "chosen_at": r["chosen_at"],
+        "resolved_run": r["resolved_run"],
+    }
+
+
+def get_conflict(conn: sqlite3.Connection, conflict_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM conflict WHERE conflict_id = ?", (conflict_id,)).fetchone()
+    return None if row is None else _conflict_row(row)
+
+
+def list_conflicts(
+    conn: sqlite3.Connection, ward_id: str, *, open_only: bool = False
+) -> list[dict[str, Any]]:
+    sql = (
+        "SELECT c.* FROM conflict c JOIN run r ON r.run_id = c.run_id WHERE r.ward_id = ?"
+        + (" AND c.chosen_option IS NULL" if open_only else "")
+        + " ORDER BY c.conflict_id DESC"
+    )
+    return [_conflict_row(r) for r in conn.execute(sql, (ward_id,))]
+
+
+def conflict_for_run(conn: sqlite3.Connection, run_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM conflict WHERE run_id = ?", (run_id,)).fetchone()
+    return None if row is None else _conflict_row(row)
+
+
+def set_conflict_narrative(
+    conn: sqlite3.Connection, conflict_id: str, narrative: dict[str, Any]
+) -> None:
+    conn.execute(
+        "UPDATE conflict SET narrative = ? WHERE conflict_id = ?",
+        (json.dumps(narrative, ensure_ascii=False), conflict_id),
+    )
+    conn.commit()
+
+
+def set_conflict_resolved(
+    conn: sqlite3.Connection, conflict_id: str, option_id: str, by: str, resolved_run: str | None
+) -> None:
+    conn.execute(
+        "UPDATE conflict SET chosen_option = ?, chosen_by = ?, chosen_at = ?, resolved_run = ? "
+        "WHERE conflict_id = ?",
+        (option_id, by, now_iso(), resolved_run, conflict_id),
+    )
+    conn.commit()
+
+
+def active_waivers(conn: sqlite3.Connection, ward_id: str) -> frozenset[str]:
+    """Hard-constraint names a person has waived by choosing a conflict option."""
+    out: set[str] = set()
+    for c in list_conflicts(conn, ward_id):
+        chosen = next((o for o in c["options"] if o["option_id"] == c["chosen_option"]), None)
+        if chosen and chosen.get("waive"):
+            out.add(str(chosen["waive"]))
+    return frozenset(out)

@@ -33,3 +33,7 @@ Explanations (M8): `evidence/counterfactual.py` (what-if re-solves, full and loc
 denied-request reason codes), `solver/diagnose.py` (infeasibility core), `explain/tools.py` (7
 tools), `explain/agent.py` (loop, budgets, both tool modes), `explain/claims.py` (grounding check),
 `explain/describe.py` (deterministic text with claims) and `explain/mock.py`.
+
+Conflicts (M9): `solver/diagnose.py` (unsat core over guarded constraints, minimized),
+`planner/conflicts.py` (waivable core, context, template options, float nurse, waivers),
+`explain/narrate.py` (checked summary) and `api/routes_conflicts.py`.

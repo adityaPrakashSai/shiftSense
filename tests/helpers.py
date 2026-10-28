@@ -34,3 +34,18 @@ def scenario_a(conn: sqlite3.Connection) -> ResolvePlan:
                          now=NOW)  # fmt: skip
     rank(conn, plan)
     return plan
+
+
+NIGHT = datetime(2026, 11, 3, 22, 0, tzinfo=ZoneInfo("Asia/Kolkata"))
+
+
+def night_crunch(conn: sqlite3.Connection) -> ResolvePlan:
+    """Tue 3 Nov 22:00: the Morning and Evening are under way, so only N01 (on tonight's night)
+    and the standby nurses could cover it; S02 is already off sick. N01 and S01 become
+    unavailable for the night, and the re-solve cannot meet the night's minimum cover."""
+    for n in ("N01", "S01"):
+        r = Request(id=repo.next_request_id(conn), nurse_id=n, kind=RequestKind.UNAVAILABLE,
+                    dates=[TUE], shifts=["N"], hard=True, status=RequestStatus.ACTIVE,
+                    created_at=NIGHT)  # fmt: skip
+        repo.insert_request(conn, "ward-mini", r)
+    return start_resolve(conn, trigger="night_crunch", affected=[TUE], now=NIGHT)

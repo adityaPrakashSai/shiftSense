@@ -422,10 +422,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/conflicts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Conflicts */
+        get: operations["list_conflicts_api_conflicts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conflicts/{conflict_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Conflict */
+        get: operations["get_conflict_api_conflicts__conflict_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/conflicts/{conflict_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve
+         * @description Apply the chosen option (a waiver or a float nurse) and start a new run with it.
+         */
+        post: operations["resolve_api_conflicts__conflict_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Blocked */
+        Blocked: {
+            /** Nurse */
+            nurse: string;
+            /** Name */
+            name: string;
+            /** Rules */
+            rules: string[];
+        };
         /** Body_post_message_api_messages_post */
         Body_post_message_api_messages_post: {
             /** Sender Id */
@@ -540,6 +603,45 @@ export interface components {
             path: string;
             /** Value */
             value?: unknown;
+        };
+        /** ConflictOption */
+        ConflictOption: {
+            /** Option Id */
+            option_id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Waive */
+            waive: string | null;
+            /** Nurse */
+            nurse: string | null;
+            /** Day */
+            day: string | null;
+            /** Shift */
+            shift: string | null;
+        };
+        /** ConflictOut */
+        ConflictOut: {
+            /** Conflict Id */
+            conflict_id: string;
+            /** Run Id */
+            run_id: string;
+            /** Core */
+            core: string[];
+            /** Context */
+            context: components["schemas"]["Blocked"][];
+            /** Options */
+            options: components["schemas"]["ConflictOption"][];
+            narrative: components["schemas"]["NarrativeOut"] | null;
+            /** Chosen Option */
+            chosen_option: string | null;
+            /** Chosen By */
+            chosen_by: string | null;
+            /** Chosen At */
+            chosen_at: string | null;
+            /** Resolved Run */
+            resolved_run: string | null;
         };
         /** ConstraintEdit */
         ConstraintEdit: {
@@ -857,6 +959,22 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /** NarrativeOut */
+        NarrativeOut: {
+            /** Summary */
+            summary: string;
+            /** Options */
+            options: {
+                [key: string]: string;
+            }[];
+            /** Source */
+            source: string;
+            /**
+             * Problems
+             * @default []
+             */
+            problems: string[];
+        };
         /** Nurse */
         Nurse: {
             /** Id */
@@ -1043,6 +1161,25 @@ export interface components {
             secs: number;
             /** Run Id */
             run_id: string | null;
+        };
+        /** ResolveBody */
+        ResolveBody: {
+            /** Option Id */
+            option_id: string;
+            /**
+             * By
+             * @default charge
+             */
+            by: string;
+        };
+        /** ResolveOut */
+        ResolveOut: {
+            /** Conflict Id */
+            conflict_id: string;
+            /** Option Id */
+            option_id: string;
+            /** Run Id */
+            run_id: string;
         };
         /**
          * Role
@@ -1956,6 +2093,103 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_conflicts_api_conflicts_get: {
+        parameters: {
+            query?: {
+                open?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_conflict_api_conflicts__conflict_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conflict_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_api_conflicts__conflict_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conflict_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolveOut"];
                 };
             };
             /** @description Validation Error */

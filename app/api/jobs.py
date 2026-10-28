@@ -10,6 +10,8 @@ from app.api.ws import hub
 from app.config import get_settings
 from app.domain.models import RunStatus
 from app.evidence.counterfactual import explain_denied
+from app.explain.narrate import narrate
+from app.llm.gateway import get_gateway
 from app.log.decision_log import DecisionLog
 from app.planner.runs import PreparedRun, ResolvePlan, finish_full
 from app.planner.sickcall import rank
@@ -57,8 +59,26 @@ def _denied_in_thread(run_id: str) -> None:
         conn.close()
 
 
-def after_run(run_id: str, status: str) -> None:
-    """Fill denied-request reason codes in the background (M8, time-boxed to 20 s)."""
+async def after_run(ward_id: str, run_id: str, status: str) -> None:
+    """Fill denied-request reason codes in the background (M8, time-boxed to 20 s); for an
+    infeasible run, announce its conflict and let Muse narrate it (7.6)."""
+    if status == RunStatus.INFEASIBLE.value:
+        conn = connect(get_settings().db_path)
+        try:
+            c = repo.conflict_for_run(conn, run_id)
+            if c is None:
+                return
+            msg = {"type": "conflict_created", "conflict_id": c["conflict_id"], "run_id": run_id}
+            await hub.broadcast(ward_id, msg)
+            try:
+                await narrate(conn, c["conflict_id"], gateway=get_gateway(),
+                              log=live_log(conn, ward_id))  # fmt: skip
+            except Exception as exc:  # noqa: BLE001 - the template text stays
+                log.warning("narration of %s failed: %s", c["conflict_id"], exc)
+            await hub.broadcast(ward_id, msg)
+        finally:
+            conn.close()
+        return
     if status == RunStatus.PROPOSED.value and get_settings().explain_denied:
         fut = asyncio.get_running_loop().run_in_executor(executor, _denied_in_thread, run_id)
         background.add(fut)
@@ -70,7 +90,7 @@ async def solve_full(prep: PreparedRun) -> None:
     async with ward_lock(ward_id):
         status = await asyncio.get_running_loop().run_in_executor(executor, _solve_in_thread, prep)
     await hub.broadcast(ward_id, {"type": "run_finished", "run_id": prep.run_id, "status": status})
-    after_run(prep.run_id, status)
+    await after_run(ward_id, prep.run_id, status)
 
 
 def spawn(prep: PreparedRun) -> None:
@@ -98,7 +118,7 @@ async def solve_resolve(plan: ResolvePlan) -> None:
         loop = asyncio.get_running_loop()
         status = await loop.run_in_executor(executor, _resolve_in_thread, plan)
     await hub.broadcast(ward_id, {"type": "run_finished", "run_id": plan.run_id, "status": status})
-    after_run(plan.run_id, status)
+    await after_run(ward_id, plan.run_id, status)
     if status == RunStatus.PROPOSED.value:
         await hub.broadcast(
             ward_id,

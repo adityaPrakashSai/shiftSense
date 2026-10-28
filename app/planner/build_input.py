@@ -121,6 +121,7 @@ def build_input(
     history: WardHistory | None = None,
     *,
     standby_allowed: bool = False,
+    waived: frozenset[str] = frozenset(),
 ) -> SolveInput:
     requests = list(requests)
     days = ward.horizon_days
@@ -194,7 +195,7 @@ def build_input(
         shift_prefs=tuple(wanted),
         shift_avoids=tuple(avoids),
         forced=tuple(forced),
-        waived=frozenset(),
+        waived=waived,
         max_consecutive_days=ward.max_consecutive_days,
         night_block_min=ward.night_block_min,
         night_block_max=ward.night_block_max,

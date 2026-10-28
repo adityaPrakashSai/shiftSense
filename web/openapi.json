@@ -1102,10 +1102,178 @@
      }
     }
    }
+  },
+  "/api/conflicts": {
+   "get": {
+    "tags": [
+     "conflicts"
+    ],
+    "summary": "List Conflicts",
+    "operationId": "list_conflicts_api_conflicts_get",
+    "parameters": [
+     {
+      "name": "open",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Open"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ConflictOut"
+         },
+         "title": "Response List Conflicts Api Conflicts Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/conflicts/{conflict_id}": {
+   "get": {
+    "tags": [
+     "conflicts"
+    ],
+    "summary": "Get Conflict",
+    "operationId": "get_conflict_api_conflicts__conflict_id__get",
+    "parameters": [
+     {
+      "name": "conflict_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Conflict Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConflictOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/conflicts/{conflict_id}/resolve": {
+   "post": {
+    "tags": [
+     "conflicts"
+    ],
+    "summary": "Resolve",
+    "description": "Apply the chosen option (a waiver or a float nurse) and start a new run with it.",
+    "operationId": "resolve_api_conflicts__conflict_id__resolve_post",
+    "parameters": [
+     {
+      "name": "conflict_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Conflict Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ResolveBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResolveOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
   "schemas": {
+   "Blocked": {
+    "properties": {
+     "nurse": {
+      "type": "string",
+      "title": "Nurse"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "rules": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Rules"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse",
+     "name",
+     "rules"
+    ],
+    "title": "Blocked"
+   },
    "Body_post_message_api_messages_post": {
     "properties": {
      "sender_id": {
@@ -1459,6 +1627,179 @@
      "path"
     ],
     "title": "ClaimOut"
+   },
+   "ConflictOption": {
+    "properties": {
+     "option_id": {
+      "type": "string",
+      "title": "Option Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "waive": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Waive"
+     },
+     "nurse": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nurse"
+     },
+     "day": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day"
+     },
+     "shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shift"
+     }
+    },
+    "type": "object",
+    "required": [
+     "option_id",
+     "kind",
+     "label",
+     "waive",
+     "nurse",
+     "day",
+     "shift"
+    ],
+    "title": "ConflictOption"
+   },
+   "ConflictOut": {
+    "properties": {
+     "conflict_id": {
+      "type": "string",
+      "title": "Conflict Id"
+     },
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     },
+     "core": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Core"
+     },
+     "context": {
+      "items": {
+       "$ref": "#/components/schemas/Blocked"
+      },
+      "type": "array",
+      "title": "Context"
+     },
+     "options": {
+      "items": {
+       "$ref": "#/components/schemas/ConflictOption"
+      },
+      "type": "array",
+      "title": "Options"
+     },
+     "narrative": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/NarrativeOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "chosen_option": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chosen Option"
+     },
+     "chosen_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chosen By"
+     },
+     "chosen_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chosen At"
+     },
+     "resolved_run": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolved Run"
+     }
+    },
+    "type": "object",
+    "required": [
+     "conflict_id",
+     "run_id",
+     "core",
+     "context",
+     "options",
+     "narrative",
+     "chosen_option",
+     "chosen_by",
+     "chosen_at",
+     "resolved_run"
+    ],
+    "title": "ConflictOut"
    },
    "ConstraintEdit": {
     "properties": {
@@ -2367,6 +2708,43 @@
     ],
     "title": "MessageReply"
    },
+   "NarrativeOut": {
+    "properties": {
+     "summary": {
+      "type": "string",
+      "title": "Summary"
+     },
+     "options": {
+      "items": {
+       "additionalProperties": {
+        "type": "string"
+       },
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Options"
+     },
+     "source": {
+      "type": "string",
+      "title": "Source"
+     },
+     "problems": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Problems",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "summary",
+     "options",
+     "source"
+    ],
+    "title": "NarrativeOut"
+   },
    "Nurse": {
     "properties": {
      "id": {
@@ -2964,6 +3342,47 @@
      "run_id"
     ],
     "title": "ResetOut"
+   },
+   "ResolveBody": {
+    "properties": {
+     "option_id": {
+      "type": "string",
+      "title": "Option Id"
+     },
+     "by": {
+      "type": "string",
+      "title": "By",
+      "default": "charge"
+     }
+    },
+    "type": "object",
+    "required": [
+     "option_id"
+    ],
+    "title": "ResolveBody"
+   },
+   "ResolveOut": {
+    "properties": {
+     "conflict_id": {
+      "type": "string",
+      "title": "Conflict Id"
+     },
+     "option_id": {
+      "type": "string",
+      "title": "Option Id"
+     },
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "conflict_id",
+     "option_id",
+     "run_id"
+    ],
+    "title": "ResolveOut"
    },
    "Role": {
     "type": "string",

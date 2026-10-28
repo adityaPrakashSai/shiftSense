@@ -4,7 +4,7 @@ A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language
 photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
 the solver's actual results.
 
-> **Status:** milestone M8 (counterfactual re-solves and a tool-calling explainer with claim checking).
+> **Status:** milestone M9 (unsat-core conflict diagnosis with charge-nurse options).
 > The build started on **28 Oct 2026**. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full
 > design and the milestone plan (section 12).
 
@@ -44,6 +44,11 @@ minute and absorb a sick call with as few changes as possible.
   roster with Priya on that shift. Every fact in the answer is a claim that cites a tool result
   by path and value; code checks each one, and an answer that fails twice is withheld in favour
   of a deterministic explanation built from the same results.
+- **Conflicts come with options, not excuses.** When no legal roster exists (three nurses who
+  could cover tonight's night are unavailable), CP-SAT's unsat core names exactly the rules that
+  cannot all hold; code turns each waivable one into an option ("Ask Arun to come in", "Add a
+  float nurse"), Muse writes a two-sentence summary that is checked against the option list, and
+  the charge nurse's choice starts a new solve.
 
 ## Architecture
 
@@ -75,6 +80,7 @@ make api       # regenerate web/openapi.json and the TypeScript client types
 uv run python -m app.llm.smoke --provider baseten   # live check of Muse Spark Open (needs a key)
 make test      # ruff, mypy (strict for app/solver), pytest in mock mode
 make eval      # live intake eval on Baseten (EVAL_ARGS="--mode replay" re-runs it for free)
+uv run python -m scripts.scenarios.night_crunch   # open a conflict (SEED=mini, DEMO_NOW at 22:00)
 make docker    # build the container image
 ```
 

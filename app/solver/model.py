@@ -97,11 +97,15 @@ class RosterModel:
         inp: SolveInput,
         *,
         guarded: bool = False,
+        guard_groups: frozenset[str] | None = None,
         drop_groups: frozenset[str] = frozenset(),
     ) -> None:
-        """`drop_groups` removes whole hard groups; tests use it to prove each rule bites."""
+        """`drop_groups` removes whole hard groups; tests use it to prove each rule bites.
+        In guarded mode `guard_groups` limits the guards to those groups (None = all); the
+        others stay plain constraints, so a core names only what a person could relax."""
         self.inp = inp
         self.guarded = guarded
+        self.guard_groups = guard_groups
         self.drop_groups = drop_groups
         self.m = cp_model.CpModel()
         self.names: list[str] = []  # every hard constraint registered, in order
@@ -155,7 +159,7 @@ class RosterModel:
         self.names.append(name)
         if name in self.inp.waived:
             c.only_enforce_if(self._false)
-        elif self.guarded:
+        elif self.guarded and (self.guard_groups is None or group in self.guard_groups):
             g = self.m.new_bool_var(name)
             self.guards[name] = g
             c.only_enforce_if(g)
