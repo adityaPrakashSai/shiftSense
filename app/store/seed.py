@@ -1,71 +1,17 @@
-"""Load a seed file into SQLite (design doc 4.5). Used by `scripts/seed.py` and app startup.
+"""Write a seed into SQLite (design doc 4.5). Used by `scripts/seed.py` and app startup.
 
-Seeds: `default` (data/seed/ward.json, 20 + 4 standby), `mini` (9-nurse mini ward) and `real_a`
-(pseudonymized October ward with its printed plan and hand-edited update as import runs).
+Parsing lives in `app/domain/seeds.py`; real_a's printed plans become `import` runs here.
 Solving the baseline arrives in M3; until then only `real_a` has runs.
 """
 
-import json
 import sqlite3
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Any
 
-from app.domain.models import Request, RunKind, RunStatus, Ward, WardHistory
+from app.domain.models import RunKind, RunStatus
+from app.domain.seeds import SEED_DIR, SEED_FILES, Seed, load_seed, parse_seed
 from app.planner.build_input import build_input
 from app.store import repo
 
-SEED_DIR = Path(__file__).resolve().parents[2] / "data" / "seed"
-SEED_FILES = {
-    "default": "ward.json",
-    "mini": "mini_ward.json",
-    "real_a": "real_ward_a.json",
-}
-
-
-@dataclass
-class Seed:
-    name: str
-    ward: Ward
-    requests: list[Request]
-    history: WardHistory
-    runs: dict[str, Any]  # raw "runs" block (real_a only)
-
-
-def _off(code: str | None) -> str | None:
-    return None if code in (None, "-") else code
-
-
-def parse_seed(raw: dict[str, Any], name: str) -> Seed:
-    w = dict(raw["ward"])
-    if "max_consecutive_nights" in w:  # mini_ward/v1 spelling of night_block_max
-        w.setdefault("night_block_max", w.pop("max_consecutive_nights"))
-    ward = Ward.model_validate(w)
-
-    default_created = datetime.fromisoformat(f"{ward.horizon_start.isoformat()}T00:00:00+00:00")
-    requests = []
-    for r in raw.get("requests", []):
-        requests.append(Request.model_validate({"created_at": default_created, **r}))
-
-    h = raw.get("history", {})
-    history = WardHistory.model_validate(
-        {
-            "periods": h.get("periods", 0),
-            "nurses": {
-                nid: {**rec, "last_days": [_off(c) for c in rec.get("last_days", [])]}
-                for nid, rec in h.get("nurses", {}).items()
-            },
-        }
-    )
-    return Seed(name, ward, requests, history, raw.get("runs", {}))
-
-
-def load_seed(name: str = "default") -> Seed:
-    if name not in SEED_FILES:
-        raise ValueError(f"unknown seed {name!r}; choose one of {sorted(SEED_FILES)}")
-    raw = json.loads((SEED_DIR / SEED_FILES[name]).read_text(encoding="utf-8"))
-    return parse_seed(raw, name)
+__all__ = ["SEED_DIR", "SEED_FILES", "Seed", "load_seed", "parse_seed", "seed_db", "write_seed"]
 
 
 def clear(conn: sqlite3.Connection) -> None:
