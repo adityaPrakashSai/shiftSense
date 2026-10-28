@@ -89,7 +89,9 @@ def test_reseed_replaces_everything(conn: sqlite3.Connection) -> None:
     seed_db(conn, "real_a")
     seed_db(conn, "mini")
     assert conn.execute("SELECT COUNT(*) FROM ward").fetchone()[0] == 1
-    assert conn.execute("SELECT COUNT(*) FROM run").fetchone()[0] == 0
+    # real_a's import runs are gone; mini brings its own solved, published baseline
+    runs = conn.execute("SELECT kind, status, ward_id FROM run").fetchall()
+    assert [tuple(r) for r in runs] == [("full", "published", "ward-mini")]
     assert len(repo.list_requests(conn, "ward-mini")) == 9
 
 

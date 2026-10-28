@@ -16,7 +16,7 @@ from app.solver.validate import violations
 def test_rule_check_agrees_with_validator(seed_name: str) -> None:
     s = load_seed(seed_name)
     inp: SolveInput = build_input(s.ward, s.requests, s.history)
-    roster = solve(inp, stage_seconds=5, workers=8).roster
+    roster = solve(inp, stage_seconds=1, workers=8, total_seconds=3).roster
     before = set(violations(inp, roster))
     rng = random.Random(7)
     nurses = [n.id for n in inp.nurses]
@@ -32,7 +32,7 @@ def test_rule_check_agrees_with_validator(seed_name: str) -> None:
 def test_rule_check_names_the_blocking_rule() -> None:
     s = load_seed("mini")
     inp = build_input(s.ward, s.requests, s.history)
-    roster = solve(inp, stage_seconds=5, workers=4).roster
+    roster = solve(inp, stage_seconds=1, workers=8, total_seconds=2).roster
     # N05 ended last period with three nights: a day-0 morning breaks rest after night
     assert "rest_after_night:N05:d-1" in rule_check(roster, inp, "N05", 0, "M")
     assert rule_check(roster, inp, "N05", 0, roster[("N05", 0)]) == []

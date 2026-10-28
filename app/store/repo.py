@@ -269,3 +269,141 @@ def get_roster(conn: sqlite3.Connection, run_id: str) -> dict[str, list[str | No
             None if r["shift"] is None else ShiftCode(r["shift"]).value
         )
     return out
+
+
+def update_run(conn: sqlite3.Connection, run_id: str, **fields: Any) -> None:
+    allowed = {
+        "status",
+        "total_secs",
+        "changed_cells",
+        "published_at",
+        "published_by",
+        "parent_run",
+    }
+    bad = set(fields) - allowed
+    if bad:
+        raise ValueError(f"cannot update run fields {sorted(bad)}")
+    cols = ", ".join(f"{k} = ?" for k in fields)
+    conn.execute(f"UPDATE run SET {cols} WHERE run_id = ?", (*fields.values(), run_id))  # noqa: S608
+    conn.commit()
+
+
+def set_published(conn: sqlite3.Connection, ward_id: str, run_id: str, by: str) -> str | None:
+    """Publish `run_id` and supersede the previously published run, in one transaction.
+    Returns the superseded run id."""
+    old = get_published_run(conn, ward_id)
+    ts = now_iso()
+    with conn:
+        if old is not None:
+            conn.execute(
+                "UPDATE run SET status = ? WHERE run_id = ?",
+                (RunStatus.SUPERSEDED.value, old["run_id"]),
+            )
+        conn.execute(
+            "UPDATE run SET status = ?, published_at = ?, published_by = ? WHERE run_id = ?",
+            (RunStatus.PUBLISHED.value, ts, by, run_id),
+        )
+    return None if old is None else str(old["run_id"])
+
+
+def insert_stages(conn: sqlite3.Connection, run_id: str, rows: Iterable[tuple[Any, ...]]) -> None:
+    """rows: (rank, tier, status, best, bound, proven, secs, locked)."""
+    conn.executemany(
+        "INSERT INTO stage(run_id, rank, tier, status, best, bound, proven, secs, locked) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [(run_id, *r) for r in rows],
+    )
+    conn.commit()
+
+
+def get_stages(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT * FROM stage WHERE run_id = ? ORDER BY rank", (run_id,))
+    return [dict(r) for r in rows]
+
+
+def insert_costs(conn: sqlite3.Connection, run_id: str, rows: Iterable[tuple[Any, ...]]) -> None:
+    """rows: (nurse_id, day, tier, rule, amount, weight, ref, detail)."""
+    conn.executemany(
+        "INSERT INTO cost(run_id, nurse_id, day, tier, rule, amount, weight, ref, detail) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [(run_id, *r) for r in rows],
+    )
+    conn.commit()
+
+
+def get_costs(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
+    return [dict(r) for r in conn.execute("SELECT * FROM cost WHERE run_id = ?", (run_id,))]
+
+
+def insert_request_outcomes(
+    conn: sqlite3.Connection, run_id: str, rows: Iterable[tuple[Any, ...]]
+) -> None:
+    """rows: (request_id, status, reason_code, detail)."""
+    conn.executemany(
+        "INSERT INTO request_outcome(run_id, request_id, status, reason_code, detail) "
+        "VALUES(?, ?, ?, ?, ?)",
+        [(run_id, *r) for r in rows],
+    )
+    conn.commit()
+
+
+def get_request_outcomes(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM request_outcome WHERE run_id = ? ORDER BY request_id", (run_id,)
+    )
+    return [dict(r) for r in rows]
+
+
+def insert_fairness(conn: sqlite3.Connection, run_id: str, rows: Iterable[tuple[Any, ...]]) -> None:
+    """rows: (nurse_id, nights, weekend_shifts, total_shifts, requests_made, requests_denied)."""
+    conn.executemany(
+        "INSERT INTO fairness(run_id, nurse_id, nights, weekend_shifts, total_shifts, "
+        "requests_made, requests_denied) VALUES(?, ?, ?, ?, ?, ?, ?)",
+        [(run_id, *r) for r in rows],
+    )
+    conn.commit()
+
+
+def get_fairness(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT * FROM fairness WHERE run_id = ? ORDER BY nurse_id", (run_id,))
+    return [dict(r) for r in rows]
+
+
+def insert_event(
+    conn: sqlite3.Connection,
+    *,
+    ward_id: str,
+    run_id: str | None,
+    actor: str,
+    kind: str,
+    stage: str | None,
+    payload_json: str,
+) -> int:
+    cur = conn.execute(
+        "INSERT INTO event(ward_id, run_id, ts, actor, kind, stage, payload_json) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?)",
+        (ward_id, run_id, now_iso_ms(), actor, kind, stage, payload_json),
+    )
+    conn.commit()
+    return int(cur.lastrowid or 0)
+
+
+def list_events(
+    conn: sqlite3.Connection,
+    ward_id: str,
+    *,
+    run_id: str | None = None,
+    after_seq: int = 0,
+    limit: int = 500,
+) -> list[dict[str, Any]]:
+    sql = "SELECT * FROM event WHERE ward_id = ? AND seq > ?"
+    args: list[Any] = [ward_id, after_seq]
+    if run_id is not None:
+        sql += " AND run_id = ?"
+        args.append(run_id)
+    rows = conn.execute(sql + " ORDER BY seq LIMIT ?", (*args, limit))
+    return [{**dict(r), "payload": json.loads(r["payload_json"] or "{}")} for r in rows]
+
+
+def now_iso_ms() -> str:
+    return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")

@@ -31,7 +31,7 @@ def inp() -> SolveInput:
 
 @pytest.fixture(scope="module")
 def solved(inp: SolveInput) -> SolveResult:
-    return solve(inp, stage_seconds=10, workers=4)
+    return solve(inp, stage_seconds=10, workers=8, total_seconds=4)
 
 
 def test_golden_baseline_passes_our_validator(inp: SolveInput) -> None:

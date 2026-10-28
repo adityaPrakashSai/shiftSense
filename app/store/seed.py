@@ -1,7 +1,7 @@
 """Write a seed into SQLite (design doc 4.5). Used by `scripts/seed.py` and app startup.
 
 Parsing lives in `app/domain/seeds.py`; real_a's printed plans become `import` runs here.
-Solving the baseline arrives in M3; until then only `real_a` has runs.
+Wards without a printed plan get a baseline solved by CP-SAT and published at seed time.
 """
 
 import sqlite3
@@ -64,7 +64,14 @@ def _write_import_runs(conn: sqlite3.Connection, seed: Seed) -> None:
         )
 
 
-def seed_db(conn: sqlite3.Connection, name: str = "default") -> Seed:
+def seed_db(conn: sqlite3.Connection, name: str = "default", *, solve: bool = True) -> Seed:
+    """Write the seed; unless it brings its own published plan, solve and publish a baseline."""
     seed = load_seed(name)
     write_seed(conn, seed)
+    if solve and repo.get_published_run(conn, seed.ward.id) is None:
+        from app.planner.runs import publish, run_full  # planner imports store; avoid a cycle
+
+        out = run_full(conn, seed.ward.id, trigger="seed")
+        if out.result.status == "solved":
+            publish(conn, out.run_id, by="seed")
     return seed

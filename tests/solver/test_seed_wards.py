@@ -10,11 +10,11 @@ from app.solver.solve import solve
 from app.solver.validate import violations
 
 
-def test_default_seed_solves_under_10s_with_no_violations() -> None:
+def test_default_seed_solves_with_no_violations() -> None:
     s = load_seed("default")
     inp = build_input(s.ward, s.requests, s.history)
     t0 = time.perf_counter()
-    res = solve(inp, stage_seconds=5, workers=8)
+    res = solve(inp, stage_seconds=1, workers=8, total_seconds=3)
     assert time.perf_counter() - t0 < 10
     assert res.status == "solved" and violations(inp, res.roster) == []
     assert res.stages[0].tier == "coverage" and res.stages[0].proven

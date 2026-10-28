@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     demo_now: str | None = None
     solver_workers: int = 8
     solver_stage_seconds: float = 5.0
+    solver_total_seconds: float = 9.0  # cap on one full solve, so a draft stays under 10 s (G1)
+    log_dir: str = "logs"  # per-stage CP-SAT search logs: logs/{run_id}/{tier}.solver.log
 
     def model_for(self, provider: ProviderName) -> str | None:
         return {

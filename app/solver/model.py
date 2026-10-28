@@ -6,8 +6,8 @@ mode (`guarded=True`, used by M9) each one is guarded by an assumption literal o
 names in `SolveInput.waived` are added with `only_enforce_if(false)` so the model shape stays the
 same and the waiver is visible.
 
-Soft terms live in `self.terms`. M2 has one tier: coverage shortfall (COVER_SHORT); the other
-tiers of 5.3 arrive in M3.
+Soft terms (5.3) live in `self.terms`, one list per tier, each a `SoftTerm` with a stable rule
+code; `tier_penalty(tier)` is the objective of that tier's lexicographic stage (5.4).
 """
 
 from __future__ import annotations
@@ -19,11 +19,63 @@ from typing import Any
 
 from ortools.sat.python import cp_model
 
-from app.solver.input import SHIFTS, SolveInput
+from app.solver.input import SHIFTS, Pref, SolveInput
 
 LinearLike = Any  # cp_model.LinearExprT; ortools' stubs do not export a usable alias
 
 DAY_SHIFTS = ("M", "E", "G")  # may not follow a night (rest_after_night)
+
+# 5.3 weights and tiers. Sequence rules are weighted inside the requests tier
+# ("wellbeing and requests"); request weights come from each request (PREF_OFF uses 2 x weight).
+WEIGHTS: dict[str, int] = {
+    "COVER_SHORT": 1,
+    "CHANGED": 2,
+    "STANDBY_CALLED": 1,
+    "CONTRACT_MIN": 1,
+    "QUICK_RETURN": 3,
+    "SINGLE_NIGHT": 3,
+    "ISOLATED_DAY": 1,
+    "SPLIT_WEEKEND": 1,
+    "FAIR_NIGHTS": 2,
+    "FAIR_WEEKENDS": 2,
+    "FAIR_MORNINGS": 2,
+    "FAIR_EVENINGS": 2,
+    "FAIR_DENIALS": 1,
+}
+TIER_OF: dict[str, str] = {
+    "COVER_SHORT": "coverage",
+    "CHANGED": "stability",
+    "STANDBY_CALLED": "stability",
+    "CONTRACT_MIN": "contract",
+    "QUICK_RETURN": "requests",
+    "SINGLE_NIGHT": "requests",
+    "ISOLATED_DAY": "requests",
+    "SPLIT_WEEKEND": "requests",
+    "PREF_OFF": "requests",
+    "PREF_SHIFT": "requests",
+    "PREF_AVOID": "requests",
+    "FAIR_NIGHTS": "fairness",
+    "FAIR_WEEKENDS": "fairness",
+    "FAIR_MORNINGS": "fairness",
+    "FAIR_EVENINGS": "fairness",
+    "FAIR_DENIALS": "fairness",
+}
+WHY: dict[str, str] = {
+    "CHANGED": "duty changed from the published roster",
+    "STANDBY_CALLED": "standby nurse called in",
+    "QUICK_RETURN": "evening then morning (8 h rest)",
+    "SINGLE_NIGHT": "single night, shorter than the minimum night block",
+    "ISOLATED_DAY": "single working day between days off",
+    "SPLIT_WEEKEND": "works only one day of the weekend",
+    "PREF_OFF": "day off not granted",
+    "PREF_SHIFT": "wanted shift not granted",
+    "PREF_AVOID": "avoided shift assigned",
+    "FAIR_NIGHTS": "spread of nights, history included",
+    "FAIR_WEEKENDS": "spread of weekend shifts, history included",
+    "FAIR_MORNINGS": "spread of mornings, history included",
+    "FAIR_EVENINGS": "spread of evenings, history included",
+    "FAIR_DENIALS": "spread of denied requests, history included",
+}
 
 
 @dataclass(frozen=True)
@@ -75,8 +127,10 @@ class RosterModel:
                     self.x[n, d, "G"] = self.m.new_bool_var(f"x[{n},{d},G]")
                 self._cell[n, d] = [self.x[k] for s in (*SHIFTS, "G") if (k := (n, d, s)) in self.x]
 
+        self.denied: dict[str, tuple[str, cp_model.IntVar]] = {}  # request id -> (nurse, bool)
+        self.spread_members: dict[str, list[tuple[str, LinearLike]]] = {}
         self._add_hard_rules()
-        self._add_coverage_terms()
+        self._add_soft_terms()
 
     # ---------------------------------------------------------------- helpers
 
@@ -240,26 +294,229 @@ class RosterModel:
                 continue  # the window cannot exceed the limit
             self.hard(group, f"{n}:d{e}", sum(flag(d) for d in in_horizon) + before <= limit)
 
-    # ---------------------------------------------------------------- 5.3 soft terms (M2: coverage)
+    # ---------------------------------------------------------------- 5.3 soft terms
 
-    def _add_coverage_terms(self) -> None:
-        for (d, s), dm in sorted(self.inp.demand.items()):
-            on = sum(self.xs(n, d, s) for n in self.nurse_ids)
+    def lit(self, n: str, d: int, what: str) -> LinearLike:
+        """0/1 expression (a constant for d < 0, from carry-in) for: a shift code, "W" worked,
+        "OFF" off, or "D" a day shift (M or E)."""
+        if d < 0:
+            h = self.inp.history.get(n)
+            c = None if h is None or d < -3 else h.last_shifts[3 + d]
+            return int(
+                {"W": c is not None, "OFF": c is None, "D": c in ("M", "E")}.get(what, c == what)
+            )
+        if what == "W":
+            return self.works(n, d)
+        if what == "OFF":
+            return 1 - self.works(n, d)
+        if what == "D":
+            return self.xs(n, d, "M") + self.xs(n, d, "E")
+        return self.xs(n, d, what)
+
+    def _pattern(self, rule: str, n: str, d: int, lits: list[LinearLike]) -> None:
+        """Penalty 1 when every 0/1 literal in `lits` is 1 (sequence rules)."""
+        if any(isinstance(v, int) and v == 0 for v in lits):
+            return
+        var = [v for v in lits if not isinstance(v, int)]
+        why = WHY[rule]
+        if not var:  # fixed by the carry-in alone
+            self.soft(SoftTerm(TIER_OF[rule], 1, WEIGHTS[rule], 1, rule, n, d, None, why))
+            return
+        p = self.m.new_bool_var(f"{rule}[{n},{d}]")
+        self.m.add(p >= sum(var) - (len(var) - 1))
+        self.soft(SoftTerm(TIER_OF[rule], p, WEIGHTS[rule], 1, rule, n, d, None, why))
+
+    def _spread(self, rule: str, vals: list[tuple[str, LinearLike, int]]) -> None:
+        """max - min over (nurse, expression, upper bound); minimised, so inequalities suffice."""
+        if not vals:
+            return
+        top = max(ub for _n, _e, ub in vals)
+        hi = self.m.new_int_var(0, top, f"hi[{rule}]")
+        lo = self.m.new_int_var(0, top, f"lo[{rule}]")
+        for _n, e, _ub in vals:
+            self.m.add(hi >= e)
+            self.m.add(lo <= e)
+        self.spread_members[rule] = [(n, e) for n, e, _ub in vals]
+        self.soft(SoftTerm("fairness", hi - lo, WEIGHTS[rule], top, rule, why=WHY[rule]))
+
+    def _add_soft_terms(self) -> None:
+        inp, xs, works, lit = self.inp, self.xs, self.works, self.lit
+        D = inp.num_days
+        days = self.days
+        specs = {s.id: s for s in inp.nurses}
+        # who the contract, sequence and fairness terms are about: rostered regular nurses.
+        # Standby nurses are excluded (5.3); so is the ANS, who works G outside coverage and
+        # fairness.
+        regular = [s.id for s in inp.nurses if not s.standby and s.role != "ans"]
+
+        # rank 1 coverage: short[d,s] with sum_n x + short >= target_total
+        for (d, s), dm in sorted(inp.demand.items()):
+            on = sum(xs(n, d, s) for n in self.nurse_ids)
             short = self.m.new_int_var(0, dm.target_total, f"short[{d},{s}]")
             self.m.add(on + short >= dm.target_total)
             self.soft(
                 SoftTerm(
                     "coverage",
                     short,
-                    1,
+                    WEIGHTS["COVER_SHORT"],
                     dm.target_total,
                     "COVER_SHORT",
                     None,
                     d,
                     s,
-                    f"day {d} {s} below target {dm.target_total}",
+                    f"below target {dm.target_total}",
                 )
             )
+
+        # rank 2 stability (re-solve only): changed cell vs the published roster, d >= frozen day.
+        # A cell the new request removes is "changed" only if the nurse still works it.
+        if inp.previous is not None:
+            away: dict[tuple[str, int], set[str] | None] = {}  # None = whole day
+            for n, d, sh in inp.unavailable:
+                cur = away.get((n, d), set())
+                away[n, d] = None if sh is None or cur is None else cur | {sh}
+            for k in inp.leave:
+                away[k] = None
+            for n in self.nurse_ids:
+                for d in range(inp.frozen_before_day, D):
+                    if (n, d) in inp.frozen_cells:
+                        continue
+                    p = inp.previous.get((n, d))
+                    blocked = away.get((n, d), set())
+                    removed = p is not None and (n, d) in away and (blocked is None or p in blocked)
+                    if removed or p is None or (n, d, p) not in self.x:
+                        changed = works(n, d)
+                    else:
+                        changed = 1 - self.x[n, d, p]
+                    rule = "STANDBY_CALLED" if specs[n].standby else "CHANGED"
+                    self.soft(
+                        SoftTerm("stability", changed, WEIGHTS[rule], 1, rule, n, d, p, WHY[rule])
+                    )
+
+        # rank 3 contract: under[n] with sum_d works + credited leave/sick days + under >= min
+        credit_cells = {(n, d) for n, d, _s in inp.unavailable} | set(inp.leave)
+        for n in regular:
+            lo = specs[n].min_shifts
+            if lo <= 0:
+                continue
+            credit = {d for d in days if (n, d) in credit_cells}
+            done = sum(works(n, d) for d in days if d not in credit) + len(credit)
+            under = self.m.new_int_var(0, lo, f"under[{n}]")
+            self.m.add(under >= lo - done)
+            self.soft(
+                SoftTerm(
+                    "contract",
+                    under,
+                    WEIGHTS["CONTRACT_MIN"],
+                    lo,
+                    "CONTRACT_MIN",
+                    n,
+                    why=f"below contract minimum {lo}",
+                )
+            )
+
+        # rank 4 wellbeing & requests: sequence rules (reach back over the period border)
+        weekends = [(d, d + 1) for d in sorted(inp.weekend_days) if d + 1 in inp.weekend_days]
+        for n in regular:
+            for d in range(-1, D - 1):
+                self._pattern("QUICK_RETURN", n, d, [lit(n, d, "E"), lit(n, d + 1, "M")])
+                self._pattern(
+                    "ISOLATED_DAY",
+                    n,
+                    d,
+                    [lit(n, d, "W"), lit(n, d - 1, "OFF"), lit(n, d + 1, "OFF")],
+                )
+                self._pattern(
+                    "SINGLE_NIGHT",
+                    n,
+                    d,
+                    [lit(n, d, "N"), 1 - lit(n, d - 1, "N"), 1 - lit(n, d + 1, "N")],
+                )
+            for sat, sun in weekends:
+                sw = self.m.new_bool_var(f"SPLIT_WEEKEND[{n},{sat}]")
+                self.m.add(sw >= works(n, sat) - works(n, sun))
+                self.m.add(sw >= works(n, sun) - works(n, sat))
+                self.soft(
+                    SoftTerm(
+                        TIER_OF["SPLIT_WEEKEND"],
+                        sw,
+                        WEIGHTS["SPLIT_WEEKEND"],
+                        1,
+                        "SPLIT_WEEKEND",
+                        n,
+                        sat,
+                        None,
+                        WHY["SPLIT_WEEKEND"],
+                    )
+                )
+
+        # rank 4 requests: one term per requested cell; denied[r] = 1 if any cell is not granted
+        cells: dict[str, list[LinearLike]] = {}
+        owner: dict[str, str] = {}
+        prefs: list[tuple[str, Pref]] = [("PREF_OFF", q) for q in inp.day_off_prefs]
+        prefs += [("PREF_SHIFT", q) for q in inp.shift_prefs]
+        prefs += [("PREF_AVOID", q) for q in inp.shift_avoids]
+        for rule, q in prefs:
+            if rule == "PREF_OFF":
+                v, w = works(q.nurse, q.day), 2 * q.weight
+            elif rule == "PREF_SHIFT":
+                v, w = 1 - xs(q.nurse, q.day, q.shift or ""), q.weight
+            else:
+                v, w = xs(q.nurse, q.day, q.shift or ""), q.weight
+            self.soft(SoftTerm("requests", v, w, 1, rule, q.nurse, q.day, q.request_id, WHY[rule]))
+            cells.setdefault(q.request_id, []).append(v)
+            owner[q.request_id] = q.nurse
+        for rid, vs in cells.items():
+            den = self.m.new_bool_var(f"denied[{rid}]")
+            for v in vs:
+                self.m.add(den >= v)
+            self.m.add(den <= sum(vs))
+            self.denied[rid] = (owner[rid], den)
+
+        # rank 5 fairness: spreads of running totals (history + this period) over regular nurses.
+        # FAIR_NIGHTS covers night-qualified nurses only. Nurses on an announced night break stay
+        # in, as in the reference solver and its golden values (docs/decisions.md).
+        hist = inp.history
+
+        def h(n: str, key: str) -> int:
+            rec = hist.get(n)
+            return 0 if rec is None else int(getattr(rec, key))
+
+        def total(n: str, key: str, expr: LinearLike) -> tuple[str, LinearLike, int]:
+            return (n, h(n, key) + expr, h(n, key) + D)
+
+        # a nurse away for the whole period (e.g. a month of maternity leave) cannot be balanced
+        # and would pin the minimum, so she is left out of the spreads
+        away_all = {n for n in regular if all((n, d) in credit_cells for d in days)}
+        regular = [n for n in regular if n not in away_all]
+        night_ok = [n for n in regular if specs[n].can_night]
+        self._spread(
+            "FAIR_NIGHTS", [total(n, "nights", sum(xs(n, d, "N") for d in days)) for n in night_ok]
+        )
+        self._spread(
+            "FAIR_WEEKENDS",
+            [total(n, "weekends", sum(works(n, d) for d in inp.weekend_days)) for n in regular],
+        )
+        self._spread(
+            "FAIR_MORNINGS",
+            [total(n, "mornings", sum(xs(n, d, "M") for d in days)) for n in regular],
+        )
+        self._spread(
+            "FAIR_EVENINGS",
+            [total(n, "evenings", sum(xs(n, d, "E") for d in days)) for n in regular],
+        )
+        asked = sorted({n for n, _v in self.denied.values() if n in regular})
+        self._spread(
+            "FAIR_DENIALS",
+            [
+                (
+                    n,
+                    h(n, "denied") + sum(v for m, v in self.denied.values() if m == n),
+                    h(n, "denied") + len(cells),
+                )
+                for n in asked
+            ],
+        )
 
     # ---------------------------------------------------------------- results
 
