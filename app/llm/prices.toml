@@ -1,0 +1,16 @@
+# USD per million tokens, per provider and model (design doc 9.4). Reasoning tokens are billed as
+# completion tokens and count toward LLM_SPEND_CAP_USD.
+# PLACEHOLDERS until confirmed on each provider's pricing page; they are set high on purpose so
+# the spend cap errs on the safe side. Update and note the source in docs/decisions.md.
+
+[default]
+input = 1.00
+output = 4.00
+
+[baseten."meta-models/muse-spark-open-1026"]
+input = 0.50
+output = 2.00
+
+[mock."mock-rule-based"]
+input = 0.0
+output = 0.0

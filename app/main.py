@@ -9,12 +9,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import errors, routes_misc, routes_runs, routes_ward, ws
+from app.api import errors, routes_llm, routes_misc, routes_runs, routes_ward, ws
 from app.config import get_settings
+from app.llm import cache as llm_cache
 from app.store import repo
 from app.store.db import open_db
 
-WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
+ROOT = Path(__file__).resolve().parent.parent
+WEB_DIST = ROOT / "web" / "dist"
+LLM_CACHE_FILE = ROOT / "data" / "llm_cache.jsonl"
 
 
 @asynccontextmanager
@@ -26,6 +29,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     try:
         if repo.get_ward(conn) is None:  # an existing DB is never overwritten
             routes_misc.reset_db(conn, s.seed)
+        # committed responses (data/llm_cache.jsonl) let a fresh clone run in replay mode (9.1)
+        llm_cache.import_jsonl(conn, LLM_CACHE_FILE)
     finally:
         conn.close()
     yield
@@ -36,6 +41,7 @@ errors.install(app)
 app.include_router(routes_misc.router)
 app.include_router(routes_ward.router)
 app.include_router(routes_runs.router)
+app.include_router(routes_llm.router)
 app.include_router(ws.router)
 
 if (WEB_DIST / "assets").is_dir():

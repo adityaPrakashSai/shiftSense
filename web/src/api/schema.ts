@@ -189,6 +189,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/llm/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usage */
+        get: operations["usage_api_llm_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -338,6 +355,47 @@ export interface components {
          * @enum {string}
          */
         HorizonPreset: "week" | "fortnight" | "half_month" | "month";
+        /** LLMUsage */
+        LLMUsage: {
+            /** Mode */
+            mode: string;
+            /** Default Provider */
+            default_provider: string;
+            /** Configured Providers */
+            configured_providers: string[];
+            /** Calls Today */
+            calls_today: number;
+            /** Cache Hit Rate */
+            cache_hit_rate: number;
+            /** Cost Today Usd */
+            cost_today_usd: number;
+            /** Spent This Process Usd */
+            spent_this_process_usd: number;
+            /** Spend Cap Usd */
+            spend_cap_usd: number;
+            /** Json Protocol Roles */
+            json_protocol_roles: string[];
+            /** By Provider */
+            by_provider: components["schemas"]["ProviderUsage"][];
+            last_call: components["schemas"]["LastCall"] | null;
+        };
+        /** LastCall */
+        LastCall: {
+            /** Role */
+            role: string;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Cache Hit */
+            cache_hit: boolean;
+            /** Ok */
+            ok: boolean;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Ts */
+            ts: string;
+        };
         /** Nurse */
         Nurse: {
             /** Id */
@@ -393,6 +451,25 @@ export interface components {
             reason_code: string | null;
             /** Detail */
             detail: string | null;
+        };
+        /** ProviderUsage */
+        ProviderUsage: {
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Calls */
+            calls: number;
+            /** Cache Hits */
+            cache_hits: number;
+            /** Errors */
+            errors: number;
+            /** Cost Usd */
+            cost_usd: number;
+            /** Prompt Tokens */
+            prompt_tokens: number;
+            /** Completion Tokens */
+            completion_tokens: number;
         };
         /** PublishBody */
         PublishBody: {
@@ -913,6 +990,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    usage_api_llm_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LLMUsage"];
                 };
             };
         };

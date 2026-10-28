@@ -41,6 +41,7 @@ export default function ChargePage() {
   const qc = useQueryClient();
   const health = useQuery({ queryKey: ["health"], queryFn: api.health });
   const ward = useQuery({ queryKey: ["ward"], queryFn: api.ward });
+  const usage = useQuery({ queryKey: ["llm-usage"], queryFn: api.llmUsage, refetchInterval: 15_000 });
   const [viewRunId, setViewRunId] = useState<string | null>(null); // null = published
   const [solving, setSolving] = useState<string | null>(null);
   const [timer, setTimer] = useState<Timer>(IDLE);
@@ -134,7 +135,7 @@ export default function ChargePage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {health.data && <ProviderBadge provider={health.data.provider} model={health.data.model} />}
+            {usage.data && <ProviderBadge usage={usage.data} />}
             {health.data && <ModeBadge mode={health.data.llm_mode} />}
             <SocketDot mode={mode} />
           </div>

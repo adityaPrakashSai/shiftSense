@@ -144,3 +144,38 @@ class ErrorBody(BaseModel):
 
 class ErrorOut(BaseModel):
     error: ErrorBody
+
+
+class ProviderUsage(BaseModel):
+    provider: str
+    model: str
+    calls: int
+    cache_hits: int
+    errors: int
+    cost_usd: float
+    prompt_tokens: int
+    completion_tokens: int
+
+
+class LastCall(BaseModel):
+    role: str
+    provider: str
+    model: str
+    cache_hit: bool
+    ok: bool
+    latency_ms: int
+    ts: str
+
+
+class LLMUsage(BaseModel):
+    mode: str
+    default_provider: str
+    configured_providers: list[str]
+    calls_today: int
+    cache_hit_rate: float
+    cost_today_usd: float
+    spent_this_process_usd: float
+    spend_cap_usd: float
+    json_protocol_roles: list[str]
+    by_provider: list[ProviderUsage]
+    last_call: LastCall | None

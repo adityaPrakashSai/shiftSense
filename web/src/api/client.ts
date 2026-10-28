@@ -14,6 +14,7 @@ export type RunSummary = S["RunSummary"];
 export type RunDetail = S["RunDetail"];
 export type EventOut = S["EventOut"];
 export type ResetOut = S["ResetOut"];
+export type LLMUsage = S["LLMUsage"];
 
 export class ApiError extends Error {
   constructor(
@@ -62,4 +63,5 @@ export const api = {
     request<EventOut[]>(`/api/events${qs({ after_seq: afterSeq, run_id: runId })}`),
   lastEvents: (n: number) => request<EventOut[]>(`/api/events${qs({ last: n })}`),
   reset: () => request<ResetOut>("/api/demo/reset", { method: "POST" }),
+  llmUsage: () => request<LLMUsage>("/api/llm/usage"),
 };

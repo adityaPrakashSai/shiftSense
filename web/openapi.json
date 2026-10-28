@@ -488,6 +488,27 @@
      }
     }
    }
+  },
+  "/api/llm/usage": {
+   "get": {
+    "tags": [
+     "llm"
+    ],
+    "summary": "Usage",
+    "operationId": "usage_api_llm_usage_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LLMUsage"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -889,6 +910,127 @@
     ],
     "title": "HorizonPreset"
    },
+   "LLMUsage": {
+    "properties": {
+     "mode": {
+      "type": "string",
+      "title": "Mode"
+     },
+     "default_provider": {
+      "type": "string",
+      "title": "Default Provider"
+     },
+     "configured_providers": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Configured Providers"
+     },
+     "calls_today": {
+      "type": "integer",
+      "title": "Calls Today"
+     },
+     "cache_hit_rate": {
+      "type": "number",
+      "title": "Cache Hit Rate"
+     },
+     "cost_today_usd": {
+      "type": "number",
+      "title": "Cost Today Usd"
+     },
+     "spent_this_process_usd": {
+      "type": "number",
+      "title": "Spent This Process Usd"
+     },
+     "spend_cap_usd": {
+      "type": "number",
+      "title": "Spend Cap Usd"
+     },
+     "json_protocol_roles": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Json Protocol Roles"
+     },
+     "by_provider": {
+      "items": {
+       "$ref": "#/components/schemas/ProviderUsage"
+      },
+      "type": "array",
+      "title": "By Provider"
+     },
+     "last_call": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LastCall"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "mode",
+     "default_provider",
+     "configured_providers",
+     "calls_today",
+     "cache_hit_rate",
+     "cost_today_usd",
+     "spent_this_process_usd",
+     "spend_cap_usd",
+     "json_protocol_roles",
+     "by_provider",
+     "last_call"
+    ],
+    "title": "LLMUsage"
+   },
+   "LastCall": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "provider": {
+      "type": "string",
+      "title": "Provider"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "cache_hit": {
+      "type": "boolean",
+      "title": "Cache Hit"
+     },
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "latency_ms": {
+      "type": "integer",
+      "title": "Latency Ms"
+     },
+     "ts": {
+      "type": "string",
+      "title": "Ts"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role",
+     "provider",
+     "model",
+     "cache_hit",
+     "ok",
+     "latency_ms",
+     "ts"
+    ],
+    "title": "LastCall"
+   },
    "Nurse": {
     "properties": {
      "id": {
@@ -1020,6 +1162,54 @@
      "detail"
     ],
     "title": "Outcome"
+   },
+   "ProviderUsage": {
+    "properties": {
+     "provider": {
+      "type": "string",
+      "title": "Provider"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls"
+     },
+     "cache_hits": {
+      "type": "integer",
+      "title": "Cache Hits"
+     },
+     "errors": {
+      "type": "integer",
+      "title": "Errors"
+     },
+     "cost_usd": {
+      "type": "number",
+      "title": "Cost Usd"
+     },
+     "prompt_tokens": {
+      "type": "integer",
+      "title": "Prompt Tokens"
+     },
+     "completion_tokens": {
+      "type": "integer",
+      "title": "Completion Tokens"
+     }
+    },
+    "type": "object",
+    "required": [
+     "provider",
+     "model",
+     "calls",
+     "cache_hits",
+     "errors",
+     "cost_usd",
+     "prompt_tokens",
+     "completion_tokens"
+    ],
+    "title": "ProviderUsage"
    },
    "PublishBody": {
     "properties": {

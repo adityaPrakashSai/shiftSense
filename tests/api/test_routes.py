@@ -60,8 +60,11 @@ def test_roster_published(client: TestClient) -> None:
     assert cells[("N04", "2026-10-28")]["display"] == "L"  # approved leave, no type given
     for c in body["grid"]:
         assert c["display"] in ("M", "E", "N", "N/O", "D/O", "L") or c["leave_type"]
-    t0 = next(t for t in body["totals"] if t["day"] == "2026-10-26" and t["shift"] == "M")
-    assert t0["target"] == 4 and t0["assigned"] == 2  # day 0 is short (carry-in)
+    # day 0 is 2 slots short (carry-in: 5 regular nurses for 7 slots); which shift is short is
+    # the solver's choice
+    day0 = [t for t in body["totals"] if t["day"] == "2026-10-26"]
+    assert sum(t["target"] for t in day0) == 7
+    assert sum(t["target"] - t["assigned"] for t in day0) == 2
 
 
 def test_roster_filters_and_errors(client: TestClient) -> None:

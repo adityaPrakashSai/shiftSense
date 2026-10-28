@@ -16,7 +16,18 @@ def connect(path: str | Path) -> sqlite3.Connection:
     return conn
 
 
+# columns added after a table first shipped: (table, column, type)
+ADDED_COLUMNS = [
+    ("llm_call", "reasoning", "TEXT"),
+    ("llm_call", "reasoning_tokens", "INT"),
+]
+
+
 def migrate(conn: sqlite3.Connection) -> None:
+    for table, column, kind in ADDED_COLUMNS:  # before the script: its indexes may use them
+        cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if cols and column not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
     conn.executescript(SCHEMA.read_text(encoding="utf-8"))
     conn.commit()
 

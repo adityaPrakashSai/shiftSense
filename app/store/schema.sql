@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS event(       -- the decision log, section 8
 CREATE TABLE IF NOT EXISTS llm_call(    -- every call, cached or not (section 9)
   id TEXT PRIMARY KEY, ts TEXT, role TEXT, provider TEXT, model TEXT, cache_key TEXT,
   cache_hit INT, prompt_tokens INT, completion_tokens INT, cost_usd REAL, latency_ms INT,
-  ok INT, error TEXT, run_id TEXT, request_id TEXT);
+  ok INT, error TEXT, run_id TEXT, request_id TEXT,
+  reasoning TEXT, reasoning_tokens INT);  -- Muse Spark Open's reasoning: stored, never shown
 CREATE TABLE IF NOT EXISTS llm_cache(
   cache_key TEXT PRIMARY KEY, provider TEXT, model TEXT, request_json TEXT,
   response_json TEXT, created_at TEXT);
@@ -72,3 +73,4 @@ CREATE TABLE IF NOT EXISTS agent_task(  -- roster agent (7.10)
 CREATE INDEX IF NOT EXISTS ix_assignment_day ON assignment(run_id, day, shift);
 CREATE INDEX IF NOT EXISTS ix_event_run ON event(run_id, seq);
 CREATE INDEX IF NOT EXISTS ix_request_ward ON request(ward_id, nurse_id, status);
+CREATE INDEX IF NOT EXISTS ix_llm_call_ts ON llm_call(ts);

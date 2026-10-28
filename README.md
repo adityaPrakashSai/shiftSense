@@ -4,7 +4,7 @@ A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language
 photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
 the solver's actual results.
 
-> **Status:** milestone M4 (REST API, live WebSocket updates and the charge nurse roster grid).
+> **Status:** milestone M5 (Meta model gateway with response cache, replay and mock modes).
 > The build started on **28 Oct 2026**. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full
 > design and the milestone plan (section 12).
 
@@ -24,6 +24,10 @@ minute and absorb a sick call with as few changes as possible.
   confirms them, and CP-SAT re-solves.
 - The `openai` Python package is used **only as the HTTP client** for Baseten's OpenAI-compatible
   endpoint, which serves Muse Spark Open. **No OpenAI (or any non-Meta) model is ever called.**
+- Every call goes through one gateway (`app/llm/`) with a response cache. `LLM_MODE=live` calls
+  the model on a cache miss, `replay` serves only cached answers (no keys needed), and `mock` uses
+  a rule-based stand-in for UI work and tests; the header shows which provider answered and a
+  MOCK MODE badge. A per-process spend cap (`LLM_SPEND_CAP_USD`) stops live calls.
 
 ## Architecture
 
@@ -51,6 +55,7 @@ uv run python -m app.solver.cli data/seed/ward.json   # solve a seed, print the 
 uv run python -m app.tools.replay RUN_ID              # re-solve a stored run, compare tiers
 make dev       # API on :8000, Vite on :5173 (open http://localhost:5173/charge)
 make api       # regenerate web/openapi.json and the TypeScript client types
+uv run python -m app.llm.smoke --provider baseten   # live check of Muse Spark Open (needs a key)
 make test      # ruff, mypy (strict for app/solver), pytest in mock mode
 make docker    # build the container image
 ```

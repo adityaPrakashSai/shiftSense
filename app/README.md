@@ -13,3 +13,7 @@ validator), `rules.py` (`rule_check`) and `cli.py` (`python -m app.solver.cli da
 `planner/runs.py` runs and publishes; `evidence/writer.py` writes stage, assignment, cost,
 request-outcome and fairness rows; `log/decision_log.py` is the event stream; `tools/replay.py`
 re-solves a stored run.
+
+`llm/`: `gateway.py` (cache, modes, spend cap, `llm_call` logging), `providers.py`
+(`OpenAICompatProvider` for Baseten / Meta Model API / Modal), `jsonproto.py` (JSON tool protocol
+fallback), `cache.py`, `mock.py`, `prices.toml`, `prompts/` and `smoke.py`.

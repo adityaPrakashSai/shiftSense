@@ -5,6 +5,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.llm.types import LLMError
+
 
 class ApiError(Exception):
     def __init__(self, status: int, code: str, message: str) -> None:
@@ -34,7 +36,14 @@ async def validation_error_handler(_: Request, exc: Exception) -> JSONResponse:
     return _envelope(422, "VALIDATION_ERROR", f"{where}: {first.get('msg', 'invalid request')}")
 
 
+async def llm_error_handler(_: Request, exc: Exception) -> JSONResponse:
+    """SpendCapReached -> 503 LLM_SPEND_CAP; a replay cache miss or provider failure -> 503."""
+    assert isinstance(exc, LLMError)
+    return _envelope(503, exc.code, str(exc))
+
+
 def install(app: FastAPI) -> None:
     app.add_exception_handler(ApiError, api_error_handler)
+    app.add_exception_handler(LLMError, llm_error_handler)
     app.add_exception_handler(StarletteHTTPException, http_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
