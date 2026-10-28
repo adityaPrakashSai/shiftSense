@@ -229,3 +229,51 @@ class RequestAction(BaseModel):
     request: RequestOut
     requests: list[RequestOut]  # every request the action changed (a message confirms at once)
     run_id: str | None  # the solve it started, if the roster inputs changed
+
+
+class Candidate(BaseModel):
+    nurse: str
+    rank: int
+    standby: bool
+    kind: str  # "call in" | "move from E" ...
+    tiers: dict[str, int]
+    delta_vs_base: dict[str, int]
+    delta_vs_best: dict[str, int]
+    changed_cells: int
+    run_id: str
+    proven: bool
+    tie: bool = False
+    tie_break: str | None = None
+    reason_code: str | None = None  # TIER:<tier> | CHANGED_CELLS | TIE
+
+
+class Excluded(BaseModel):
+    nurse: str
+    rules: list[str]  # hard-constraint names, e.g. rest_after_night:N05:d7
+
+
+class OpenCell(BaseModel):
+    nurse: str | None  # None for a slot a demand increase added
+    day: date
+    shift: str
+
+
+class ProposalOut(BaseModel):
+    run_id: str
+    run: RunSummary
+    request: RequestOut | None
+    open_cells: list[OpenCell]
+    open_cell: OpenCell | None  # the cell candidates were ranked for
+    candidates: list[Candidate]
+    excluded: list[Excluded]
+    baseline: dict[str, int] | None
+    coverage_worse: bool  # worse coverage than the published roster (6.2)
+    published_coverage: int | None
+    timing_ms: dict[str, int]
+    change_set: list[Change]
+    chosen_nurse: str | None
+    message_draft: str | None
+
+
+class ChooseBody(BaseModel):
+    nurse_id: str | None = None

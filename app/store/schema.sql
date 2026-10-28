@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS stage(
   secs REAL, locked INT, PRIMARY KEY(run_id, rank));
 CREATE TABLE IF NOT EXISTS assignment(
   run_id TEXT, nurse_id TEXT, day TEXT, shift TEXT, prev_shift TEXT, changed INT,
+  cause TEXT,                           -- request | replacement | knock_on (6.3), changed cells only
   PRIMARY KEY(run_id, nurse_id, day));
 CREATE TABLE IF NOT EXISTS cost(
   run_id TEXT, nurse_id TEXT, day TEXT, tier TEXT, rule TEXT, amount INT, weight INT,

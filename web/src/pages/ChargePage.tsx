@@ -1,6 +1,7 @@
 // Charge nurse view (design doc 10.3): header with Generate and the live run timer, roster grid
-// with coverage footer, stage strip, Publish for a draft, and leave / swap approvals (Q7). A
-// confirmed nurse request starts a solve whose draft shows here live via useWardSocket.
+// with coverage footer and proposal diff highlighting, stage strip, Publish for a draft, and the
+// Alerts panel (approvals, sick-call proposals with ranked replacements). A confirmed nurse
+// request starts a minimal-change re-solve whose proposal shows here live via useWardSocket.
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -10,7 +11,7 @@ import ModeBadge from "../components/common/ModeBadge";
 import ProviderBadge from "../components/common/ProviderBadge";
 import RunTimer, { type TierTick } from "../components/common/RunTimer";
 import RosterGrid from "../components/roster/RosterGrid";
-import PendingApprovals from "../components/panel/PendingApprovals";
+import AlertsTab from "../components/panel/AlertsTab";
 import StageStrip from "../components/roster/StageStrip";
 
 type Timer = {
@@ -64,7 +65,16 @@ export default function ChargePage() {
 
   const onMessage = useCallback(
     (m: WardMessage) => {
-      if (m.type === "run_started") setSolving(m.run_id);
+      if (m.type === "run_started") {
+        setSolving(m.run_id);
+        // a re-solve started elsewhere (a nurse confirmed): time it from the nudge
+        setTimer((t) =>
+          t.runId === m.run_id || (t.startedAt !== null && t.runId === null)
+            ? { ...t, runId: m.run_id }
+            : { ...IDLE, startedAt: performance.now(), runId: m.run_id },
+        );
+      }
+      if (m.type === "proposal_created") void qc.invalidateQueries({ queryKey: ["proposals"] });
       if (m.type === "run_finished") {
         setSolving((cur) => (cur === m.run_id ? null : cur));
         if (m.status === "proposed") setViewRunId(m.run_id);
@@ -73,6 +83,7 @@ export default function ChargePage() {
       if (m.type === "request_updated") void qc.invalidateQueries({ queryKey: ["requests"] });
       if (m.type === "roster_published") {
         setViewRunId(null);
+        void qc.invalidateQueries({ queryKey: ["proposals"] });
         void qc.invalidateQueries({ queryKey: ["roster"] });
         void qc.invalidateQueries({ queryKey: ["run"] });
       }
@@ -172,7 +183,8 @@ export default function ChargePage() {
         </div>
       </header>
 
-      <main className="space-y-3 px-6 py-4">
+      <div className="flex items-start gap-4 px-6 py-4">
+      <main className="min-w-0 flex-1 space-y-3">
         {run && (
           <div className="flex flex-wrap items-center gap-3">
             <span
@@ -206,7 +218,6 @@ export default function ChargePage() {
             {publish.error && <span className="text-sm text-red-600">{publish.error.message}</span>}
           </div>
         )}
-        {ward.data && <PendingApprovals nurses={ward.data.nurses} />}
         {roster.data && <StageStrip stages={roster.data.stages} detail={detail.data} />}
         {noRoster && (
           <p className="rounded border border-slate-200 bg-white p-4 text-sm text-slate-600">
@@ -214,7 +225,25 @@ export default function ChargePage() {
           </p>
         )}
         {roster.data && ward.data && <RosterGrid roster={roster.data} nurses={ward.data.nurses} />}
+        <p className="text-[11px] text-slate-500">
+          In a proposal: <span className="text-red-600 line-through">M</span> removed by the request,{" "}
+          <span className="rounded px-1 ring-2 ring-inset ring-emerald-500">M</span> replacement,{" "}
+          <span className="rounded px-1 ring-2 ring-inset ring-amber-500">M</span> other change.
+        </p>
       </main>
+      <aside className="sticky top-4 w-[380px] shrink-0">
+        <h2 className="mb-2 text-sm font-semibold text-slate-700">Alerts</h2>
+        {ward.data && (
+          <AlertsTab
+            nurses={ward.data.nurses}
+            solving={solving !== null}
+            timer={timer}
+            viewing={viewRunId}
+            onView={setViewRunId}
+          />
+        )}
+      </aside>
+      </div>
     </div>
   );
 }

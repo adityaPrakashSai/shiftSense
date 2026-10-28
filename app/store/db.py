@@ -29,6 +29,7 @@ ADDED_COLUMNS = [
     ("request", "counterpart_shifts_json", "TEXT"),
     ("request", "target_total", "INT"),
     ("request", "ref_request_id", "TEXT"),
+    ("assignment", "cause", "TEXT"),
 ]
 
 

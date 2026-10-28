@@ -307,6 +307,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Proposals
+         * @description Newest first; `open` = the proposal's run is still proposed.
+         */
+        get: operations["list_proposals_api_proposals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Proposal */
+        get: operations["get_proposal_api_proposals__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals/{run_id}/choose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Choose
+         * @description Publish the run of the chosen candidate (Approve = the top one, 6.5); `nurse_id` null
+         *     publishes the proposal's own run (a plain re-solve has no candidates).
+         */
+        post: operations["choose_api_proposals__run_id__choose_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -321,6 +379,44 @@ export interface components {
             audio?: string | null;
             /** Image */
             image?: string | null;
+        };
+        /** Candidate */
+        Candidate: {
+            /** Nurse */
+            nurse: string;
+            /** Rank */
+            rank: number;
+            /** Standby */
+            standby: boolean;
+            /** Kind */
+            kind: string;
+            /** Tiers */
+            tiers: {
+                [key: string]: number;
+            };
+            /** Delta Vs Base */
+            delta_vs_base: {
+                [key: string]: number;
+            };
+            /** Delta Vs Best */
+            delta_vs_best: {
+                [key: string]: number;
+            };
+            /** Changed Cells */
+            changed_cells: number;
+            /** Run Id */
+            run_id: string;
+            /** Proven */
+            proven: boolean;
+            /**
+             * Tie
+             * @default false
+             */
+            tie: boolean;
+            /** Tie Break */
+            tie_break?: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
         };
         /** Cell */
         Cell: {
@@ -359,6 +455,11 @@ export interface components {
             to_shift: string | null;
             /** Cause */
             cause: string | null;
+        };
+        /** ChooseBody */
+        ChooseBody: {
+            /** Nurse Id */
+            nurse_id?: string | null;
         };
         /** ConstraintEdit */
         ConstraintEdit: {
@@ -505,6 +606,13 @@ export interface components {
             payload: {
                 [key: string]: unknown;
             };
+        };
+        /** Excluded */
+        Excluded: {
+            /** Nurse */
+            nurse: string;
+            /** Rules */
+            rules: string[];
         };
         /**
          * Grade
@@ -660,6 +768,18 @@ export interface components {
              */
             language: string;
         };
+        /** OpenCell */
+        OpenCell: {
+            /** Nurse */
+            nurse: string | null;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Shift */
+            shift: string;
+        };
         /** Outcome */
         Outcome: {
             /** Request Id */
@@ -670,6 +790,38 @@ export interface components {
             reason_code: string | null;
             /** Detail */
             detail: string | null;
+        };
+        /** ProposalOut */
+        ProposalOut: {
+            /** Run Id */
+            run_id: string;
+            run: components["schemas"]["RunSummary"];
+            request: components["schemas"]["RequestOut"] | null;
+            /** Open Cells */
+            open_cells: components["schemas"]["OpenCell"][];
+            open_cell: components["schemas"]["OpenCell"] | null;
+            /** Candidates */
+            candidates: components["schemas"]["Candidate"][];
+            /** Excluded */
+            excluded: components["schemas"]["Excluded"][];
+            /** Baseline */
+            baseline: {
+                [key: string]: number;
+            } | null;
+            /** Coverage Worse */
+            coverage_worse: boolean;
+            /** Published Coverage */
+            published_coverage: number | null;
+            /** Timing Ms */
+            timing_ms: {
+                [key: string]: number;
+            };
+            /** Change Set */
+            change_set: components["schemas"]["Change"][];
+            /** Chosen Nurse */
+            chosen_nurse: string | null;
+            /** Message Draft */
+            message_draft: string | null;
         };
         /** ProviderUsage */
         ProviderUsage: {
@@ -1459,6 +1611,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RequestAction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_proposals_api_proposals_get: {
+        parameters: {
+            query?: {
+                open?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_proposal_api_proposals__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    choose_api_proposals__run_id__choose_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChooseBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSummary"];
                 };
             };
             /** @description Validation Error */

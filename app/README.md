@@ -23,3 +23,8 @@ pending requests and a templated reply), `semantic.py` (step 5 checks), `resolve
 `dates.py` (ward time, `DEMO_NOW`, 35-day calendar) and `templates/{en,hi}.toml`.
 `planner/requests.py` confirms, rejects and approves requests; `domain/edits.py` is the 7.2 edit
 language.
+
+Re-solve and sick calls (M7): `planner/runs.py` `start_resolve` / `run_resolve` (frozen point,
+published roster as `previous` and hint, standby allowed), `solver/changes.py` (change set with
+causes, 6.3), `planner/sickcall.py` (candidate filter, parallel forced re-solves, ranking, proposal
+rows) and `api/routes_proposals.py`.

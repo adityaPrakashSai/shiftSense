@@ -30,7 +30,7 @@ def roster_cells(
     """Cells and daily totals for a run, in nurse order then day order."""
     run_id = str(run["run_id"])
     rows = conn.execute(
-        "SELECT nurse_id, day, shift, prev_shift, changed FROM assignment WHERE run_id = ?",
+        "SELECT nurse_id, day, shift, prev_shift, changed, cause FROM assignment WHERE run_id = ?",
         (run_id,),
     ).fetchall()
     by_cell = {(r["nurse_id"], r["day"]): r for r in rows}
@@ -67,7 +67,7 @@ def roster_cells(
                     "leave_type": lt if shift is None else None,
                     "prev_shift": None if r is None else r["prev_shift"],
                     "changed": None if r is None or r["changed"] is None else bool(r["changed"]),
-                    "cause": None,
+                    "cause": None if r is None else r["cause"],
                 }
             )
             prev = shift

@@ -353,8 +353,10 @@ def insert_assignments(
     horizon_start: date,
     *,
     previous: dict[str, list[str | None]] | None = None,
+    causes: dict[tuple[str, int], str] | None = None,
 ) -> None:
-    """Write one row per nurse x day. `roster` maps nurse id -> shift code per day (None = off)."""
+    """Write one row per nurse x day. `roster` maps nurse id -> shift code per day (None = off);
+    `causes` maps (nurse id, day index) of a changed cell to its 6.3 cause."""
     rows = []
     for nurse_id, cells in roster.items():
         prev_cells = None if previous is None else previous.get(nurse_id)
@@ -362,10 +364,11 @@ def insert_assignments(
             day = date.fromordinal(horizon_start.toordinal() + d).isoformat()
             prev = None if prev_cells is None else prev_cells[d]
             changed = None if prev_cells is None else int(prev != shift)
-            rows.append((run_id, nurse_id, day, shift, prev, changed))
+            cause = None if causes is None else causes.get((nurse_id, d))
+            rows.append((run_id, nurse_id, day, shift, prev, changed, cause))
     conn.executemany(
-        "INSERT INTO assignment(run_id, nurse_id, day, shift, prev_shift, changed) "
-        "VALUES(?, ?, ?, ?, ?, ?)",
+        "INSERT INTO assignment(run_id, nurse_id, day, shift, prev_shift, changed, cause) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?)",
         rows,
     )
     conn.commit()
@@ -392,6 +395,9 @@ def update_run(conn: sqlite3.Connection, run_id: str, **fields: Any) -> None:
         "published_at",
         "published_by",
         "parent_run",
+        "input_json",
+        "input_hash",
+        "trigger",
     }
     bad = set(fields) - allowed
     if bad:
@@ -403,7 +409,8 @@ def update_run(conn: sqlite3.Connection, run_id: str, **fields: Any) -> None:
 
 def set_published(conn: sqlite3.Connection, ward_id: str, run_id: str, by: str) -> str | None:
     """Publish `run_id` and supersede the previously published run, in one transaction.
-    Returns the superseded run id."""
+    Every other proposed run of the ward is superseded too: its parent is no longer the published
+    run (4.4 invariant). Returns the superseded run id."""
     old = get_published_run(conn, ward_id)
     ts = now_iso()
     with conn:
@@ -412,6 +419,10 @@ def set_published(conn: sqlite3.Connection, ward_id: str, run_id: str, by: str) 
                 "UPDATE run SET status = ? WHERE run_id = ?",
                 (RunStatus.SUPERSEDED.value, old["run_id"]),
             )
+        conn.execute(
+            "UPDATE run SET status = ? WHERE ward_id = ? AND status = ? AND run_id != ?",
+            (RunStatus.SUPERSEDED.value, ward_id, RunStatus.PROPOSED.value, run_id),
+        )
         conn.execute(
             "UPDATE run SET status = ?, published_at = ?, published_by = ? WHERE run_id = ?",
             (RunStatus.PUBLISHED.value, ts, by, run_id),
@@ -532,3 +543,76 @@ def list_last_events(
 
 def now_iso_ms() -> str:
     return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+# ---------------------------------------------------------------- proposals (6.4)
+
+
+def insert_proposal(
+    conn: sqlite3.Connection,
+    run_id: str,
+    *,
+    request_id: str | None,
+    open_cells: list[dict[str, Any]],
+    ranking: dict[str, Any],
+) -> None:
+    """`ranking` is the 6.4 JSON (open cell, ranked candidates, excluded nurses, timing)."""
+    conn.execute(
+        "INSERT INTO proposal(run_id, request_id, open_cells_json, candidates_json) "
+        "VALUES(?, ?, ?, ?)",
+        (
+            run_id,
+            request_id,
+            json.dumps(open_cells, ensure_ascii=False),
+            json.dumps(ranking, ensure_ascii=False),
+        ),
+    )
+    conn.commit()
+
+
+def _proposal_row(r: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "run_id": r["run_id"],
+        "request_id": r["request_id"],
+        "open_cells": json.loads(r["open_cells_json"] or "[]"),
+        "ranking": json.loads(r["candidates_json"] or "{}"),
+        "chosen_nurse": r["chosen_nurse"],
+        "message_draft": r["message_draft"],
+        "replacement_status": r["replacement_status"],
+    }
+
+
+def get_proposal(conn: sqlite3.Connection, run_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM proposal WHERE run_id = ?", (run_id,)).fetchone()
+    return None if row is None else _proposal_row(row)
+
+
+def list_proposals(
+    conn: sqlite3.Connection, ward_id: str, *, open_only: bool = False
+) -> list[dict[str, Any]]:
+    """Newest first. Open = its run is still proposed."""
+    sql = (
+        "SELECT p.*, r.status AS run_status, r.created_at FROM proposal p "
+        "JOIN run r ON r.run_id = p.run_id WHERE r.ward_id = ?"
+    )
+    if open_only:
+        sql += " AND r.status = 'proposed'"
+    rows = conn.execute(sql + " ORDER BY r.created_at DESC, p.run_id DESC", (ward_id,))
+    return [{**_proposal_row(r), "run_status": r["run_status"]} for r in rows]
+
+
+def proposal_for_run(conn: sqlite3.Connection, run_id: str) -> dict[str, Any] | None:
+    """The proposal whose top run or one of whose candidate runs is `run_id`."""
+    hit = get_proposal(conn, run_id)
+    if hit is not None:
+        return hit
+    run = get_run(conn, run_id)
+    trigger = "" if run is None else str(run["trigger"] or "")
+    return (
+        get_proposal(conn, trigger.split(":", 1)[1]) if trigger.startswith("candidate:") else None
+    )
+
+
+def set_proposal_chosen(conn: sqlite3.Connection, run_id: str, nurse_id: str | None) -> None:
+    conn.execute("UPDATE proposal SET chosen_nurse = ? WHERE run_id = ?", (nurse_id, run_id))
+    conn.commit()

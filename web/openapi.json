@@ -804,6 +804,149 @@
      }
     }
    }
+  },
+  "/api/proposals": {
+   "get": {
+    "tags": [
+     "proposals"
+    ],
+    "summary": "List Proposals",
+    "description": "Newest first; `open` = the proposal's run is still proposed.",
+    "operationId": "list_proposals_api_proposals_get",
+    "parameters": [
+     {
+      "name": "open",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Open"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ProposalOut"
+         },
+         "title": "Response List Proposals Api Proposals Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/proposals/{run_id}": {
+   "get": {
+    "tags": [
+     "proposals"
+    ],
+    "summary": "Get Proposal",
+    "operationId": "get_proposal_api_proposals__run_id__get",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProposalOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/proposals/{run_id}/choose": {
+   "post": {
+    "tags": [
+     "proposals"
+    ],
+    "summary": "Choose",
+    "description": "Publish the run of the chosen candidate (Approve = the top one, 6.5); `nurse_id` null\npublishes the proposal's own run (a plain re-solve has no candidates).",
+    "operationId": "choose_api_proposals__run_id__choose_post",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ChooseBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RunSummary"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -855,6 +998,100 @@
      "sender_id"
     ],
     "title": "Body_post_message_api_messages_post"
+   },
+   "Candidate": {
+    "properties": {
+     "nurse": {
+      "type": "string",
+      "title": "Nurse"
+     },
+     "rank": {
+      "type": "integer",
+      "title": "Rank"
+     },
+     "standby": {
+      "type": "boolean",
+      "title": "Standby"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "tiers": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Tiers"
+     },
+     "delta_vs_base": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Delta Vs Base"
+     },
+     "delta_vs_best": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Delta Vs Best"
+     },
+     "changed_cells": {
+      "type": "integer",
+      "title": "Changed Cells"
+     },
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     },
+     "proven": {
+      "type": "boolean",
+      "title": "Proven"
+     },
+     "tie": {
+      "type": "boolean",
+      "title": "Tie",
+      "default": false
+     },
+     "tie_break": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tie Break"
+     },
+     "reason_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Code"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse",
+     "rank",
+     "standby",
+     "kind",
+     "tiers",
+     "delta_vs_base",
+     "delta_vs_best",
+     "changed_cells",
+     "run_id",
+     "proven"
+    ],
+    "title": "Candidate"
    },
    "Cell": {
     "properties": {
@@ -994,6 +1231,23 @@
      "cause"
     ],
     "title": "Change"
+   },
+   "ChooseBody": {
+    "properties": {
+     "nurse_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nurse Id"
+     }
+    },
+    "type": "object",
+    "title": "ChooseBody"
    },
    "ConstraintEdit": {
     "properties": {
@@ -1384,6 +1638,27 @@
      "payload"
     ],
     "title": "EventOut"
+   },
+   "Excluded": {
+    "properties": {
+     "nurse": {
+      "type": "string",
+      "title": "Nurse"
+     },
+     "rules": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Rules"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse",
+     "rules"
+    ],
+    "title": "Excluded"
    },
    "Grade": {
     "type": "string",
@@ -1813,6 +2088,37 @@
     ],
     "title": "Nurse"
    },
+   "OpenCell": {
+    "properties": {
+     "nurse": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nurse"
+     },
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "shift": {
+      "type": "string",
+      "title": "Shift"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse",
+     "day",
+     "shift"
+    ],
+    "title": "OpenCell"
+   },
    "Outcome": {
     "properties": {
      "request_id": {
@@ -1854,6 +2160,141 @@
      "detail"
     ],
     "title": "Outcome"
+   },
+   "ProposalOut": {
+    "properties": {
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     },
+     "run": {
+      "$ref": "#/components/schemas/RunSummary"
+     },
+     "request": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RequestOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "open_cells": {
+      "items": {
+       "$ref": "#/components/schemas/OpenCell"
+      },
+      "type": "array",
+      "title": "Open Cells"
+     },
+     "open_cell": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/OpenCell"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "candidates": {
+      "items": {
+       "$ref": "#/components/schemas/Candidate"
+      },
+      "type": "array",
+      "title": "Candidates"
+     },
+     "excluded": {
+      "items": {
+       "$ref": "#/components/schemas/Excluded"
+      },
+      "type": "array",
+      "title": "Excluded"
+     },
+     "baseline": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Baseline"
+     },
+     "coverage_worse": {
+      "type": "boolean",
+      "title": "Coverage Worse"
+     },
+     "published_coverage": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Published Coverage"
+     },
+     "timing_ms": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Timing Ms"
+     },
+     "change_set": {
+      "items": {
+       "$ref": "#/components/schemas/Change"
+      },
+      "type": "array",
+      "title": "Change Set"
+     },
+     "chosen_nurse": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chosen Nurse"
+     },
+     "message_draft": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Message Draft"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run_id",
+     "run",
+     "request",
+     "open_cells",
+     "open_cell",
+     "candidates",
+     "excluded",
+     "baseline",
+     "coverage_worse",
+     "published_coverage",
+     "timing_ms",
+     "change_set",
+     "chosen_nurse",
+     "message_draft"
+    ],
+    "title": "ProposalOut"
    },
    "ProviderUsage": {
     "properties": {

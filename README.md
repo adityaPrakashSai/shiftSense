@@ -4,7 +4,7 @@ A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language
 photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
 the solver's actual results.
 
-> **Status:** milestone M6 (Muse Spark intake to typed constraint edits, nurse chat with confirmation).
+> **Status:** milestone M7 (minimal-change re-solve and ranked sick-call replacements).
 > The build started on **28 Oct 2026**. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full
 > design and the milestone plan (section 12).
 
@@ -34,6 +34,11 @@ minute and absorb a sick call with as few changes as possible.
   model) writes the confirmation in the sender's language. Only after the nurse taps Confirm does
   the request reach the solver. The first live run of the 50-case intake eval is in
   `evals/reports/`.
+- **Replacements are ranked by the solver, not the model.** A confirmed sick call re-plans only the
+  future from the published roster (every changed cell costs in the stability tier), and each
+  candidate replacement is a real forced re-solve, ranked by tier vector. On the demo ward the
+  proposal is on screen in about half a second with one changed cell; without the stability tier
+  the same sick call moves 41 cells.
 
 ## Architecture
 

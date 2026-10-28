@@ -23,6 +23,7 @@ from typing import Any, Literal, Protocol
 
 from ortools.sat.python import cp_model
 
+from app.solver.changes import change_set, count_changed
 from app.solver.input import Forcing, SolveInput
 from app.solver.model import RosterModel
 from app.solver.validate import violations
@@ -139,10 +140,9 @@ def _file_logger(log_dir: Path | None, name: str) -> tuple[Callable[[str], None]
 
 
 def changed_cells(inp: SolveInput, roster: RosterGrid) -> int:
-    """Cells that differ from the published roster (refined into causes in M7, 6.3)."""
-    if inp.previous is None:
-        return 0
-    return sum(1 for k, s in roster.items() if inp.previous.get(k) != s)
+    """Cells that differ from the published roster, not counting the cells the request itself
+    removed (6.3)."""
+    return count_changed(change_set(inp, roster))
 
 
 def _finish(
@@ -208,6 +208,8 @@ def solve_lexicographic(
         )
     stages: list[Stage] = []
     solver: cp_model.CpSolver | None = None
+    if inp.previous is not None:  # 6.2 step 3: start from the published roster
+        rm.hint_roster(dict(inp.previous))
 
     for rank, tier in enumerate(inp.priorities, 1):
         if not rm.terms.get(tier):

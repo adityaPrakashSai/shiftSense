@@ -28,9 +28,9 @@ async def create_run(conn: Conn, body: CreateRun | None = None) -> RunAccepted:
     return RunAccepted(run_id=prep.run_id)
 
 
-def _change_set(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
+def change_set_rows(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
     rows = conn.execute(
-        "SELECT nurse_id, day, prev_shift, shift FROM assignment "
+        "SELECT nurse_id, day, prev_shift, shift, cause FROM assignment "
         "WHERE run_id = ? AND changed = 1 ORDER BY day, nurse_id",
         (run_id,),
     )
@@ -40,7 +40,7 @@ def _change_set(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
             "day": r["day"],
             "from_shift": r["prev_shift"],
             "to_shift": r["shift"],
-            "cause": None,
+            "cause": r["cause"],
         }
         for r in rows
     ]
@@ -62,7 +62,7 @@ def get_run(conn: Conn, run_id: str) -> RunDetail:
                 {"tier": c["tier"], "rule": c["rule"], "total": c["total"], "rows": c["n"]}
                 for c in costs
             ],
-            "change_set": _change_set(conn, run_id),
+            "change_set": change_set_rows(conn, run_id),
             "request_outcomes": repo.get_request_outcomes(conn, run_id),
         }
     )

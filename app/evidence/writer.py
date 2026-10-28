@@ -30,6 +30,8 @@ def write_evidence(
     inp: SolveInput,
     res: SolveResult,
     requests: list[Request],
+    *,
+    causes: dict[tuple[str, int], str] | None = None,
 ) -> None:
     start = ward.horizon_start
     repo.insert_stages(
@@ -47,7 +49,7 @@ def write_evidence(
         previous = {
             n.id: [inp.previous.get((n.id, d)) for d in range(inp.num_days)] for n in inp.nurses
         }
-    repo.insert_assignments(conn, run_id, roster, start, previous=previous)
+    repo.insert_assignments(conn, run_id, roster, start, previous=previous, causes=causes)
 
     repo.insert_costs(
         conn,

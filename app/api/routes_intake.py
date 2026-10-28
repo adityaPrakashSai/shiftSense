@@ -2,6 +2,7 @@
 
 import sqlite3
 from collections.abc import Callable
+from datetime import date
 from typing import Annotated, Any
 
 from fastapi import APIRouter, File, Form, UploadFile
@@ -16,7 +17,7 @@ from app.domain.models import Request, RequestStatus, Ward
 from app.intake.pipeline import handle_message
 from app.llm.gateway import get_gateway
 from app.planner import requests as lifecycle
-from app.planner.runs import start_full
+from app.planner.runs import start_full, start_resolve
 from app.store import repo
 
 router = APIRouter(prefix="/api", tags=["intake"])
@@ -97,19 +98,43 @@ async def _act(
     except lifecycle.RequestStateError as exc:
         raise ApiError(409, "REQUEST_STATE", str(exc)) from exc
     run_id = None
-    if t.solve:  # a full re-solve for now; M7 replaces it with the minimal-change re-solve
-        prep = start_full(
-            conn, ward.id, trigger=f"request:{request_id}", log=jobs.live_log(conn, ward.id)
-        )
-        run_id = prep.run_id
-        await hub.broadcast(ward.id, {"type": "run_started", "run_id": run_id})
-        jobs.spawn(prep)
+    if t.solve:
+        run_id = await start_solve(conn, ward, request_id, t.requests)
     for r in t.requests:
         await hub.broadcast(ward.id, {"type": "request_updated", "request_id": r.id})
     outcomes = repo.latest_outcomes(conn, ward.id)
     changed = [request_out(r, outcomes) for r in t.requests]
     main = next((x for x in changed if x.id == request_id), changed[0])
     return RequestAction(request=main, requests=changed, run_id=run_id)
+
+
+async def start_solve(
+    conn: sqlite3.Connection, ward: Ward, request_id: str, changed: list[Request]
+) -> str:
+    """A minimal-change re-solve with ranked replacements (6.2, 6.4) from the published roster;
+    a full solve when nothing is published yet."""
+    log = jobs.live_log(conn, ward.id)
+    trigger = f"request:{request_id}"
+    if repo.get_published_run(conn, ward.id) is None:
+        prep = start_full(conn, ward.id, trigger=trigger, log=log)
+        await hub.broadcast(ward.id, {"type": "run_started", "run_id": prep.run_id})
+        jobs.spawn(prep)
+        return prep.run_id
+    affected = sorted(
+        {d for r in changed for d in [*r.dates, *r.counterpart_dates]}
+        | {d for r in changed if r.ref_request_id for d in _ref_dates(conn, r.ref_request_id)}
+    )
+    plan = start_resolve(
+        conn, ward.id, trigger=trigger, affected=affected, request_id=request_id, log=log
+    )
+    await hub.broadcast(ward.id, {"type": "run_started", "run_id": plan.run_id})
+    jobs.spawn_resolve(plan)
+    return plan.run_id
+
+
+def _ref_dates(conn: sqlite3.Connection, request_id: str) -> list[date]:
+    r = repo.get_request(conn, request_id)
+    return [] if r is None else list(r.dates)
 
 
 @router.post("/requests/{request_id}/confirm", response_model=RequestAction)

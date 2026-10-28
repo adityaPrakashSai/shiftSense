@@ -8,7 +8,8 @@ function text(s: StageOut, detail?: RunDetail): string {
     case "coverage":
       return `Coverage ${s.best} short`;
     case "stability":
-      return s.status === "skip" ? "Stability: new roster" : `Stability ${s.best} changes`;
+      // the tier value is a weighted cost (changed cell 2, standby called 1), not a cell count
+      return s.status === "skip" ? "Stability: new roster" : `Stability cost ${s.best}`;
     case "contract":
       return `Contract ${s.best} under`;
     case "requests":

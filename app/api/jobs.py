@@ -9,7 +9,8 @@ from app.api.ws import hub
 from app.config import get_settings
 from app.domain.models import RunStatus
 from app.log.decision_log import DecisionLog
-from app.planner.runs import PreparedRun, finish_full
+from app.planner.runs import PreparedRun, ResolvePlan, finish_full
+from app.planner.sickcall import rank
 from app.store import repo
 from app.store.db import connect
 
@@ -51,5 +52,37 @@ async def solve_full(prep: PreparedRun) -> None:
 
 def spawn(prep: PreparedRun) -> None:
     task = asyncio.get_running_loop().create_task(solve_full(prep))
+    tasks.add(task)
+    task.add_done_callback(tasks.discard)
+
+
+def _resolve_in_thread(plan: ResolvePlan) -> str:
+    conn = connect(get_settings().db_path)
+    try:
+        return rank(conn, plan, log=live_log(conn, plan.ward.id)).status.value
+    except Exception as exc:  # never leave a run stuck in `solving`
+        repo.update_run(conn, plan.run_id, status=RunStatus.FAILED.value)
+        live_log(conn, plan.ward.id).emit("run.failed", "planner", plan.run_id, error=str(exc))
+        return RunStatus.FAILED.value
+    finally:
+        conn.close()
+
+
+async def solve_resolve(plan: ResolvePlan) -> None:
+    """Minimal-change re-solve with ranked replacements (6.2, 6.4)."""
+    ward_id = plan.ward.id
+    async with ward_lock(ward_id):
+        loop = asyncio.get_running_loop()
+        status = await loop.run_in_executor(executor, _resolve_in_thread, plan)
+    await hub.broadcast(ward_id, {"type": "run_finished", "run_id": plan.run_id, "status": status})
+    if status == RunStatus.PROPOSED.value:
+        await hub.broadcast(
+            ward_id,
+            {"type": "proposal_created", "run_id": plan.run_id, "request_id": plan.request_id},
+        )
+
+
+def spawn_resolve(plan: ResolvePlan) -> None:
+    task = asyncio.get_running_loop().create_task(solve_resolve(plan))
     tasks.add(task)
     task.add_done_callback(tasks.discard)

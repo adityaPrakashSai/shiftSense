@@ -11,7 +11,7 @@ export type WardMessage =
   | { type: "run_finished"; run_id: string; status: string }
   | { type: "roster_published"; run_id: string | null }
   | { type: "request_updated"; request_id: string }
-  | { type: "proposal_created"; run_id: string; request_id: string }
+  | { type: "proposal_created"; run_id: string; request_id: string | null }
   | { type: "message_for_nurse"; nurse_id: string }
   | { type: "event"; seq: number };
 
@@ -34,6 +34,8 @@ function nudgeFor(e: EventOut): WardMessage | null {
     case "run.published":
     case "demo.reset":
       return { type: "roster_published", run_id: e.run_id ?? null };
+    case "candidates.ranked":
+      return e.run_id ? { type: "proposal_created", run_id: e.run_id, request_id: null } : null;
     case "request.confirmed":
     case "request.rejected":
     case "request.approved": {

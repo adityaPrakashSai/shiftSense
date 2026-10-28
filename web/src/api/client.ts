@@ -19,6 +19,8 @@ export type RequestOut = S["RequestOut"];
 export type MessageReply = S["MessageReply"];
 export type MessageRecord = S["MessageRecord"];
 export type RequestAction = S["RequestAction"];
+export type ProposalOut = S["ProposalOut"];
+export type Candidate = S["Candidate"];
 
 export class ApiError extends Error {
   constructor(
@@ -82,4 +84,11 @@ export const api = {
   confirm: (id: string) => request<RequestAction>(`/api/requests/${id}/confirm`, { method: "POST" }),
   reject: (id: string) => request<RequestAction>(`/api/requests/${id}/reject`, { method: "POST" }),
   approve: (id: string) => request<RequestAction>(`/api/requests/${id}/approve`, { method: "POST" }),
+  proposals: () => request<ProposalOut[]>("/api/proposals"),
+  proposal: (runId: string) => request<ProposalOut>(`/api/proposals/${runId}`),
+  choose: (runId: string, nurseId: string | null) =>
+    request<RunSummary>(`/api/proposals/${runId}/choose`, {
+      method: "POST",
+      body: JSON.stringify({ nurse_id: nurseId }),
+    }),
 };

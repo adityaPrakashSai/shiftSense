@@ -13,20 +13,33 @@ export function cellStyle(c: CellT): string {
   return "text-slate-300";
 }
 
+// proposal diff (6.3): the cell the request removed is struck through in red, the replacement is
+// outlined green, any other change amber
+const CAUSE_RING: Record<string, string> = {
+  replacement: "ring-2 ring-inset ring-emerald-500",
+  knock_on: "ring-2 ring-inset ring-amber-500",
+  request: "ring-2 ring-inset ring-red-400",
+};
+
 export default function Cell({ cell, weekend, today }: { cell: CellT; weekend: boolean; today: boolean }) {
-  const changed = cell.changed ? "ring-2 ring-inset ring-amber-500" : "";
+  const changed = cell.changed ? CAUSE_RING[cell.cause ?? "knock_on"] ?? CAUSE_RING.knock_on : "";
   const outline = today ? "border-x-2 border-x-rose-400" : "";
   const shade = weekend && !cell.shift ? "bg-slate-50" : "";
-  const label = cell.shift ?? (cell.display === "D/O" ? "·" : cell.display);
+  const removed = cell.cause === "request" && cell.prev_shift;
+  const label = removed ? cell.prev_shift : cell.shift ?? (cell.display === "D/O" ? "·" : cell.display);
   const title = `${cell.nurse_id} ${cell.day}: ${cell.display}${
-    cell.changed ? ` (was ${cell.prev_shift ?? "off"})` : ""
+    cell.changed ? ` (was ${cell.prev_shift ?? "off"}${cell.cause ? `, ${cell.cause.replace("_", "-")}` : ""})` : ""
   }`;
   return (
     <td
       title={title}
       className={`h-7 w-9 min-w-9 text-center text-xs font-medium ${shade} ${outline} ${changed}`}
     >
-      <span className={`mx-auto flex h-6 w-8 items-center justify-center rounded ${cellStyle(cell)}`}>
+      <span
+        className={`mx-auto flex h-6 w-8 items-center justify-center rounded ${
+          removed ? "bg-red-50 text-red-600 line-through" : cellStyle(cell)
+        }`}
+      >
         {label}
       </span>
     </td>
