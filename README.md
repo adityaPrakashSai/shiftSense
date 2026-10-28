@@ -1,0 +1,67 @@
+# ShiftSense
+
+A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language, voice and
+photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
+the solver's actual results.
+
+> **Status:** scaffold (milestone M0). The build started on **28 Oct 2026**. See
+> [`docs/DESIGN.md`](docs/DESIGN.md) for the full design and the milestone plan (section 12).
+
+## The problem
+
+In a government hospital department of 24 nurses, the charge nurse builds the roster entirely by
+hand, and **one schedule takes about 2 hours**. Sudden gaps are covered by phoning standby nurses,
+and existing rostering software is hard to update when the plan changes (for example, when a shift
+suddenly needs 5 nurses instead of 4). ShiftSense aims to produce a valid draft roster in under a
+minute and absorb a sick call with as few changes as possible.
+
+## How Meta models are used
+
+- The default live model is **Muse Spark Open** (`meta-models/muse-spark-open-1026`) served on
+  Baseten; the Meta Model API (Muse Spark) is the alternative provider.
+- The model never edits the roster. It turns messages into typed constraint edits, a person
+  confirms them, and CP-SAT re-solves.
+- The `openai` Python package is used **only as the HTTP client** for Baseten's OpenAI-compatible
+  endpoint, which serves Muse Spark Open. **No OpenAI (or any non-Meta) model is ever called.**
+
+## Architecture
+
+One FastAPI process serves the API, the WebSocket and the built React app, runs CP-SAT in-process,
+and calls Meta models over HTTPS. State lives in one SQLite file. Details: design doc section 3.
+
+| Folder | Contents |
+| --- | --- |
+| `app/` | Python backend (FastAPI, solver, planner, LLM gateway) |
+| `web/` | React + TypeScript + Vite + Tailwind frontend |
+| `data/` | Seed wards (synthetic or pseudonymized) and the SQLite file at runtime |
+| `tests/` | pytest suite and fixtures |
+| `reference/` | Pre-build reference prototypes (specs, not app code) |
+| `docs/` | Design document and design-decision log |
+
+## Setup
+
+Requirements: Python 3.12 via [uv](https://docs.astral.sh/uv/), Node 20+, and Docker (optional).
+
+```bash
+make setup     # uv sync, npm ci in web/, creates .env from .env.example
+make dev       # API on :8000, Vite on :5173 (open http://localhost:5173)
+make test      # ruff, mypy (strict for app/solver), pytest in mock mode
+make docker    # build the container image
+```
+
+`curl localhost:8000/api/health` should return `{"ok": true, "llm_mode": "mock", ...}`.
+
+API keys live only in `.env` (git-ignored) and Railway variables; see `.env.example`.
+
+## Demo
+
+Coming in M11: a `/demo` page with the charge nurse view and the nurse's phone view side by side.
+
+## Credits
+
+Before the hackathon, the author studied CP-SAT using a personal CP-SAT learning guide. It is
+credited here as prior study material; no code was copied from it into this repository.
+
+## Licence
+
+MIT, see [`LICENSE`](LICENSE).

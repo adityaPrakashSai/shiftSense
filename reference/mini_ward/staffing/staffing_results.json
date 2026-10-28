@@ -1,0 +1,596 @@
+{
+ "A. today's staff, no standby": {
+  "status": "solved",
+  "stages": [
+   {
+    "stage": "shortfall",
+    "value": 3,
+    "proven": true,
+    "bound": 3
+   },
+   {
+    "stage": "nurses_used",
+    "value": 7,
+    "proven": true,
+    "bound": 7
+   },
+   {
+    "stage": "standby_shifts",
+    "value": 0,
+    "proven": true
+   },
+   {
+    "stage": "balance",
+    "value": 8,
+    "proven": true,
+    "bound": 8
+   }
+  ],
+  "secs": 1.83,
+  "used": [
+   "N01",
+   "N02",
+   "N03",
+   "N04",
+   "N05",
+   "N06",
+   "N07"
+  ],
+  "short_cells": [
+   "d0M",
+   "d7M"
+  ],
+  "load": {
+   "N01": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 4
+   },
+   "N02": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 4
+   },
+   "N03": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 3
+   },
+   "N04": {
+    "total": 10,
+    "M": 3,
+    "E": 4,
+    "N": 3,
+    "wkend": 3
+   },
+   "N05": {
+    "total": 11,
+    "M": 4,
+    "E": 4,
+    "N": 3,
+    "wkend": 2
+   },
+   "N06": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 2
+   },
+   "N07": {
+    "total": 12,
+    "M": 8,
+    "E": 4,
+    "N": 0,
+    "wkend": 2
+   }
+  }
+ },
+ "B. extra hires needed (staff fixed, up to 3 hires)": {
+  "status": "solved",
+  "stages": [
+   {
+    "stage": "shortfall",
+    "value": 0,
+    "proven": true,
+    "bound": 0
+   },
+   {
+    "stage": "nurses_used",
+    "value": 9,
+    "proven": true,
+    "bound": 9
+   },
+   {
+    "stage": "standby_shifts",
+    "value": 0,
+    "proven": true
+   },
+   {
+    "stage": "balance",
+    "value": 7,
+    "proven": false,
+    "bound": 0
+   }
+  ],
+  "secs": 10.59,
+  "used": [
+   "H1",
+   "H3",
+   "N01",
+   "N02",
+   "N03",
+   "N04",
+   "N05",
+   "N06",
+   "N07"
+  ],
+  "short_cells": [],
+  "load": {
+   "N01": {
+    "total": 9,
+    "M": 5,
+    "E": 3,
+    "N": 1,
+    "wkend": 2
+   },
+   "N02": {
+    "total": 10,
+    "M": 5,
+    "E": 3,
+    "N": 2,
+    "wkend": 2
+   },
+   "N03": {
+    "total": 10,
+    "M": 5,
+    "E": 3,
+    "N": 2,
+    "wkend": 2
+   },
+   "N04": {
+    "total": 7,
+    "M": 3,
+    "E": 3,
+    "N": 1,
+    "wkend": 2
+   },
+   "N05": {
+    "total": 9,
+    "M": 4,
+    "E": 3,
+    "N": 2,
+    "wkend": 2
+   },
+   "N06": {
+    "total": 10,
+    "M": 5,
+    "E": 3,
+    "N": 2,
+    "wkend": 2
+   },
+   "N07": {
+    "total": 10,
+    "M": 7,
+    "E": 3,
+    "N": 0,
+    "wkend": 2
+   },
+   "H1": {
+    "total": 10,
+    "M": 5,
+    "E": 3,
+    "N": 2,
+    "wkend": 3
+   },
+   "H3": {
+    "total": 9,
+    "M": 3,
+    "E": 4,
+    "N": 2,
+    "wkend": 3
+   }
+  }
+ },
+ "C. minimum headcount from scratch (staff + 3 hires, any subset)": {
+  "status": "solved",
+  "stages": [
+   {
+    "stage": "shortfall",
+    "value": 0,
+    "proven": true,
+    "bound": 0
+   },
+   {
+    "stage": "nurses_used",
+    "value": 7,
+    "proven": true,
+    "bound": 7
+   },
+   {
+    "stage": "standby_shifts",
+    "value": 0,
+    "proven": true
+   },
+   {
+    "stage": "balance",
+    "value": 6,
+    "proven": false,
+    "bound": -21
+   }
+  ],
+  "secs": 11.12,
+  "used": [
+   "H1",
+   "H2",
+   "H3",
+   "N01",
+   "N03",
+   "N06",
+   "N07"
+  ],
+  "short_cells": [],
+  "load": {
+   "N01": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 4
+   },
+   "N03": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 2
+   },
+   "N06": {
+    "total": 12,
+    "M": 5,
+    "E": 4,
+    "N": 3,
+    "wkend": 4
+   },
+   "N07": {
+    "total": 12,
+    "M": 8,
+    "E": 4,
+    "N": 0,
+    "wkend": 2
+   },
+   "H1": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 2
+   },
+   "H2": {
+    "total": 12,
+    "M": 5,
+    "E": 4,
+    "N": 3,
+    "wkend": 4
+   },
+   "H3": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 2
+   }
+  }
+ },
+ "D. minimum headcount for the hard floor only": {
+  "status": "solved",
+  "stages": [
+   {
+    "stage": "shortfall",
+    "value": 0,
+    "proven": true
+   },
+   {
+    "stage": "nurses_used",
+    "value": 5,
+    "proven": true,
+    "bound": 5
+   },
+   {
+    "stage": "standby_shifts",
+    "value": 0,
+    "proven": true
+   },
+   {
+    "stage": "balance",
+    "value": 2,
+    "proven": false,
+    "bound": -32
+   }
+  ],
+  "secs": 10.18,
+  "used": [
+   "H1",
+   "N01",
+   "N02",
+   "N03",
+   "N06"
+  ],
+  "short_cells": [
+   "d0M",
+   "d0E",
+   "d1M",
+   "d1E",
+   "d2M",
+   "d2E",
+   "d3M",
+   "d3E",
+   "d4M",
+   "d4E",
+   "d5E",
+   "d6M",
+   "d6E",
+   "d7M",
+   "d7E",
+   "d8M",
+   "d8E",
+   "d9M",
+   "d9E",
+   "d10M",
+   "d10E",
+   "d11M",
+   "d11E",
+   "d12M",
+   "d13E"
+  ],
+  "load": {
+   "N01": {
+    "total": 11,
+    "M": 5,
+    "E": 3,
+    "N": 3,
+    "wkend": 3
+   },
+   "N02": {
+    "total": 11,
+    "M": 5,
+    "E": 3,
+    "N": 3,
+    "wkend": 3
+   },
+   "N03": {
+    "total": 11,
+    "M": 5,
+    "E": 3,
+    "N": 3,
+    "wkend": 3
+   },
+   "N06": {
+    "total": 11,
+    "M": 5,
+    "E": 3,
+    "N": 3,
+    "wkend": 3
+   },
+   "H1": {
+    "total": 11,
+    "M": 6,
+    "E": 3,
+    "N": 2,
+    "wkend": 3
+   }
+  }
+ },
+ "E. what-if Kavya (N04) off all period, standby allowed": {
+  "status": "solved",
+  "stages": [
+   {
+    "stage": "shortfall",
+    "value": 4,
+    "proven": true,
+    "bound": 4
+   },
+   {
+    "stage": "nurses_used",
+    "value": 6,
+    "proven": true,
+    "bound": 6
+   },
+   {
+    "stage": "standby_shifts",
+    "value": 8,
+    "proven": true,
+    "bound": 8
+   },
+   {
+    "stage": "balance",
+    "value": 4,
+    "proven": true,
+    "bound": 4
+   }
+  ],
+  "secs": 0.6,
+  "used": [
+   "N01",
+   "N02",
+   "N03",
+   "N05",
+   "N06",
+   "N07"
+  ],
+  "short_cells": [
+   "d0M",
+   "d0E",
+   "d7M",
+   "d7E"
+  ],
+  "load": {
+   "N01": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 4
+   },
+   "N02": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 4
+   },
+   "N03": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 4
+   },
+   "N05": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 4
+   },
+   "N06": {
+    "total": 12,
+    "M": 6,
+    "E": 4,
+    "N": 2,
+    "wkend": 2
+   },
+   "N07": {
+    "total": 12,
+    "M": 8,
+    "E": 4,
+    "N": 0,
+    "wkend": 2
+   },
+   "S01": {
+    "total": 4,
+    "M": 1,
+    "E": 0,
+    "N": 3,
+    "wkend": 0
+   },
+   "S02": {
+    "total": 4,
+    "M": 1,
+    "E": 2,
+    "N": 1,
+    "wkend": 0
+   }
+  }
+ },
+ "F. what-if Kavya + Deepa off, standby allowed": {
+  "status": "solved",
+  "stages": [
+   {
+    "stage": "shortfall",
+    "value": 16,
+    "proven": true,
+    "bound": 16
+   },
+   {
+    "stage": "nurses_used",
+    "value": 5,
+    "proven": true,
+    "bound": 5
+   },
+   {
+    "stage": "standby_shifts",
+    "value": 8,
+    "proven": true,
+    "bound": 8
+   },
+   {
+    "stage": "balance",
+    "value": 0,
+    "proven": true,
+    "bound": 0
+   }
+  ],
+  "secs": 0.44,
+  "used": [
+   "N01",
+   "N02",
+   "N03",
+   "N05",
+   "N06"
+  ],
+  "short_cells": [
+   "d0M",
+   "d0E",
+   "d1E",
+   "d2E",
+   "d3E",
+   "d4M",
+   "d7M",
+   "d7E",
+   "d8M",
+   "d8E",
+   "d9E",
+   "d10M",
+   "d10E",
+   "d11E"
+  ],
+  "load": {
+   "N01": {
+    "total": 12,
+    "M": 7,
+    "E": 3,
+    "N": 2,
+    "wkend": 4
+   },
+   "N02": {
+    "total": 12,
+    "M": 7,
+    "E": 3,
+    "N": 2,
+    "wkend": 4
+   },
+   "N03": {
+    "total": 12,
+    "M": 7,
+    "E": 3,
+    "N": 2,
+    "wkend": 4
+   },
+   "N05": {
+    "total": 12,
+    "M": 7,
+    "E": 3,
+    "N": 2,
+    "wkend": 4
+   },
+   "N06": {
+    "total": 12,
+    "M": 7,
+    "E": 3,
+    "N": 2,
+    "wkend": 4
+   },
+   "S01": {
+    "total": 4,
+    "M": 0,
+    "E": 2,
+    "N": 2,
+    "wkend": 0
+   },
+   "S02": {
+    "total": 4,
+    "M": 0,
+    "E": 2,
+    "N": 2,
+    "wkend": 0
+   }
+  }
+ }
+}

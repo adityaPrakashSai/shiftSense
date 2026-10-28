@@ -1,0 +1,7 @@
+# data/
+
+- `seed/mini_ward.json`: 9-nurse, 14-day synthetic mini ward (`SEED=mini`), with scenarios A–D.
+- `seed/real_ward_a.json`: pseudonymized October ward from Hospital A (`SEED=real_a`).
+- `shiftsense.db`: the SQLite database, created at runtime (git-ignored).
+
+Synthetic or pseudonymized data only: no real names, hospitals, photos or patient data.

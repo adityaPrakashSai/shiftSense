@@ -1,0 +1,968 @@
+{
+ "schema": "shiftsense.mini_ward/v1",
+ "about": "Small, hand-checkable instance with the hard parts of INRC-I/INRC-II/Curtois/NSPLib except scale. See README.md.",
+ "ward": {
+  "id": "ward-mini",
+  "name": "Mini ward (7 + 2 standby)",
+  "tz": "Asia/Kolkata",
+  "horizon_start": "2026-10-26",
+  "horizon_days": 14,
+  "shifts": [
+   {
+    "code": "M",
+    "name": "Morning",
+    "start": "07:00",
+    "end": "15:00"
+   },
+   {
+    "code": "E",
+    "name": "Evening",
+    "start": "15:00",
+    "end": "23:00"
+   },
+   {
+    "code": "N",
+    "name": "Night",
+    "start": "23:00",
+    "end": "07:00"
+   }
+  ],
+  "nurses": [
+   {
+    "id": "N01",
+    "name": "Anjali Verma",
+    "aliases": [
+     "Anjali",
+     "अंजलि",
+     "Anjali di"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": false,
+    "language": "hi",
+    "min_shifts_per_week": 5.5,
+    "max_shifts_per_week": 6.0
+   },
+   {
+    "id": "N02",
+    "name": "Priya Nair",
+    "aliases": [
+     "Priya",
+     "प्रिया"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": false,
+    "language": "en",
+    "min_shifts_per_week": 5.5,
+    "max_shifts_per_week": 6.0
+   },
+   {
+    "id": "N03",
+    "name": "Meena Sharma",
+    "aliases": [
+     "Meena",
+     "मीना",
+     "Meena di"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": false,
+    "language": "hi",
+    "min_shifts_per_week": 5.5,
+    "max_shifts_per_week": 6.0
+   },
+   {
+    "id": "N04",
+    "name": "Kavya Reddy",
+    "aliases": [
+     "Kavya",
+     "काव्या"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": false,
+    "language": "en",
+    "min_shifts_per_week": 5.5,
+    "max_shifts_per_week": 6.0
+   },
+   {
+    "id": "N05",
+    "name": "Ritu Singh",
+    "aliases": [
+     "Ritu",
+     "रितु"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": false,
+    "language": "hi",
+    "min_shifts_per_week": 5.5,
+    "max_shifts_per_week": 6.0
+   },
+   {
+    "id": "N06",
+    "name": "Fatima Khan",
+    "aliases": [
+     "Fatima",
+     "फ़ातिमा"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": false,
+    "language": "hi",
+    "min_shifts_per_week": 5.5,
+    "max_shifts_per_week": 6.0
+   },
+   {
+    "id": "N07",
+    "name": "Deepa Joshi",
+    "aliases": [
+     "Deepa",
+     "दीपा"
+    ],
+    "grade": "staff",
+    "can_night": false,
+    "standby": false,
+    "language": "hi",
+    "min_shifts_per_week": 5.5,
+    "max_shifts_per_week": 6.0
+   },
+   {
+    "id": "S01",
+    "name": "Arun Kumar",
+    "aliases": [
+     "Arun",
+     "अरुण",
+     "Arun bhaiya"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": true,
+    "language": "hi",
+    "min_shifts_per_week": 0.0,
+    "max_shifts_per_week": 2.0
+   },
+   {
+    "id": "S02",
+    "name": "Rekha Das",
+    "aliases": [
+     "Rekha",
+     "रेखा"
+    ],
+    "grade": "staff",
+    "can_night": true,
+    "standby": true,
+    "language": "hi",
+    "min_shifts_per_week": 0.0,
+    "max_shifts_per_week": 2.0
+   }
+  ],
+  "demand": [
+   {
+    "day": "2026-10-26",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 4,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-26",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-26",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-27",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 4,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-27",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-27",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-28",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-28",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-28",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-29",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-29",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-29",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-30",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-30",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-30",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-31",
+    "shift": "M",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-31",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-10-31",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-01",
+    "shift": "M",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-01",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-01",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-02",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 4,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-02",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-02",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-03",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 4,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-03",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-03",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-04",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-04",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-04",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-05",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-05",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-05",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-06",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-06",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-06",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-07",
+    "shift": "M",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-07",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-07",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-08",
+    "shift": "M",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-08",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "min_senior": 0
+   },
+   {
+    "day": "2026-11-08",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 1,
+    "min_senior": 0
+   }
+  ],
+  "max_consecutive_days": 6,
+  "max_consecutive_nights": 3,
+  "max_nights_per_month": 6
+ },
+ "requests": [
+  {
+   "id": "R-0001",
+   "nurse_id": "N04",
+   "kind": "leave",
+   "dates": [
+    "2026-10-28",
+    "2026-10-29"
+   ],
+   "shifts": null,
+   "counterpart_id": null,
+   "hard": true,
+   "weight": 1,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Approved leave: cousin's wedding (Wed–Thu)."
+  },
+  {
+   "id": "R-0002",
+   "nurse_id": "N01",
+   "kind": "day_off",
+   "dates": [
+    "2026-10-31"
+   ],
+   "shifts": null,
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 2,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Wants Sat 31 Oct off."
+  },
+  {
+   "id": "R-0003",
+   "nurse_id": "N03",
+   "kind": "day_off",
+   "dates": [
+    "2026-10-31"
+   ],
+   "shifts": null,
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 2,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Wants Sat 31 Oct off."
+  },
+  {
+   "id": "R-0004",
+   "nurse_id": "N07",
+   "kind": "day_off",
+   "dates": [
+    "2026-10-31"
+   ],
+   "shifts": null,
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 2,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Wants Sat 31 Oct off. Only 4 of the 5 Saturday slots can be filled if all three are granted."
+  },
+  {
+   "id": "R-0005",
+   "nurse_id": "N06",
+   "kind": "shift_avoid",
+   "dates": [
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30",
+    "2026-10-31",
+    "2026-11-01",
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-07",
+    "2026-11-08"
+   ],
+   "shifts": [
+    "N"
+   ],
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 5,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Night break announced in advance: 'agle do hafte night duty nahi'."
+  },
+  {
+   "id": "R-0006",
+   "nurse_id": "N02",
+   "kind": "shift_wanted",
+   "dates": [
+    "2026-10-31",
+    "2026-11-01",
+    "2026-11-02"
+   ],
+   "shifts": [
+    "N"
+   ],
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 3,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Wants Sat–Mon nights so she is free during the day for a family event."
+  },
+  {
+   "id": "R-0007",
+   "nurse_id": "N03",
+   "kind": "shift_wanted",
+   "dates": [
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-06"
+   ],
+   "shifts": [
+    "M"
+   ],
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 1,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Prefers mornings in week 2 (child's exams)."
+  },
+  {
+   "id": "R-0008",
+   "nurse_id": "N05",
+   "kind": "day_off",
+   "dates": [
+    "2026-11-07",
+    "2026-11-08"
+   ],
+   "shifts": null,
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 1,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Wants the second weekend off."
+  },
+  {
+   "id": "R-0009",
+   "nurse_id": "S02",
+   "kind": "unavailable",
+   "dates": [
+    "2026-11-03"
+   ],
+   "shifts": null,
+   "counterpart_id": null,
+   "hard": true,
+   "weight": 1,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z",
+   "note": "Standby nurse has an exam on Tue 3 Nov."
+  }
+ ],
+ "history": {
+  "periods": 2,
+  "days_covered": 28,
+  "nurses": {
+   "N01": {
+    "consecutive_days": 2,
+    "consecutive_nights": 0,
+    "last_days": [
+     "-",
+     "M",
+     "E"
+    ],
+    "nights": 10,
+    "mornings": 7,
+    "evenings": 6,
+    "weekends": 6,
+    "denied": 0
+   },
+   "N02": {
+    "consecutive_days": 6,
+    "consecutive_nights": 0,
+    "last_days": [
+     "M",
+     "E",
+     "E"
+    ],
+    "nights": 6,
+    "mornings": 9,
+    "evenings": 8,
+    "weekends": 5,
+    "denied": 0
+   },
+   "N03": {
+    "consecutive_days": 0,
+    "consecutive_nights": 0,
+    "last_days": [
+     "E",
+     "-",
+     "-"
+    ],
+    "nights": 5,
+    "mornings": 9,
+    "evenings": 9,
+    "weekends": 5,
+    "denied": 2
+   },
+   "N04": {
+    "consecutive_days": 4,
+    "consecutive_nights": 0,
+    "last_days": [
+     "M",
+     "M",
+     "M"
+    ],
+    "nights": 4,
+    "mornings": 12,
+    "evenings": 7,
+    "weekends": 4,
+    "denied": 1
+   },
+   "N05": {
+    "consecutive_days": 3,
+    "consecutive_nights": 3,
+    "last_days": [
+     "N",
+     "N",
+     "N"
+    ],
+    "nights": 9,
+    "mornings": 9,
+    "evenings": 5,
+    "weekends": 6,
+    "denied": 0
+   },
+   "N06": {
+    "consecutive_days": 1,
+    "consecutive_nights": 0,
+    "last_days": [
+     "-",
+     "-",
+     "M"
+    ],
+    "nights": 3,
+    "mornings": 12,
+    "evenings": 8,
+    "weekends": 5,
+    "denied": 1
+   },
+   "N07": {
+    "consecutive_days": 0,
+    "consecutive_nights": 0,
+    "last_days": [
+     "M",
+     "E",
+     "-"
+    ],
+    "nights": 0,
+    "mornings": 13,
+    "evenings": 10,
+    "weekends": 3,
+    "denied": 1
+   },
+   "S01": {
+    "consecutive_days": 0,
+    "consecutive_nights": 0,
+    "last_days": [
+     "-",
+     "-",
+     "-"
+    ],
+    "nights": 0,
+    "mornings": 0,
+    "evenings": 0,
+    "weekends": 0,
+    "denied": 0
+   },
+   "S02": {
+    "consecutive_days": 0,
+    "consecutive_nights": 0,
+    "last_days": [
+     "-",
+     "-",
+     "-"
+    ],
+    "nights": 0,
+    "mornings": 0,
+    "evenings": 0,
+    "weekends": 0,
+    "denied": 0
+   }
+  }
+ },
+ "rules": {
+  "hard": {
+   "max_consecutive_days": 6,
+   "max_consecutive_nights": 3,
+   "rest_after_night": "no M or E the day after N",
+   "max_cover_is_target": true,
+   "standby_off_roster_in_full_run": true,
+   "leave_counts_toward_contract_min": true,
+   "max_nights_per_month": 6,
+   "max_nights_scaling": "ceil(6 * horizon_days / 30): 3 per 14 days",
+   "night_block_max": 3,
+   "night_block_min_soft": 2,
+   "after_night_block": "exactly one N/O day: rest_after_night forbids M or E the day after N; no second recovery day (27 Oct roster photos; NIGHT_RECOVERY removed)",
+   "display_codes": "off day right after N shows N/O, other days off D/O, leave L"
+  },
+  "priorities": [
+   "coverage",
+   "stability",
+   "contract",
+   "requests",
+   "fairness"
+  ],
+  "soft": [
+   {
+    "rule": "COVER_SHORT",
+    "tier": "coverage",
+    "weight": 1,
+    "core": true
+   },
+   {
+    "rule": "CHANGED",
+    "tier": "stability",
+    "weight": 2,
+    "core": true
+   },
+   {
+    "rule": "STANDBY_CALLED",
+    "tier": "stability",
+    "weight": 1,
+    "core": true
+   },
+   {
+    "rule": "CONTRACT_MIN",
+    "tier": "contract",
+    "weight": 1,
+    "core": true
+   },
+   {
+    "rule": "QUICK_RETURN",
+    "tier": "requests",
+    "weight": 3,
+    "core": false,
+    "what": "E then M next day (15–23 then 07–15: 8 h rest)"
+   },
+   {
+    "rule": "SINGLE_NIGHT",
+    "tier": "requests",
+    "weight": 3,
+    "core": false,
+    "what": "a night block shorter than night_block_min = 2 (a single night); weight 3 because the real ward only runs single nights to cover a gap"
+   },
+   {
+    "rule": "ISOLATED_DAY",
+    "tier": "requests",
+    "weight": 1,
+    "core": false,
+    "what": "off, work, off (min consecutive working days = 2)"
+   },
+   {
+    "rule": "SPLIT_WEEKEND",
+    "tier": "requests",
+    "weight": 1,
+    "core": false,
+    "what": "works exactly one of Sat/Sun (complete weekends)"
+   },
+   {
+    "rule": "PREF_OFF",
+    "tier": "requests",
+    "weight": "2 x request.weight",
+    "core": true
+   },
+   {
+    "rule": "PREF_SHIFT",
+    "tier": "requests",
+    "weight": "request.weight",
+    "core": true
+   },
+   {
+    "rule": "PREF_AVOID",
+    "tier": "requests",
+    "weight": "request.weight",
+    "core": true
+   },
+   {
+    "rule": "FAIR_NIGHTS",
+    "tier": "fairness",
+    "weight": 2,
+    "core": true
+   },
+   {
+    "rule": "FAIR_WEEKENDS",
+    "tier": "fairness",
+    "weight": 2,
+    "core": true
+   },
+   {
+    "rule": "FAIR_MORNINGS",
+    "tier": "fairness",
+    "weight": 2,
+    "core": true
+   },
+   {
+    "rule": "FAIR_EVENINGS",
+    "tier": "fairness",
+    "weight": 2,
+    "core": true
+   },
+   {
+    "rule": "FAIR_DENIALS",
+    "tier": "fairness",
+    "weight": 1,
+    "core": true
+   }
+  ]
+ },
+ "scenarios": [
+  {
+   "id": "A-sick-morning",
+   "title": "Meena calls in sick for today's Morning (the demo story)",
+   "now": "2026-11-03T06:05:00+05:30",
+   "message": "Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai",
+   "edit": {
+    "op": "mark_unavailable",
+    "nurse": "N03",
+    "dates": [
+     "2026-11-03"
+    ],
+    "shifts": [
+     "M"
+    ],
+    "reason_category": "sick"
+   },
+   "frozen_before_day": 8
+  },
+  {
+   "id": "B-sick-three-days",
+   "title": "Meena is out for three days (Tue–Thu, all shifts)",
+   "now": "2026-11-03T06:05:00+05:30",
+   "message": "Doctor ne 3 din rest bola hai",
+   "edit": {
+    "op": "mark_unavailable",
+    "nurse": "N03",
+    "dates": [
+     "2026-11-03",
+     "2026-11-04",
+     "2026-11-05"
+    ],
+    "shifts": null,
+    "reason_category": "sick"
+   },
+   "frozen_before_day": 8
+  },
+  {
+   "id": "C-demand-up",
+   "title": "Thursday evening needs 3 nurses instead of 2 (charge nurse change)",
+   "now": "2026-11-03T06:05:00+05:30",
+   "message": "Thursday shaam ko ICU se 2 patient aa rahe hain, 3 nurse chahiye",
+   "edit": {
+    "op": "change_demand",
+    "nurse": "self",
+    "dates": [
+     "2026-11-05"
+    ],
+    "shifts": [
+     "E"
+    ],
+    "target_total": 3
+   },
+   "frozen_before_day": 8
+  },
+  {
+   "id": "D-leave-over-night-block",
+   "title": "Ritu's leave is extended over Thu 5 to Sun 8 Nov, across her night block (the October roster case, doc 6.5c)",
+   "now": "2026-11-03T06:05:00+05:30",
+   "message": "Ritu ki leave Sunday tak badh gayi hai (ML)",
+   "edit": {
+    "op": "request_leave",
+    "nurse": "N05",
+    "dates": [
+     "2026-11-05",
+     "2026-11-06",
+     "2026-11-07",
+     "2026-11-08"
+    ],
+    "shifts": null,
+    "leave_type": "ML",
+    "reason_category": "leave"
+   },
+   "frozen_before_day": 8,
+   "expect": "every night on days 10-13 stays at target 1; whoever covers keeps a legal block (at most 3 nights, then one N/O); the hand edit in October left nights at 2 of 3"
+  }
+ ]
+}

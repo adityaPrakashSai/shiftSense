@@ -1,0 +1,479 @@
+{
+ "schema": "shiftsense.ward_seed/v1",
+ "about": "Synthetic fixed-assignment ward (Hospital B style). Never add real names.",
+ "ward": {
+  "id": "ward-fixed",
+  "name": "Fixed-assignment test ward",
+  "tz": "Asia/Kolkata",
+  "roster_style": "fixed_assignment",
+  "horizon_preset": "half_month",
+  "horizon_start": "2026-11-01",
+  "horizon_days": 16,
+  "shifts": [
+   {
+    "code": "M",
+    "hours": 7
+   },
+   {
+    "code": "E",
+    "hours": 6
+   },
+   {
+    "code": "N",
+    "hours": 11
+   }
+  ],
+  "nurses": [
+   {
+    "id": "N1",
+    "name": "Anita (synthetic)",
+    "grade": "staff",
+    "can_night": true,
+    "previous_period_shift": "N"
+   },
+   {
+    "id": "N2",
+    "name": "Bhavna (synthetic)",
+    "grade": "staff",
+    "can_night": true,
+    "previous_period_shift": "N"
+   },
+   {
+    "id": "N3",
+    "name": "Chitra (synthetic)",
+    "grade": "staff",
+    "can_night": true,
+    "previous_period_shift": "E"
+   },
+   {
+    "id": "N4",
+    "name": "Daisy (synthetic)",
+    "grade": "staff",
+    "can_night": true,
+    "previous_period_shift": "E"
+   },
+   {
+    "id": "N5",
+    "name": "Esther (synthetic)",
+    "grade": "staff",
+    "can_night": true,
+    "previous_period_shift": "M"
+   },
+   {
+    "id": "N6",
+    "name": "Farah (synthetic)",
+    "grade": "staff",
+    "can_night": true,
+    "previous_period_shift": "M"
+   },
+   {
+    "id": "N7",
+    "name": "Gauri (synthetic)",
+    "grade": "staff",
+    "can_night": true,
+    "previous_period_shift": "M"
+   },
+   {
+    "id": "N8",
+    "name": "Hema (synthetic)",
+    "grade": "staff",
+    "can_night": false,
+    "previous_period_shift": "M"
+   }
+  ],
+  "demand": [
+   {
+    "day": "2026-11-01",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-01",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-01",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-02",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-02",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-02",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-03",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-03",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-03",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-04",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-04",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-04",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-05",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-05",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-05",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-06",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-06",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-06",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-07",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-07",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-07",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-08",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-08",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-08",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-09",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-09",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-09",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-10",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-10",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-10",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-11",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-11",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-11",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-12",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-12",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-12",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-13",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-13",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-13",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-14",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-14",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-14",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-15",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-15",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-15",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-16",
+    "shift": "M",
+    "min_total": 2,
+    "target_total": 3,
+    "max_total": 4
+   },
+   {
+    "day": "2026-11-16",
+    "shift": "E",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   },
+   {
+    "day": "2026-11-16",
+    "shift": "N",
+    "min_total": 1,
+    "target_total": 2,
+    "max_total": 3
+   }
+  ]
+ },
+ "requests": [
+  {
+   "id": "R-F001",
+   "nurse_id": "N4",
+   "kind": "leave",
+   "leave_type": "CL",
+   "dates": [
+    "2026-11-06",
+    "2026-11-07",
+    "2026-11-08"
+   ],
+   "shifts": null
+  }
+ ],
+ "expected": {
+  "tier_values": {
+   "coverage": 8,
+   "rotation": 0,
+   "stability": 5
+  },
+  "assignment": {
+   "N1": {
+    "shift": "E",
+    "weekday_off": "Fri"
+   },
+   "N2": {
+    "shift": "M",
+    "weekday_off": "Mon"
+   },
+   "N3": {
+    "shift": "E",
+    "weekday_off": "Thu"
+   },
+   "N4": {
+    "shift": "M",
+    "weekday_off": "Sat"
+   },
+   "N5": {
+    "shift": "M",
+    "weekday_off": "Tue"
+   },
+   "N6": {
+    "shift": "N",
+    "weekday_off": "Thu"
+   },
+   "N7": {
+    "shift": "N",
+    "weekday_off": "Wed"
+   },
+   "N8": {
+    "shift": "M",
+    "weekday_off": "Wed"
+   }
+  },
+  "note": "Tier order for this fixture: coverage, then night rotation (last period's night nurses not on nights again), then stability. The app's order may differ; the asserted facts are coverage and the rotation value."
+ }
+}

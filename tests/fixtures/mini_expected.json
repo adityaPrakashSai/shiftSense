@@ -1,0 +1,5003 @@
+{
+ "instance": "mini_ward.json",
+ "runs": {
+  "fairness_before_requests": {
+   "vector_under_default_rules": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 0,
+    "requests": 39,
+    "fairness": 43
+   },
+   "own_vector": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 0,
+    "fairness": 43,
+    "requests": 39
+   },
+   "hard_violations_under_real_history": [],
+   "stages": [
+    {
+     "tier": "coverage",
+     "value": 3,
+     "proven": true,
+     "bound": 3
+    },
+    {
+     "tier": "stability",
+     "value": 0,
+     "proven": true,
+     "skipped": true
+    },
+    {
+     "tier": "contract",
+     "value": 0,
+     "proven": true,
+     "bound": 0
+    },
+    {
+     "tier": "fairness",
+     "value": 43,
+     "proven": true,
+     "bound": 43
+    },
+    {
+     "tier": "requests",
+     "value": 39,
+     "proven": true,
+     "bound": 39
+    }
+   ],
+   "secs": 30.52,
+   "roster": {
+    "N01": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "N",
+     null,
+     null,
+     "M"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "N",
+     "N",
+     null,
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     "N"
+    ],
+    "N03": [
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E"
+    ],
+    "N05": [
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "E",
+     "E",
+     "E",
+     "E",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     null
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SINGLE_NIGHT",
+     "nurse": "N01",
+     "day": 10,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N01",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_AVOID",
+     "nurse": "N06",
+     "day": 7,
+     "ref": "R-0005",
+     "amount": 1,
+     "weight": 5,
+     "cost": 5
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_AVOID",
+     "nurse": "N06",
+     "day": 8,
+     "ref": "R-0005",
+     "amount": 1,
+     "weight": 5,
+     "cost": 5
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_AVOID",
+     "nurse": "N06",
+     "day": 9,
+     "ref": "R-0005",
+     "amount": 1,
+     "weight": 5,
+     "cost": 5
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 5,
+     "weight": 2,
+     "cost": 10
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 9,
+     "weight": 2,
+     "cost": 18
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 3,
+     "weight": 2,
+     "cost": 6
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    }
+   ]
+  },
+  "requests_before_coverage": {
+   "vector_under_default_rules": {
+    "coverage": 10,
+    "stability": 0,
+    "contract": 4,
+    "requests": 0,
+    "fairness": 56
+   },
+   "own_vector": {
+    "requests": 0,
+    "coverage": 10,
+    "stability": 0,
+    "contract": 4,
+    "fairness": 56
+   },
+   "hard_violations_under_real_history": [],
+   "stages": [
+    {
+     "tier": "requests",
+     "value": 0,
+     "proven": true,
+     "bound": 0
+    },
+    {
+     "tier": "coverage",
+     "value": 10,
+     "proven": true,
+     "bound": 10
+    },
+    {
+     "tier": "stability",
+     "value": 0,
+     "proven": true,
+     "skipped": true
+    },
+    {
+     "tier": "contract",
+     "value": 4,
+     "proven": true,
+     "bound": 4
+    },
+    {
+     "tier": "fairness",
+     "value": 56,
+     "proven": true,
+     "bound": 56
+    }
+   ],
+   "secs": 0.31,
+   "roster": {
+    "N01": [
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     null,
+     null,
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "E"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     null,
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M"
+    ],
+    "N03": [
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     null
+    ],
+    "N04": [
+     "M",
+     "M",
+     null,
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "N",
+     "N",
+     "N"
+    ],
+    "N05": [
+     null,
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     null,
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     "E"
+    ],
+    "N07": [
+     "E",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     null,
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "M"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 2,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 3,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 4,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 5,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 6,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 8,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 8,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "contract",
+     "rule": "CONTRACT_MIN",
+     "nurse": "N01",
+     "day": null,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "contract",
+     "rule": "CONTRACT_MIN",
+     "nurse": "N03",
+     "day": null,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "contract",
+     "rule": "CONTRACT_MIN",
+     "nurse": "N05",
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 9,
+     "weight": 2,
+     "cost": 18
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 6,
+     "weight": 2,
+     "cost": 12
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 8,
+     "weight": 2,
+     "cost": 16
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    }
+   ]
+  },
+  "no_history": {
+   "vector_under_default_rules": {
+    "coverage": 1,
+    "stability": 0,
+    "contract": 0,
+    "requests": 20,
+    "fairness": 58
+   },
+   "own_vector": {
+    "coverage": 1,
+    "stability": 0,
+    "contract": 0,
+    "requests": 17,
+    "fairness": 19
+   },
+   "hard_violations_under_real_history": [
+    "max_consecutive_days:N01",
+    "max_consecutive_days:N02",
+    "rest_after_night:N05:d-1",
+    "max_consecutive_days:N05",
+    "max_consecutive_days:N06"
+   ],
+   "stages": [
+    {
+     "tier": "coverage",
+     "value": 1,
+     "proven": true,
+     "bound": 1
+    },
+    {
+     "tier": "stability",
+     "value": 0,
+     "proven": true,
+     "skipped": true
+    },
+    {
+     "tier": "contract",
+     "value": 0,
+     "proven": true,
+     "bound": 0
+    },
+    {
+     "tier": "requests",
+     "value": 17,
+     "proven": true,
+     "bound": 17
+    },
+    {
+     "tier": "fairness",
+     "value": 19,
+     "proven": true,
+     "bound": 19
+    }
+   ],
+   "secs": 21.7,
+   "roster": {
+    "N01": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "E",
+     "N",
+     "N",
+     null,
+     "E",
+     "N"
+    ],
+    "N02": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M"
+    ],
+    "N03": [
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N05": [
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     null
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "E"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 5,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N01",
+     "day": -1,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N01",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SINGLE_NIGHT",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 5,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 10,
+     "weight": 2,
+     "cost": 20
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 9,
+     "weight": 2,
+     "cost": 18
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 5,
+     "weight": 2,
+     "cost": 10
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    }
+   ]
+  },
+  "core_rules_only": {
+   "vector_under_default_rules": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 0,
+    "requests": 57,
+    "fairness": 51
+   },
+   "own_vector": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 0,
+    "requests": 13,
+    "fairness": 51
+   },
+   "hard_violations_under_real_history": [],
+   "stages": [
+    {
+     "tier": "coverage",
+     "value": 3,
+     "proven": true,
+     "bound": 3
+    },
+    {
+     "tier": "stability",
+     "value": 0,
+     "proven": true,
+     "skipped": true
+    },
+    {
+     "tier": "contract",
+     "value": 0,
+     "proven": true,
+     "bound": 0
+    },
+    {
+     "tier": "requests",
+     "value": 13,
+     "proven": true,
+     "bound": 13
+    },
+    {
+     "tier": "fairness",
+     "value": 51,
+     "proven": true,
+     "bound": 51
+    }
+   ],
+   "secs": 1.59,
+   "roster": {
+    "N01": [
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     null
+    ],
+    "N02": [
+     null,
+     "E",
+     "M",
+     "M",
+     "M",
+     "N",
+     "N",
+     null,
+     "M",
+     "E",
+     "E",
+     "M",
+     "E",
+     "N"
+    ],
+    "N03": [
+     "E",
+     "M",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "E",
+     "M",
+     "E",
+     "E",
+     "E",
+     "N",
+     null,
+     "E",
+     "M",
+     "M"
+    ],
+    "N05": [
+     null,
+     "M",
+     "E",
+     "E",
+     "M",
+     "M",
+     null,
+     "M",
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "E",
+     "E",
+     "E",
+     "M",
+     "M",
+     null,
+     "M",
+     "M",
+     "E",
+     "M",
+     "E",
+     "E",
+     null,
+     "E"
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "E",
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "M"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N01",
+     "day": -1,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N01",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N02",
+     "day": 1,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N02",
+     "day": 10,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N03",
+     "day": 0,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N04",
+     "day": 4,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SINGLE_NIGHT",
+     "nurse": "N04",
+     "day": 9,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N04",
+     "day": 11,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N05",
+     "day": 3,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N06",
+     "day": 2,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N06",
+     "day": 8,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N07",
+     "day": 7,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "QUICK_RETURN",
+     "nurse": "N07",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 9,
+     "weight": 2,
+     "cost": 18
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 3,
+     "weight": 2,
+     "cost": 6
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 6,
+     "weight": 2,
+     "cost": 12
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 7,
+     "weight": 2,
+     "cost": 14
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    }
+   ]
+  },
+  "dominance_weighted": {
+   "vector_under_default_rules": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 0,
+    "requests": 19,
+    "fairness": 55
+   },
+   "own_vector": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 0,
+    "requests": 19,
+    "fairness": 55
+   },
+   "hard_violations_under_real_history": [],
+   "stages": [
+    {
+     "tier": "weighted",
+     "proven": true
+    }
+   ],
+   "secs": 8.88,
+   "roster": {
+    "N01": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     "N"
+    ],
+    "N03": [
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "M"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E"
+    ],
+    "N05": [
+     null,
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     null
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 10,
+     "weight": 2,
+     "cost": 20
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 9,
+     "weight": 2,
+     "cost": 18
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    }
+   ]
+  },
+  "sequence_rules_in_contract_tier": {
+   "vector_under_default_rules": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 0,
+    "requests": 19,
+    "fairness": 55
+   },
+   "own_vector": {
+    "coverage": 3,
+    "stability": 0,
+    "contract": 6,
+    "requests": 13,
+    "fairness": 55
+   },
+   "hard_violations_under_real_history": [],
+   "stages": [
+    {
+     "tier": "coverage",
+     "value": 3,
+     "proven": true,
+     "bound": 3
+    },
+    {
+     "tier": "stability",
+     "value": 0,
+     "proven": true,
+     "skipped": true
+    },
+    {
+     "tier": "contract",
+     "value": 6,
+     "proven": true,
+     "bound": 6
+    },
+    {
+     "tier": "requests",
+     "value": 13,
+     "proven": true,
+     "bound": 13
+    },
+    {
+     "tier": "fairness",
+     "value": 55,
+     "proven": true,
+     "bound": 55
+    }
+   ],
+   "secs": 23.89,
+   "roster": {
+    "N01": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "N"
+    ],
+    "N03": [
+     "M",
+     "M",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "M"
+    ],
+    "N05": [
+     null,
+     "E",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "N",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "E",
+     "E",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     null
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     null,
+     "E",
+     "E"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "M",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 10,
+     "weight": 2,
+     "cost": 20
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 8,
+     "weight": 2,
+     "cost": 16
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 5,
+     "weight": 2,
+     "cost": 10
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    }
+   ]
+  }
+ },
+ "scenarios": {
+  "A-sick-morning": {
+   "roster": {
+    "N01": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E"
+    ],
+    "N03": [
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     null,
+     "M",
+     "M",
+     "M",
+     null,
+     "M"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "E",
+     "N"
+    ],
+    "N05": [
+     null,
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     null
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "E"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     "M",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "vector": {
+    "coverage": 3,
+    "stability": 1,
+    "contract": 0,
+    "requests": 20,
+    "fairness": 56
+   },
+   "changes": [
+    {
+     "nurse": "N03",
+     "day": 8,
+     "from": "M",
+     "to": null,
+     "cause": "request"
+    },
+    {
+     "nurse": "S01",
+     "day": 8,
+     "from": null,
+     "to": "M",
+     "cause": "replacement"
+    }
+   ],
+   "changed_cells": 1,
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S01",
+     "day": 8,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N03",
+     "day": 8,
+     "ref": "R-0007",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 10,
+     "weight": 2,
+     "cost": 20
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 11,
+     "weight": 2,
+     "cost": 22
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 2,
+     "cost": 4
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    }
+   ],
+   "secs": 0.12,
+   "ranking": [
+    {
+     "open_cell": {
+      "day": 8,
+      "shift": "M"
+     },
+     "baseline_vector": {
+      "coverage": 3,
+      "stability": 1,
+      "contract": 0,
+      "requests": 20,
+      "fairness": 56
+     },
+     "ranked": [
+      {
+       "nurse": "S01",
+       "name": "Arun Kumar",
+       "standby": true,
+       "kind": "call in",
+       "vector": {
+        "coverage": 3,
+        "stability": 1,
+        "contract": 0,
+        "requests": 20,
+        "fairness": 56
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 0,
+        "contract": 0,
+        "requests": 0,
+        "fairness": 0
+       },
+       "changed_cells": 1,
+       "changes": [
+        {
+         "nurse": "N03",
+         "day": 8,
+         "from": "M",
+         "to": null,
+         "cause": "request"
+        },
+        {
+         "nurse": "S01",
+         "day": 8,
+         "from": null,
+         "to": "M",
+         "cause": "replacement"
+        }
+       ],
+       "proven": true
+      },
+      {
+       "nurse": "N05",
+       "name": "Ritu Singh",
+       "standby": false,
+       "kind": "move from E",
+       "vector": {
+        "coverage": 3,
+        "stability": 3,
+        "contract": 0,
+        "requests": 20,
+        "fairness": 58
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 2,
+        "contract": 0,
+        "requests": 0,
+        "fairness": 2
+       },
+       "changed_cells": 2,
+       "changes": [
+        {
+         "nurse": "N03",
+         "day": 8,
+         "from": "M",
+         "to": null,
+         "cause": "request"
+        },
+        {
+         "nurse": "N05",
+         "day": 8,
+         "from": "E",
+         "to": "M",
+         "cause": "knock_on"
+        },
+        {
+         "nurse": "S01",
+         "day": 8,
+         "from": null,
+         "to": "E",
+         "cause": "knock_on"
+        }
+       ],
+       "proven": true
+      },
+      {
+       "nurse": "N04",
+       "name": "Kavya Reddy",
+       "standby": false,
+       "kind": "move from E",
+       "vector": {
+        "coverage": 3,
+        "stability": 3,
+        "contract": 0,
+        "requests": 23,
+        "fairness": 58
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 2,
+        "contract": 0,
+        "requests": 3,
+        "fairness": 2
+       },
+       "changed_cells": 2,
+       "changes": [
+        {
+         "nurse": "N03",
+         "day": 8,
+         "from": "M",
+         "to": null,
+         "cause": "request"
+        },
+        {
+         "nurse": "N04",
+         "day": 8,
+         "from": "E",
+         "to": "M",
+         "cause": "knock_on"
+        },
+        {
+         "nurse": "S01",
+         "day": 8,
+         "from": null,
+         "to": "E",
+         "cause": "knock_on"
+        }
+       ],
+       "proven": true
+      }
+     ],
+     "excluded": [
+      {
+       "nurse": "N01",
+       "name": "Anjali Verma",
+       "rules": [
+        "rest_after_night:N01:d7"
+       ]
+      },
+      {
+       "nurse": "S02",
+       "name": "Rekha Das",
+       "rules": [
+        "unavailable:S02:d8"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "B-sick-three-days": {
+   "roster": {
+    "N01": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E"
+    ],
+    "N03": [
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     null,
+     null,
+     null,
+     "M",
+     null,
+     "M"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "E",
+     "N"
+    ],
+    "N05": [
+     null,
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     null
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "E"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     "M",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     "M",
+     "M",
+     null,
+     null,
+     null
+    ]
+   },
+   "vector": {
+    "coverage": 3,
+    "stability": 3,
+    "contract": 0,
+    "requests": 23,
+    "fairness": 56
+   },
+   "changes": [
+    {
+     "nurse": "N03",
+     "day": 8,
+     "from": "M",
+     "to": null,
+     "cause": "request"
+    },
+    {
+     "nurse": "N03",
+     "day": 9,
+     "from": "M",
+     "to": null,
+     "cause": "request"
+    },
+    {
+     "nurse": "N03",
+     "day": 10,
+     "from": "M",
+     "to": null,
+     "cause": "request"
+    },
+    {
+     "nurse": "S01",
+     "day": 8,
+     "from": null,
+     "to": "M",
+     "cause": "replacement"
+    },
+    {
+     "nurse": "S02",
+     "day": 9,
+     "from": null,
+     "to": "M",
+     "cause": "replacement"
+    },
+    {
+     "nurse": "S02",
+     "day": 10,
+     "from": null,
+     "to": "M",
+     "cause": "replacement"
+    }
+   ],
+   "changed_cells": 3,
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S01",
+     "day": 8,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S02",
+     "day": 9,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S02",
+     "day": 10,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "ISOLATED_DAY",
+     "nurse": "N03",
+     "day": 11,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N03",
+     "day": 8,
+     "ref": "R-0007",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N03",
+     "day": 9,
+     "ref": "R-0007",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N03",
+     "day": 10,
+     "ref": "R-0007",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 10,
+     "weight": 2,
+     "cost": 20
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 11,
+     "weight": 2,
+     "cost": 22
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 2,
+     "cost": 4
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    }
+   ],
+   "secs": 0.16
+  },
+  "C-demand-up": {
+   "roster": {
+    "N01": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E"
+    ],
+    "N03": [
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "M"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "E",
+     "N"
+    ],
+    "N05": [
+     null,
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     null
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "E"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     "E",
+     null,
+     null,
+     null
+    ]
+   },
+   "vector": {
+    "coverage": 3,
+    "stability": 1,
+    "contract": 0,
+    "requests": 19,
+    "fairness": 55
+   },
+   "changes": [
+    {
+     "nurse": "S02",
+     "day": 10,
+     "from": null,
+     "to": "E",
+     "cause": "replacement"
+    }
+   ],
+   "changed_cells": 1,
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S02",
+     "day": 10,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N05",
+     "day": 12,
+     "ref": "R-0008",
+     "amount": 1,
+     "weight": 2,
+     "cost": 2
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 10,
+     "weight": 2,
+     "cost": 20
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 11,
+     "weight": 2,
+     "cost": 22
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 2,
+     "cost": 4
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    }
+   ],
+   "secs": 0.17,
+   "ranking": [
+    {
+     "open_cell": {
+      "day": 10,
+      "shift": "E"
+     },
+     "baseline_vector": {
+      "coverage": 3,
+      "stability": 1,
+      "contract": 0,
+      "requests": 19,
+      "fairness": 55
+     },
+     "ranked": [
+      {
+       "nurse": "S01",
+       "name": "Arun Kumar",
+       "standby": true,
+       "kind": "call in",
+       "vector": {
+        "coverage": 3,
+        "stability": 1,
+        "contract": 0,
+        "requests": 19,
+        "fairness": 55
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 0,
+        "contract": 0,
+        "requests": 0,
+        "fairness": 0
+       },
+       "changed_cells": 1,
+       "changes": [
+        {
+         "nurse": "S01",
+         "day": 10,
+         "from": null,
+         "to": "E",
+         "cause": "replacement"
+        }
+       ],
+       "proven": true
+      },
+      {
+       "nurse": "S02",
+       "name": "Rekha Das",
+       "standby": true,
+       "kind": "call in",
+       "vector": {
+        "coverage": 3,
+        "stability": 1,
+        "contract": 0,
+        "requests": 19,
+        "fairness": 55
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 0,
+        "contract": 0,
+        "requests": 0,
+        "fairness": 0
+       },
+       "changed_cells": 1,
+       "changes": [
+        {
+         "nurse": "S02",
+         "day": 10,
+         "from": null,
+         "to": "E",
+         "cause": "replacement"
+        }
+       ],
+       "proven": true
+      },
+      {
+       "nurse": "N02",
+       "name": "Priya Nair",
+       "standby": false,
+       "kind": "move from M",
+       "vector": {
+        "coverage": 3,
+        "stability": 3,
+        "contract": 0,
+        "requests": 19,
+        "fairness": 55
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 2,
+        "contract": 0,
+        "requests": 0,
+        "fairness": 0
+       },
+       "changed_cells": 2,
+       "changes": [
+        {
+         "nurse": "N02",
+         "day": 10,
+         "from": "M",
+         "to": "E",
+         "cause": "knock_on"
+        },
+        {
+         "nurse": "S02",
+         "day": 10,
+         "from": null,
+         "to": "M",
+         "cause": "knock_on"
+        }
+       ],
+       "proven": true
+      },
+      {
+       "nurse": "N05",
+       "name": "Ritu Singh",
+       "standby": false,
+       "kind": "move from N",
+       "vector": {
+        "coverage": 3,
+        "stability": 3,
+        "contract": 0,
+        "requests": 19,
+        "fairness": 55
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 2,
+        "contract": 0,
+        "requests": 0,
+        "fairness": 0
+       },
+       "changed_cells": 2,
+       "changes": [
+        {
+         "nurse": "N05",
+         "day": 10,
+         "from": "N",
+         "to": "E",
+         "cause": "knock_on"
+        },
+        {
+         "nurse": "S01",
+         "day": 10,
+         "from": null,
+         "to": "N",
+         "cause": "knock_on"
+        }
+       ],
+       "proven": true
+      },
+      {
+       "nurse": "N04",
+       "name": "Kavya Reddy",
+       "standby": false,
+       "kind": "move from M",
+       "vector": {
+        "coverage": 3,
+        "stability": 3,
+        "contract": 0,
+        "requests": 22,
+        "fairness": 55
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 2,
+        "contract": 0,
+        "requests": 3,
+        "fairness": 0
+       },
+       "changed_cells": 2,
+       "changes": [
+        {
+         "nurse": "N04",
+         "day": 10,
+         "from": "M",
+         "to": "E",
+         "cause": "knock_on"
+        },
+        {
+         "nurse": "S02",
+         "day": 10,
+         "from": null,
+         "to": "M",
+         "cause": "knock_on"
+        }
+       ],
+       "proven": true
+      },
+      {
+       "nurse": "N03",
+       "name": "Meena Sharma",
+       "standby": false,
+       "kind": "move from M",
+       "vector": {
+        "coverage": 3,
+        "stability": 3,
+        "contract": 0,
+        "requests": 23,
+        "fairness": 56
+       },
+       "delta": {
+        "coverage": 0,
+        "stability": 2,
+        "contract": 0,
+        "requests": 4,
+        "fairness": 1
+       },
+       "changed_cells": 2,
+       "changes": [
+        {
+         "nurse": "N03",
+         "day": 10,
+         "from": "M",
+         "to": "E",
+         "cause": "knock_on"
+        },
+        {
+         "nurse": "S02",
+         "day": 10,
+         "from": null,
+         "to": "M",
+         "cause": "knock_on"
+        }
+       ],
+       "proven": true
+      }
+     ],
+     "excluded": [
+      {
+       "nurse": "N01",
+       "name": "Anjali Verma",
+       "rules": [
+        "rest_after_night:N01:d9",
+        "max_consecutive_days:N01",
+        "max_shifts:N01"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "D-leave-over-night-block": {
+   "roster": {
+    "N01": [
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M"
+    ],
+    "N02": [
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E"
+    ],
+    "N03": [
+     "E",
+     "E",
+     "N",
+     "N",
+     "N",
+     null,
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     null,
+     "M"
+    ],
+    "N04": [
+     "N",
+     "N",
+     null,
+     null,
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "M",
+     "E",
+     "N"
+    ],
+    "N05": [
+     null,
+     "M",
+     "E",
+     "E",
+     "E",
+     "E",
+     null,
+     "M",
+     "E",
+     "E",
+     null,
+     null,
+     null,
+     null
+    ],
+    "N06": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     "E",
+     "E",
+     null,
+     null
+    ],
+    "N07": [
+     "M",
+     "M",
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "M",
+     "M",
+     "E",
+     null,
+     "M",
+     "E"
+    ],
+    "S01": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "S02": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     "N",
+     "N",
+     "N",
+     null
+    ]
+   },
+   "vector": {
+    "coverage": 3,
+    "stability": 3,
+    "contract": 0,
+    "requests": 16,
+    "fairness": 56
+   },
+   "changes": [
+    {
+     "nurse": "N05",
+     "day": 10,
+     "from": "N",
+     "to": null,
+     "cause": "request"
+    },
+    {
+     "nurse": "N05",
+     "day": 11,
+     "from": "N",
+     "to": null,
+     "cause": "request"
+    },
+    {
+     "nurse": "N05",
+     "day": 12,
+     "from": "N",
+     "to": null,
+     "cause": "request"
+    },
+    {
+     "nurse": "S02",
+     "day": 10,
+     "from": null,
+     "to": "N",
+     "cause": "replacement"
+    },
+    {
+     "nurse": "S02",
+     "day": 11,
+     "from": null,
+     "to": "N",
+     "cause": "replacement"
+    },
+    {
+     "nurse": "S02",
+     "day": 12,
+     "from": null,
+     "to": "N",
+     "cause": "replacement"
+    }
+   ],
+   "changed_cells": 3,
+   "terms": [
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 0,
+     "ref": "M",
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    },
+    {
+     "tier": "coverage",
+     "rule": "COVER_SHORT",
+     "nurse": null,
+     "day": 7,
+     "ref": "E",
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S02",
+     "day": 10,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S02",
+     "day": 11,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "stability",
+     "rule": "STANDBY_CALLED",
+     "nurse": "S02",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N03",
+     "day": 12,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N05",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N06",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "SPLIT_WEEKEND",
+     "nurse": "N07",
+     "day": 5,
+     "ref": null,
+     "amount": 1,
+     "weight": 1,
+     "cost": 1
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N01",
+     "day": 5,
+     "ref": "R-0002",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_OFF",
+     "nurse": "N07",
+     "day": 5,
+     "ref": "R-0004",
+     "amount": 1,
+     "weight": 4,
+     "cost": 4
+    },
+    {
+     "tier": "requests",
+     "rule": "PREF_SHIFT",
+     "nurse": "N02",
+     "day": 7,
+     "ref": "R-0006",
+     "amount": 1,
+     "weight": 3,
+     "cost": 3
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_NIGHTS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 10,
+     "weight": 2,
+     "cost": 20
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_WEEKENDS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 4,
+     "weight": 2,
+     "cost": 8
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_MORNINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 11,
+     "weight": 2,
+     "cost": 22
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_EVENINGS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 2,
+     "cost": 4
+    },
+    {
+     "tier": "fairness",
+     "rule": "FAIR_DENIALS",
+     "nurse": null,
+     "day": null,
+     "ref": null,
+     "amount": 2,
+     "weight": 1,
+     "cost": 2
+    }
+   ],
+   "secs": 0.16
+  }
+ },
+ "baseline": {
+  "roster": {
+   "N01": [
+    "E",
+    "E",
+    "E",
+    "E",
+    null,
+    "M",
+    "E",
+    "N",
+    "N",
+    "N",
+    null,
+    "M",
+    "M",
+    "M"
+   ],
+   "N02": [
+    null,
+    "M",
+    "M",
+    "M",
+    "M",
+    "N",
+    "N",
+    null,
+    "M",
+    "M",
+    "M",
+    "E",
+    "E",
+    "E"
+   ],
+   "N03": [
+    "E",
+    "E",
+    "N",
+    "N",
+    "N",
+    null,
+    "M",
+    "M",
+    "M",
+    "M",
+    "M",
+    "M",
+    null,
+    "M"
+   ],
+   "N04": [
+    "N",
+    "N",
+    null,
+    null,
+    "M",
+    "M",
+    "E",
+    "E",
+    "E",
+    null,
+    "M",
+    "M",
+    "E",
+    "N"
+   ],
+   "N05": [
+    null,
+    "M",
+    "E",
+    "E",
+    "E",
+    "E",
+    null,
+    "M",
+    "E",
+    "E",
+    "N",
+    "N",
+    "N",
+    null
+   ],
+   "N06": [
+    "M",
+    "M",
+    "M",
+    "M",
+    "E",
+    null,
+    "M",
+    "M",
+    "M",
+    "E",
+    "E",
+    "E",
+    null,
+    null
+   ],
+   "N07": [
+    "M",
+    "M",
+    "M",
+    "M",
+    "M",
+    "E",
+    null,
+    "M",
+    "M",
+    "M",
+    "E",
+    null,
+    "M",
+    "E"
+   ],
+   "S01": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "S02": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "display": {
+   "N01": [
+    "E",
+    "E",
+    "E",
+    "E",
+    "D/O",
+    "M",
+    "E",
+    "N",
+    "N",
+    "N",
+    "N/O",
+    "M",
+    "M",
+    "M"
+   ],
+   "N02": [
+    "D/O",
+    "M",
+    "M",
+    "M",
+    "M",
+    "N",
+    "N",
+    "N/O",
+    "M",
+    "M",
+    "M",
+    "E",
+    "E",
+    "E"
+   ],
+   "N03": [
+    "E",
+    "E",
+    "N",
+    "N",
+    "N",
+    "N/O",
+    "M",
+    "M",
+    "M",
+    "M",
+    "M",
+    "M",
+    "D/O",
+    "M"
+   ],
+   "N04": [
+    "N",
+    "N",
+    "L",
+    "L",
+    "M",
+    "M",
+    "E",
+    "E",
+    "E",
+    "D/O",
+    "M",
+    "M",
+    "E",
+    "N"
+   ],
+   "N05": [
+    "N/O",
+    "M",
+    "E",
+    "E",
+    "E",
+    "E",
+    "D/O",
+    "M",
+    "E",
+    "E",
+    "N",
+    "N",
+    "N",
+    "N/O"
+   ],
+   "N06": [
+    "M",
+    "M",
+    "M",
+    "M",
+    "E",
+    "D/O",
+    "M",
+    "M",
+    "M",
+    "E",
+    "E",
+    "E",
+    "D/O",
+    "D/O"
+   ],
+   "N07": [
+    "M",
+    "M",
+    "M",
+    "M",
+    "M",
+    "E",
+    "D/O",
+    "M",
+    "M",
+    "M",
+    "E",
+    "D/O",
+    "M",
+    "E"
+   ],
+   "S01": [
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O"
+   ],
+   "S02": [
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "L",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O",
+    "D/O"
+   ]
+  },
+  "stages": [
+   {
+    "tier": "coverage",
+    "value": 3,
+    "proven": true,
+    "bound": 3
+   },
+   {
+    "tier": "stability",
+    "value": 0,
+    "proven": true,
+    "skipped": true
+   },
+   {
+    "tier": "contract",
+    "value": 0,
+    "proven": true,
+    "bound": 0
+   },
+   {
+    "tier": "requests",
+    "value": 19,
+    "proven": true,
+    "bound": 19
+   },
+   {
+    "tier": "fairness",
+    "value": 55,
+    "proven": true,
+    "bound": 55
+   }
+  ],
+  "vector": {
+   "coverage": 3,
+   "stability": 0,
+   "contract": 0,
+   "requests": 19,
+   "fairness": 55
+  },
+  "terms": [
+   {
+    "tier": "coverage",
+    "rule": "COVER_SHORT",
+    "nurse": null,
+    "day": 0,
+    "ref": "M",
+    "amount": 2,
+    "weight": 1,
+    "cost": 2
+   },
+   {
+    "tier": "coverage",
+    "rule": "COVER_SHORT",
+    "nurse": null,
+    "day": 7,
+    "ref": "E",
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   },
+   {
+    "tier": "requests",
+    "rule": "SPLIT_WEEKEND",
+    "nurse": "N03",
+    "day": 5,
+    "ref": null,
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   },
+   {
+    "tier": "requests",
+    "rule": "SPLIT_WEEKEND",
+    "nurse": "N03",
+    "day": 12,
+    "ref": null,
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   },
+   {
+    "tier": "requests",
+    "rule": "SPLIT_WEEKEND",
+    "nurse": "N05",
+    "day": 5,
+    "ref": null,
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   },
+   {
+    "tier": "requests",
+    "rule": "SPLIT_WEEKEND",
+    "nurse": "N05",
+    "day": 12,
+    "ref": null,
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   },
+   {
+    "tier": "requests",
+    "rule": "SPLIT_WEEKEND",
+    "nurse": "N06",
+    "day": 5,
+    "ref": null,
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   },
+   {
+    "tier": "requests",
+    "rule": "SPLIT_WEEKEND",
+    "nurse": "N07",
+    "day": 5,
+    "ref": null,
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   },
+   {
+    "tier": "requests",
+    "rule": "PREF_OFF",
+    "nurse": "N01",
+    "day": 5,
+    "ref": "R-0002",
+    "amount": 1,
+    "weight": 4,
+    "cost": 4
+   },
+   {
+    "tier": "requests",
+    "rule": "PREF_OFF",
+    "nurse": "N07",
+    "day": 5,
+    "ref": "R-0004",
+    "amount": 1,
+    "weight": 4,
+    "cost": 4
+   },
+   {
+    "tier": "requests",
+    "rule": "PREF_SHIFT",
+    "nurse": "N02",
+    "day": 7,
+    "ref": "R-0006",
+    "amount": 1,
+    "weight": 3,
+    "cost": 3
+   },
+   {
+    "tier": "requests",
+    "rule": "PREF_OFF",
+    "nurse": "N05",
+    "day": 12,
+    "ref": "R-0008",
+    "amount": 1,
+    "weight": 2,
+    "cost": 2
+   },
+   {
+    "tier": "fairness",
+    "rule": "FAIR_NIGHTS",
+    "nurse": null,
+    "day": null,
+    "ref": null,
+    "amount": 10,
+    "weight": 2,
+    "cost": 20
+   },
+   {
+    "tier": "fairness",
+    "rule": "FAIR_WEEKENDS",
+    "nurse": null,
+    "day": null,
+    "ref": null,
+    "amount": 4,
+    "weight": 2,
+    "cost": 8
+   },
+   {
+    "tier": "fairness",
+    "rule": "FAIR_MORNINGS",
+    "nurse": null,
+    "day": null,
+    "ref": null,
+    "amount": 11,
+    "weight": 2,
+    "cost": 22
+   },
+   {
+    "tier": "fairness",
+    "rule": "FAIR_EVENINGS",
+    "nurse": null,
+    "day": null,
+    "ref": null,
+    "amount": 2,
+    "weight": 2,
+    "cost": 4
+   },
+   {
+    "tier": "fairness",
+    "rule": "FAIR_DENIALS",
+    "nurse": null,
+    "day": null,
+    "ref": null,
+    "amount": 1,
+    "weight": 1,
+    "cost": 1
+   }
+  ],
+  "counts": [
+   {
+    "nurse": "N01",
+    "shifts": 12,
+    "M": 4,
+    "E": 5,
+    "N": 3,
+    "weekend": 4,
+    "nights_total": 13,
+    "weekends_total": 10,
+    "mornings_total": 11,
+    "evenings_total": 11
+   },
+   {
+    "nurse": "N02",
+    "shifts": 12,
+    "M": 7,
+    "E": 3,
+    "N": 2,
+    "weekend": 4,
+    "nights_total": 8,
+    "weekends_total": 9,
+    "mornings_total": 16,
+    "evenings_total": 11
+   },
+   {
+    "nurse": "N03",
+    "shifts": 12,
+    "M": 7,
+    "E": 2,
+    "N": 3,
+    "weekend": 2,
+    "nights_total": 8,
+    "weekends_total": 7,
+    "mornings_total": 16,
+    "evenings_total": 11
+   },
+   {
+    "nurse": "N04",
+    "shifts": 11,
+    "M": 4,
+    "E": 4,
+    "N": 3,
+    "weekend": 4,
+    "nights_total": 7,
+    "weekends_total": 8,
+    "mornings_total": 16,
+    "evenings_total": 11
+   },
+   {
+    "nurse": "N05",
+    "shifts": 11,
+    "M": 2,
+    "E": 6,
+    "N": 3,
+    "weekend": 2,
+    "nights_total": 12,
+    "weekends_total": 8,
+    "mornings_total": 11,
+    "evenings_total": 11
+   },
+   {
+    "nurse": "N06",
+    "shifts": 11,
+    "M": 7,
+    "E": 4,
+    "N": 0,
+    "weekend": 1,
+    "nights_total": 3,
+    "weekends_total": 6,
+    "mornings_total": 19,
+    "evenings_total": 12
+   },
+   {
+    "nurse": "N07",
+    "shifts": 12,
+    "M": 9,
+    "E": 3,
+    "N": 0,
+    "weekend": 3,
+    "nights_total": 0,
+    "weekends_total": 6,
+    "mornings_total": 22,
+    "evenings_total": 13
+   },
+   {
+    "nurse": "S01",
+    "shifts": 0,
+    "M": 0,
+    "E": 0,
+    "N": 0,
+    "weekend": 0,
+    "nights_total": 0,
+    "weekends_total": 0,
+    "mornings_total": 0,
+    "evenings_total": 0
+   },
+   {
+    "nurse": "S02",
+    "shifts": 0,
+    "M": 0,
+    "E": 0,
+    "N": 0,
+    "weekend": 0,
+    "nights_total": 0,
+    "weekends_total": 0,
+    "mornings_total": 0,
+    "evenings_total": 0
+   }
+  ],
+  "secs": 11.43
+ }
+}

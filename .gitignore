@@ -1,0 +1,28 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+
+# node / web
+node_modules/
+web/dist/
+*.tsbuildinfo
+
+# runtime state
+data/*.db
+data/*.db-*
+logs/
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/
