@@ -1,6 +1,8 @@
 """FastAPI entry point: API routes plus the built React app from `web/dist`."""
 
 import sqlite3
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -8,11 +10,32 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api import routes_ward
+from app.api.errors import ApiError, api_error_handler
 from app.config import get_settings
+from app.store import repo
+from app.store.db import open_db
+from app.store.seed import seed_db
 
 WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 
-app = FastAPI(title="ShiftSense", version="0.0.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Migrate the schema, and seed the database when it holds no ward yet."""
+    s = get_settings()
+    conn = open_db(s.db_path)
+    try:
+        if repo.get_ward(conn) is None:
+            seed_db(conn, s.seed)
+    finally:
+        conn.close()
+    yield
+
+
+app = FastAPI(title="ShiftSense", version="0.0.0", lifespan=lifespan)
+app.add_exception_handler(ApiError, api_error_handler)
+app.include_router(routes_ward.router)
 
 
 def _db_status(path: str) -> str:

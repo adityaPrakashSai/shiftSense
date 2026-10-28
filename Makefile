@@ -18,7 +18,7 @@ web:
 	npm --prefix web run build
 
 seed:
-	@echo "make seed arrives in M1 (scripts/seed.py)"; exit 1
+	uv run python -m scripts.seed $(if $(SEED),--seed $(SEED))
 
 test:
 	uv run ruff check .

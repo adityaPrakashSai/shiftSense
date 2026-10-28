@@ -4,8 +4,9 @@ A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language
 photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
 the solver's actual results.
 
-> **Status:** scaffold (milestone M0). The build started on **28 Oct 2026**. See
-> [`docs/DESIGN.md`](docs/DESIGN.md) for the full design and the milestone plan (section 12).
+> **Status:** milestone M1 (domain models, SQLite store, seed wards). The build started on
+> **28 Oct 2026**. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full design and the milestone
+> plan (section 12).
 
 ## The problem
 
@@ -34,6 +35,7 @@ and calls Meta models over HTTPS. State lives in one SQLite file. Details: desig
 | `app/` | Python backend (FastAPI, solver, planner, LLM gateway) |
 | `web/` | React + TypeScript + Vite + Tailwind frontend |
 | `data/` | Seed wards (synthetic or pseudonymized) and the SQLite file at runtime |
+| `scripts/` | Seed loader and generator |
 | `tests/` | pytest suite and fixtures |
 | `reference/` | Pre-build reference prototypes (specs, not app code) |
 | `docs/` | Design document and design-decision log |
@@ -44,6 +46,7 @@ Requirements: Python 3.12 via [uv](https://docs.astral.sh/uv/), Node 20+, and Do
 
 ```bash
 make setup     # uv sync, npm ci in web/, creates .env from .env.example
+make seed      # recreate data/shiftsense.db (SEED=mini or SEED=real_a for the other wards)
 make dev       # API on :8000, Vite on :5173 (open http://localhost:5173)
 make test      # ruff, mypy (strict for app/solver), pytest in mock mode
 make docker    # build the container image
