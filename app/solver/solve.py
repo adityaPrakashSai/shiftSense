@@ -16,7 +16,7 @@ rows) must add up to what was published.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal, Protocol
@@ -194,6 +194,7 @@ def solve_lexicographic(
     sink: EventSink | None = None,
     total_seconds: float | None = None,
     log_dir: Path | None = None,
+    hint: Mapping[tuple[str, int], str | None] | None = None,
 ) -> SolveResult:
     t0 = time.perf_counter()
     rm = RosterModel(inp)
@@ -208,7 +209,9 @@ def solve_lexicographic(
         )
     stages: list[Stage] = []
     solver: cp_model.CpSolver | None = None
-    if inp.previous is not None:  # 6.2 step 3: start from the published roster
+    if hint is not None:  # a what-if starts from the run it questions
+        rm.hint_roster(dict(hint))
+    elif inp.previous is not None:  # 6.2 step 3: start from the published roster
         rm.hint_roster(dict(inp.previous))
 
     for rank, tier in enumerate(inp.priorities, 1):
@@ -316,6 +319,7 @@ def solve(
     forcings: Sequence[Forcing] = (),
     total_seconds: float | None = None,
     log_dir: Path | None = None,
+    hint: Mapping[tuple[str, int], str | None] | None = None,
 ) -> SolveResult:
     """Engine entry point (5.6): lexicographic solve with optional extra forcings."""
     if forcings:
@@ -327,4 +331,5 @@ def solve(
         sink=sink,
         total_seconds=total_seconds,
         log_dir=log_dir,
+        hint=hint,
     )

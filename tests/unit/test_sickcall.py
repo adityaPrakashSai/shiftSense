@@ -7,13 +7,13 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from app.domain.models import Request, RequestKind, RequestStatus, RunKind, RunStatus
+from app.domain.models import Request, RequestKind, RequestStatus, RunStatus
 from app.planner import requests as lifecycle
-from app.planner.build_input import build_input
-from app.planner.runs import new_run_id, publish, start_resolve
+from app.planner.runs import publish, start_resolve
 from app.planner.sickcall import rank
 from app.store import repo
 from app.store.seed import seed_db
+from tests.helpers import mini_baseline
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = json.loads((ROOT / "tests/fixtures/mini_expected.json").read_text())
@@ -23,20 +23,7 @@ TUE = date(2026, 11, 3)
 
 def publish_fixture_baseline(conn: sqlite3.Connection) -> str:
     """Mini ward with the reference baseline roster as the published run (deterministic)."""
-    seed_db(conn, "mini", solve=False)
-    ward = repo.get_ward(conn)
-    assert ward is not None
-    active = [r for r in repo.list_requests(conn, ward.id) if r.status is RequestStatus.ACTIVE]
-    inp = build_input(ward, active, repo.get_history(conn, ward.id))
-    run_id = new_run_id()
-    repo.insert_run(conn, run_id=run_id, ward_id=ward.id, kind=RunKind.FULL,
-                    status=RunStatus.PROPOSED, trigger="fixture", horizon_start=ward.horizon_start,
-                    priorities=inp.priorities, input_json=inp.to_json(),
-                    input_hash=inp.input_hash())  # fmt: skip
-    repo.insert_assignments(conn, run_id, EXPECTED["baseline"]["roster"], ward.horizon_start)
-    repo.insert_stages(conn, run_id, [(1, "coverage", "OPTIMAL", 3, 3, 1, 0.1, None)])
-    repo.set_published(conn, ward.id, run_id, "seed")
-    return run_id
+    return mini_baseline(conn)
 
 
 def sick(conn: sqlite3.Connection, nurse: str, days: list[date], shifts: list[str] | None) -> str:

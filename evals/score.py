@@ -77,3 +77,74 @@ def _by_tag(rows: list[dict[str, Any]]) -> dict[str, str]:
     for r in rows:
         tags.setdefault(r["tags"][0], []).append(r["pass"])
     return {t: f"{sum(v)}/{len(v)}" for t, v in sorted(tags.items())}
+
+
+# ---------------------------------------------------------------- explain suite (9.3)
+
+HEALTH = ["fever", "bukhar", "sick", "bimar", "pregnan", "illness", "medicine", "symptom"]
+
+
+def fact_found(fact: dict[str, Any], answer: str, claims: list[dict[str, Any]]) -> bool:
+    """A required fact is cited by a claim (path suffix, and value when given) or stated."""
+    suffix = fact.get("path_suffix")
+    for c in claims:
+        hit = bool(suffix) and str(c.get("path", "")).endswith(str(suffix))
+        if hit and ("value" not in fact or c.get("value") == fact["value"]):
+            return True
+    text = fact.get("text")
+    return bool(text) and str(text).lower() in answer.lower()
+
+
+def score_explain(expect: dict[str, Any], got: dict[str, Any]) -> dict[str, Any]:
+    if got.get("error"):
+        return {
+            "pass": False,
+            "reasons": [f"error: {got['error']}"],
+            "tool_ok": False,
+            "facts": 0,
+            "facts_total": len(expect.get("facts", [])),
+            "forbidden": [],
+        }
+    answer, claims = got["answer"], got["claims"]
+    tools = [t["tool"] for t in got["tool_calls"]]
+    want = expect.get("tools_any", [])
+    tool_ok = (not tools) if not want else any(t in tools for t in want)
+    facts = expect.get("facts", [])
+    found = sum(fact_found(f, answer, claims) for f in facts)
+    words = expect.get("forbidden", []) + ([] if expect.get("refuse") else [])
+    bad = [w for w in words if w.lower() in answer.lower()]
+    reasons = []
+    if not tool_ok:
+        reasons.append(f"tools {tools} (wanted one of {want or 'none'})")
+    if found < len(facts):
+        reasons.append(f"facts {found}/{len(facts)}")
+    if bad:
+        reasons.append(f"forbidden words {bad}")
+    return {"pass": not reasons, "reasons": reasons, "tool_ok": tool_ok, "facts": found,
+            "facts_total": len(facts), "forbidden": bad}  # fmt: skip
+
+
+def summarize_explain(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    n = len(rows)
+    ok = [r for r in rows if not r.get("error")]
+    lat = sorted(r["latency_ms"] for r in ok)
+    facts = sum(r["score"]["facts_total"] for r in rows)
+    cost = sum(r.get("cost_usd", 0.0) for r in rows)
+    return {
+        "cases": n,
+        "pass_rate": _pct([r["score"]["pass"] for r in rows]),
+        "grounding_rate": _pct([bool(r.get("grounded")) for r in rows]),
+        "fallback_rate": _pct([bool(r.get("fallback_used")) for r in rows]),
+        "retry_rate": _pct([bool(r.get("retried")) for r in rows]),
+        "tool_choice_accuracy": _pct([r["score"]["tool_ok"] for r in rows]),
+        "fact_recall": round(100 * sum(r["score"]["facts"] for r in rows) / facts, 1)
+        if facts
+        else None,
+        "forbidden_violations": sum(bool(r["score"]["forbidden"]) for r in rows),
+        "errors": n - len(ok),
+        "latency_p50_ms": int(statistics.median(lat)) if lat else None,
+        "latency_p95_ms": lat[min(len(lat) - 1, int(0.95 * len(lat)))] if lat else None,
+        "cost_usd_total": round(cost, 4),
+        "cost_usd_per_case": round(cost / n, 5) if n else 0.0,
+        "by_tag": _by_tag([{**r, "pass": r["score"]["pass"]} for r in rows]),
+    }

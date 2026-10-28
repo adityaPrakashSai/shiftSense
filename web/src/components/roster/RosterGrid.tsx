@@ -27,7 +27,21 @@ function groups(nurses: Nurse[]): Group[] {
 }
 
 /** Merge runs of the same leave code into one banner cell. */
-function Row({ cells, weekend, today }: { cells: CellT[]; weekend: Set<string>; today: string | null }) {
+type CellClick = (c: CellT) => void;
+
+function Row({
+  cells,
+  weekend,
+  today,
+  selected,
+  onCell,
+}: {
+  cells: CellT[];
+  weekend: Set<string>;
+  today: string | null;
+  selected?: string | null;
+  onCell?: CellClick;
+}) {
   const out = [];
   for (let i = 0; i < cells.length; ) {
     const c = cells[i];
@@ -46,14 +60,33 @@ function Row({ cells, weekend, today }: { cells: CellT[]; weekend: Set<string>; 
       );
       i = j + 1;
     } else {
-      out.push(<Cell key={c.day} cell={c} weekend={weekend.has(c.day)} today={c.day === today} />);
+      out.push(
+        <Cell
+          key={c.day}
+          cell={c}
+          weekend={weekend.has(c.day)}
+          today={c.day === today}
+          selected={selected === `${c.nurse_id}|${c.day}`}
+          onClick={onCell}
+        />,
+      );
       i++;
     }
   }
   return <>{out}</>;
 }
 
-export default function RosterGrid({ roster, nurses }: { roster: RosterOut; nurses: Nurse[] }) {
+export default function RosterGrid({
+  roster,
+  nurses,
+  selected,
+  onCell,
+}: {
+  roster: RosterOut;
+  nurses: Nurse[];
+  selected?: string | null; // "N05|2026-11-03"
+  onCell?: CellClick;
+}) {
   const byNurse = new Map<string, CellT[]>();
   for (const c of roster.grid) {
     const list = byNurse.get(c.nurse_id) ?? [];
@@ -115,7 +148,13 @@ export default function RosterGrid({ roster, nurses }: { roster: RosterOut; nurs
                     <span className="mr-2 font-mono text-xs text-slate-400">{n.id}</span>
                     {label(n)}
                   </td>
-                  <Row cells={cells} weekend={weekend} today={roster.today ?? null} />
+                  <Row
+                    cells={cells}
+                    weekend={weekend}
+                    today={roster.today ?? null}
+                    selected={selected}
+                    onCell={onCell}
+                  />
                   <td className="whitespace-nowrap px-2 text-center font-mono text-xs text-slate-600">
                     {shifts} · {nights} · {we}
                   </td>

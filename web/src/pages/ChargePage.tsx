@@ -5,13 +5,15 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, ApiError, type EventOut } from "../api/client";
+import { api, ApiError, type Cell, type EventOut } from "../api/client";
 import { useWardSocket, type SocketMode, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
 import ProviderBadge from "../components/common/ProviderBadge";
 import RunTimer, { type TierTick } from "../components/common/RunTimer";
 import RosterGrid from "../components/roster/RosterGrid";
 import AlertsTab from "../components/panel/AlertsTab";
+import AskTab, { type AskPrefill } from "../components/panel/AskTab";
+import CellPanel from "../components/roster/CellPanel";
 import StageStrip from "../components/roster/StageStrip";
 
 type Timer = {
@@ -49,6 +51,9 @@ export default function ChargePage() {
   const [viewRunId, setViewRunId] = useState<string | null>(null); // null = published
   const [solving, setSolving] = useState<string | null>(null);
   const [timer, setTimer] = useState<Timer>(IDLE);
+  const [tab, setTab] = useState<"alerts" | "ask">("alerts");
+  const [cell, setCell] = useState<Cell | null>(null);
+  const [prefill, setPrefill] = useState<AskPrefill | null>(null);
 
   const roster = useQuery({
     queryKey: ["roster", viewRunId],
@@ -224,7 +229,14 @@ export default function ChargePage() {
             No published roster yet. Click Generate to build one.
           </p>
         )}
-        {roster.data && ward.data && <RosterGrid roster={roster.data} nurses={ward.data.nurses} />}
+        {roster.data && ward.data && (
+          <RosterGrid
+            roster={roster.data}
+            nurses={ward.data.nurses}
+            selected={cell ? `${cell.nurse_id}|${cell.day}` : null}
+            onCell={(c) => setCell((cur) => (cur && cur.nurse_id === c.nurse_id && cur.day === c.day ? null : c))}
+          />
+        )}
         <p className="text-[11px] text-slate-500">
           In a proposal: <span className="text-red-600 line-through">M</span> removed by the request,{" "}
           <span className="rounded px-1 ring-2 ring-inset ring-emerald-500">M</span> replacement,{" "}
@@ -232,16 +244,53 @@ export default function ChargePage() {
         </p>
       </main>
       <aside className="sticky top-4 w-[380px] shrink-0">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">Alerts</h2>
-        {ward.data && (
-          <AlertsTab
+        {cell && run && ward.data && (
+          <CellPanel
+            cell={cell}
+            runId={run.run_id}
             nurses={ward.data.nurses}
-            solving={solving !== null}
-            timer={timer}
-            viewing={viewRunId}
-            onView={setViewRunId}
+            onClose={() => setCell(null)}
+            onWhy={() => {
+              const name = ward.data!.nurses.find((n) => n.id === cell.nurse_id)?.name ?? cell.nurse_id;
+              const when = new Date(`${cell.day}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+              const what = cell.shift ? `on ${cell.display} duty` : `off (${cell.display})`;
+              setTab("ask");
+              setPrefill((p) => ({
+                question: `Why is ${name} ${what} on ${when}?`,
+                context: { nurse_id: cell.nurse_id, day: cell.day, shift: cell.shift },
+                runId: run.run_id,
+                n: (p?.n ?? 0) + 1,
+              }));
+            }}
           />
         )}
+        <nav className="mb-2 flex gap-1">
+          {(["alerts", "ask"] as const).map((k) => (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={`rounded-md px-3 py-1 text-sm font-medium ${
+                tab === k ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {k === "alerts" ? "Alerts" : "Ask"}
+            </button>
+          ))}
+        </nav>
+        <div className={tab === "alerts" ? "" : "hidden"}>
+          {ward.data && (
+            <AlertsTab
+              nurses={ward.data.nurses}
+              solving={solving !== null}
+              timer={timer}
+              viewing={viewRunId}
+              onView={setViewRunId}
+            />
+          )}
+        </div>
+        <div className={tab === "ask" ? "" : "hidden"}>
+          <AskTab runId={run?.run_id ?? null} prefill={prefill} />
+        </div>
       </aside>
       </div>
     </div>

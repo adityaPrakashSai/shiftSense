@@ -186,6 +186,8 @@ class IntakeResult:
     cost_usd: float = 0.0
     cache_hits: int = 0
     llm_calls: list[str] = field(default_factory=list)
+    explanation_id: str | None = None  # a question answered by the explainer (7.5)
+    claims: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def request_id(self) -> str | None:
@@ -255,6 +257,7 @@ async def handle_message(
     now: datetime | None = None,
     log: DecisionLog | None = None,
     check_roster: bool = True,
+    explain: bool = True,
 ) -> IntakeResult:
     t0 = time.perf_counter()
     now = now or ward_now(ward.tz, get_settings().demo_now)
@@ -315,8 +318,23 @@ async def handle_message(
         res.reply, res.reply_kind = tpl.text(lang, "reply", "greeting"), "answer"
         return _finish(conn, res, t0)
     if edit.intent == "question":
-        # the explainer answers these from M8 (7.5); until then an acknowledgement
-        res.reply, res.reply_kind = tpl.text(lang, "reply", "question"), "answer"
+        # 7.5: the explainer answers, with the sender as the default nurse
+        res.reply_kind = "answer"
+        if not explain:
+            res.reply = tpl.text(lang, "reply", "question")
+            return _finish(conn, res, t0)
+        from app.explain.agent import ask  # the explainer imports intake's name matcher
+
+        try:
+            ex = await ask(
+                conn, ward, edit.question or text, asker_id=sender_id, gateway=gateway,
+                today=now.date().isoformat(), log=log,
+            )  # fmt: skip
+        except LookupError:  # nothing published yet
+            res.reply = tpl.text(lang, "reply", "question")
+            return _finish(conn, res, t0)
+        res.reply, res.explanation_id, res.claims = ex.answer, ex.explanation_id, ex.claims
+        res.cost_usd += ex.cost_usd
         return _finish(conn, res, t0)
 
     problems: list[Problem] = []
@@ -365,5 +383,6 @@ def _finish(conn: sqlite3.Connection, res: IntakeResult, t0: float) -> IntakeRes
         reply=res.reply,
         reply_kind=res.reply_kind,
         request_ids=res.request_ids,
+        explanation_id=res.explanation_id,
     )
     return res

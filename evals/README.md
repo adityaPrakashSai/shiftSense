@@ -9,6 +9,9 @@ to make a run pass, and never used as few-shot examples (the intake examples liv
 - `run.py`: `uv run python -m evals.run --suite intake --provider baseten [--mode live|replay|mock]
   [--limit N] [--max-usd 2] [--compare baseten,meta]`. Live runs add their responses to
   `data/llm_cache.jsonl`; CI replays the suite from that file with no keys.
+- `explain.jsonl`: 15 why-questions, each on a scripted world (`setups.py`: the mini ward's
+  reference baseline, optionally the scenario-A sick call or the scenario-C demand change) with
+  the tools it should use, facts it must cite and words it must not say.
 - `score.py`: code-only scoring (no LLM judge) and the summary metrics.
 - `reports/`: one JSON and one markdown file per run.
 

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS message(
   id TEXT PRIMARY KEY, ward_id TEXT, nurse_id TEXT, channel TEXT,                  -- text|voice|photo
   body TEXT, media_path TEXT, transcript TEXT, created_at TEXT,
   language TEXT, parse_json TEXT, reply TEXT, reply_kind TEXT,                     -- intake (7.3)
-  request_ids_json TEXT);
+  request_ids_json TEXT, explanation_id TEXT);
 CREATE TABLE IF NOT EXISTS request(
   id TEXT PRIMARY KEY, ward_id TEXT, nurse_id TEXT, kind TEXT, dates_json TEXT,
   shifts_json TEXT, leave_type TEXT, counterpart_id TEXT, hard INT, weight INT, status TEXT,
@@ -66,7 +66,8 @@ CREATE TABLE IF NOT EXISTS llm_cache(
   response_json TEXT, created_at TEXT);
 CREATE TABLE IF NOT EXISTS explanation(
   id TEXT PRIMARY KEY, run_id TEXT, question TEXT, answer TEXT, claims_json TEXT,
-  tool_calls_json TEXT, grounded INT, problems_json TEXT, created_at TEXT);
+  tool_calls_json TEXT, grounded INT, problems_json TEXT, created_at TEXT,
+  asker_id TEXT, fallback_used INT, latency_ms INT, language TEXT);
 
 CREATE TABLE IF NOT EXISTS agent_task(  -- roster agent (7.10)
   id TEXT PRIMARY KEY, ward_id TEXT, workflow TEXT, trigger_ref TEXT,

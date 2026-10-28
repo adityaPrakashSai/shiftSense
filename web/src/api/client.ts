@@ -21,6 +21,10 @@ export type MessageRecord = S["MessageRecord"];
 export type RequestAction = S["RequestAction"];
 export type ProposalOut = S["ProposalOut"];
 export type Candidate = S["Candidate"];
+export type ExplainOut = S["ExplainOut"];
+export type ClaimOut = S["ClaimOut"];
+export type ToolCallOut = S["ToolCallOut"];
+export type ExplainBody = S["ExplainBody"];
 
 export class ApiError extends Error {
   constructor(
@@ -85,6 +89,12 @@ export const api = {
   reject: (id: string) => request<RequestAction>(`/api/requests/${id}/reject`, { method: "POST" }),
   approve: (id: string) => request<RequestAction>(`/api/requests/${id}/approve`, { method: "POST" }),
   proposals: () => request<ProposalOut[]>("/api/proposals"),
+  explain: (body: ExplainBody) =>
+    request<ExplainOut>("/api/explain", { method: "POST", body: JSON.stringify(body) }),
+  cellEvidence: (runId: string, nurseId: string, day: string) =>
+    request<Record<string, unknown>>(
+      `/api/evidence/cell${qs({ run_id: runId, nurse_id: nurseId, day })}`,
+    ),
   proposal: (runId: string) => request<ProposalOut>(`/api/proposals/${runId}`),
   choose: (runId: string, nurseId: string | null) =>
     request<RunSummary>(`/api/proposals/${runId}/choose`, {

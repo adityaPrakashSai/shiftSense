@@ -30,6 +30,11 @@ ADDED_COLUMNS = [
     ("request", "target_total", "INT"),
     ("request", "ref_request_id", "TEXT"),
     ("assignment", "cause", "TEXT"),
+    ("explanation", "asker_id", "TEXT"),
+    ("explanation", "fallback_used", "INT"),
+    ("explanation", "latency_ms", "INT"),
+    ("explanation", "language", "TEXT"),
+    ("message", "explanation_id", "TEXT"),
 ]
 
 

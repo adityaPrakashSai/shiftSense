@@ -2,12 +2,14 @@
 event loop keeps serving WebSockets while CP-SAT runs (it releases the GIL)."""
 
 import asyncio
+import logging
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 
 from app.api.ws import hub
 from app.config import get_settings
 from app.domain.models import RunStatus
+from app.evidence.counterfactual import explain_denied
 from app.log.decision_log import DecisionLog
 from app.planner.runs import PreparedRun, ResolvePlan, finish_full
 from app.planner.sickcall import rank
@@ -15,8 +17,10 @@ from app.store import repo
 from app.store.db import connect
 
 executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="solver")
+log = logging.getLogger(__name__)
 _locks: dict[str, asyncio.Lock] = {}
 tasks: set[asyncio.Task[None]] = set()
+background: set[asyncio.Future[None]] = set()
 
 
 def ward_lock(ward_id: str) -> asyncio.Lock:
@@ -43,11 +47,30 @@ def _solve_in_thread(prep: PreparedRun) -> str:
         conn.close()
 
 
+def _denied_in_thread(run_id: str) -> None:
+    conn = connect(get_settings().db_path)
+    try:
+        explain_denied(conn, run_id)
+    except Exception as exc:  # noqa: BLE001 - a background nicety must never break a run
+        log.warning("denied-request reasons for %s failed: %s", run_id, exc)
+    finally:
+        conn.close()
+
+
+def after_run(run_id: str, status: str) -> None:
+    """Fill denied-request reason codes in the background (M8, time-boxed to 20 s)."""
+    if status == RunStatus.PROPOSED.value and get_settings().explain_denied:
+        fut = asyncio.get_running_loop().run_in_executor(executor, _denied_in_thread, run_id)
+        background.add(fut)
+        fut.add_done_callback(background.discard)
+
+
 async def solve_full(prep: PreparedRun) -> None:
     ward_id = prep.ward.id
     async with ward_lock(ward_id):
         status = await asyncio.get_running_loop().run_in_executor(executor, _solve_in_thread, prep)
     await hub.broadcast(ward_id, {"type": "run_finished", "run_id": prep.run_id, "status": status})
+    after_run(prep.run_id, status)
 
 
 def spawn(prep: PreparedRun) -> None:
@@ -75,6 +98,7 @@ async def solve_resolve(plan: ResolvePlan) -> None:
         loop = asyncio.get_running_loop()
         status = await loop.run_in_executor(executor, _resolve_in_thread, plan)
     await hub.broadcast(ward_id, {"type": "run_finished", "run_id": plan.run_id, "status": status})
+    after_run(plan.run_id, status)
     if status == RunStatus.PROPOSED.value:
         await hub.broadcast(
             ward_id,

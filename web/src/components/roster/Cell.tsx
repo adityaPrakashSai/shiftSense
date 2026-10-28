@@ -21,7 +21,19 @@ const CAUSE_RING: Record<string, string> = {
   request: "ring-2 ring-inset ring-red-400",
 };
 
-export default function Cell({ cell, weekend, today }: { cell: CellT; weekend: boolean; today: boolean }) {
+export default function Cell({
+  cell,
+  weekend,
+  today,
+  selected,
+  onClick,
+}: {
+  cell: CellT;
+  weekend: boolean;
+  today: boolean;
+  selected?: boolean;
+  onClick?: (c: CellT) => void;
+}) {
   const changed = cell.changed ? CAUSE_RING[cell.cause ?? "knock_on"] ?? CAUSE_RING.knock_on : "";
   const outline = today ? "border-x-2 border-x-rose-400" : "";
   const shade = weekend && !cell.shift ? "bg-slate-50" : "";
@@ -32,8 +44,11 @@ export default function Cell({ cell, weekend, today }: { cell: CellT; weekend: b
   }`;
   return (
     <td
+      onClick={onClick ? () => onClick(cell) : undefined}
       title={title}
-      className={`h-7 w-9 min-w-9 text-center text-xs font-medium ${shade} ${outline} ${changed}`}
+      className={`h-7 w-9 min-w-9 text-center text-xs font-medium ${shade} ${outline} ${changed} ${
+        onClick ? "cursor-pointer hover:bg-indigo-50" : ""
+      } ${selected ? "bg-indigo-100" : ""}`}
     >
       <span
         className={`mx-auto flex h-6 w-8 items-center justify-center rounded ${

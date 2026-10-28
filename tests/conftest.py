@@ -17,6 +17,7 @@ def db_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     monkeypatch.setenv("SOLVER_STAGE_SECONDS", "1")
     monkeypatch.setenv("SOLVER_TOTAL_SECONDS", "3")
     monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setenv("EXPLAIN_DENIED", "false")  # background what-ifs; tested directly
     get_settings.cache_clear()
     yield path
     get_settings.cache_clear()

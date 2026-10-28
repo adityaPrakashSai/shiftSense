@@ -21,7 +21,7 @@ from app.intake.dates import shift_start, ward_now
 from app.log.decision_log import DecisionLog, SolverEvents
 from app.planner.build_input import build_input, day_index, horizon_dates
 from app.solver.changes import Change, change_set, count_changed
-from app.solver.input import SHIFTS, SolveInput
+from app.solver.input import SHIFTS, Forcing, SolveInput
 from app.solver.solve import SolveResult, solve
 from app.store import repo
 
@@ -361,6 +361,50 @@ def run_resolve(
         conn, plan.run_id, plan.ward, plan.inp, res, plan.active, added=plan.added_slots, log=log
     )
     return RunOutcome(plan.run_id, RunStatus.PROPOSED, res)
+
+
+def evaluate_roster(
+    conn: sqlite3.Connection,
+    roster: dict[str, list[str | None]],
+    *,
+    ward_id: str | None = None,
+    trigger: str = "fixed",
+    publish_it: bool = True,
+) -> str:
+    """Store a given roster as a full run with evidence (stages, costs, outcomes): the solver runs
+    with every cell forced, so the tier values are exactly this roster's. Used for the reference
+    baseline in tests and evals, and for imported plans later. Raises if it breaks a hard rule."""
+    ward = repo.get_ward(conn, ward_id)
+    if ward is None:
+        raise LookupError("no ward in the database")
+    active = [r for r in repo.list_requests(conn, ward.id) if r.status is RequestStatus.ACTIVE]
+    inp = build_input(ward, active, repo.get_history(conn, ward.id))
+    fixed = [
+        Forcing("fixed", n.id, d, (roster.get(n.id) or [None] * inp.num_days)[d])
+        for n in inp.nurses
+        for d in range(inp.num_days)
+    ]
+    res = solve(replace(inp, forced=(*inp.forced, *fixed)), stage_seconds=2, workers=4)
+    if res.status != "solved":
+        raise ValueError(f"roster breaks hard rules ({res.status} at {res.failed_tier})")
+    run_id = new_run_id()
+    repo.insert_run(
+        conn,
+        run_id=run_id,
+        ward_id=ward.id,
+        kind=RunKind.FULL,
+        status=RunStatus.SOLVING,
+        trigger=trigger,
+        horizon_start=ward.horizon_start,
+        priorities=inp.priorities,
+        input_json=inp.to_json(),
+        input_hash=inp.input_hash(),
+    )
+    write_evidence(conn, run_id, ward, inp, res, active)
+    repo.update_run(conn, run_id, status=RunStatus.PROPOSED.value, total_secs=round(res.secs, 3))
+    if publish_it:
+        publish(conn, run_id, by="system")
+    return run_id
 
 
 def publish(

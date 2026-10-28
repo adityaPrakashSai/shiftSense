@@ -28,3 +28,8 @@ Re-solve and sick calls (M7): `planner/runs.py` `start_resolve` / `run_resolve` 
 published roster as `previous` and hint, standby allowed), `solver/changes.py` (change set with
 causes, 6.3), `planner/sickcall.py` (candidate filter, parallel forced re-solves, ranking, proposal
 rows) and `api/routes_proposals.py`.
+
+Explanations (M8): `evidence/counterfactual.py` (what-if re-solves, full and local scope, cache,
+denied-request reason codes), `solver/diagnose.py` (infeasibility core), `explain/tools.py` (7
+tools), `explain/agent.py` (loop, budgets, both tool modes), `explain/claims.py` (grounding check),
+`explain/describe.py` (deterministic text with claims) and `explain/mock.py`.

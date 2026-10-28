@@ -365,6 +365,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain
+         * @description Answer a why-question from tool results only; claims are checked (7.4).
+         */
+        post: operations["explain_api_explain_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/explanations/{explanation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get One */
+        get: operations["get_one_api_explanations__explanation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/evidence/cell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cell Evidence
+         * @description Shift, change, cost rows and blocked alternatives for one cell (the "Why?" popover).
+         */
+        get: operations["cell_evidence_api_evidence_cell_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -440,6 +497,18 @@ export interface components {
             /** Cause */
             cause: string | null;
         };
+        /** CellContext */
+        CellContext: {
+            /** Nurse Id */
+            nurse_id: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Shift */
+            shift?: string | null;
+        };
         /** Change */
         Change: {
             /** Nurse Id */
@@ -460,6 +529,17 @@ export interface components {
         ChooseBody: {
             /** Nurse Id */
             nurse_id?: string | null;
+        };
+        /** ClaimOut */
+        ClaimOut: {
+            /** Text */
+            text: string;
+            /** Call Id */
+            call_id: string;
+            /** Path */
+            path: string;
+            /** Value */
+            value?: unknown;
         };
         /** ConstraintEdit */
         ConstraintEdit: {
@@ -614,6 +694,42 @@ export interface components {
             /** Rules */
             rules: string[];
         };
+        /** ExplainBody */
+        ExplainBody: {
+            /** Question */
+            question: string;
+            /**
+             * Asker Id
+             * @default charge
+             */
+            asker_id: string;
+            /** Run Id */
+            run_id?: string | null;
+            context?: components["schemas"]["CellContext"] | null;
+        };
+        /** ExplainOut */
+        ExplainOut: {
+            /** Explanation Id */
+            explanation_id: string;
+            /** Answer */
+            answer: string;
+            /** Claims */
+            claims: components["schemas"]["ClaimOut"][];
+            /** Tool Calls */
+            tool_calls: components["schemas"]["ToolCallOut"][];
+            /** Grounded */
+            grounded: boolean;
+            /** Fallback Used */
+            fallback_used: boolean;
+            /** Problems */
+            problems: string[];
+            /** Language */
+            language: string;
+            /** Run Id */
+            run_id?: string | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+        };
         /**
          * Grade
          * @enum {string}
@@ -703,6 +819,15 @@ export interface components {
             request_ids: string[];
             /** Requests */
             requests: components["schemas"]["RequestOut"][];
+            /** Explanation Id */
+            explanation_id?: string | null;
+            /**
+             * Claims
+             * @default []
+             */
+            claims: {
+                [key: string]: unknown;
+            }[];
         };
         /** MessageReply */
         MessageReply: {
@@ -722,6 +847,15 @@ export interface components {
             reply_kind: "confirm" | "clarify" | "answer" | "refuse";
             /** Language */
             language: string;
+            /** Explanation Id */
+            explanation_id?: string | null;
+            /**
+             * Claims
+             * @default []
+             */
+            claims: {
+                [key: string]: unknown;
+            }[];
         };
         /** Nurse */
         Nurse: {
@@ -1025,6 +1159,21 @@ export interface components {
             secs: number;
             /** Locked */
             locked: string | null;
+        };
+        /** ToolCallOut */
+        ToolCallOut: {
+            /** Call Id */
+            call_id: string;
+            /** Tool */
+            tool: string;
+            /** Args */
+            args: {
+                [key: string]: unknown;
+            };
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
         };
         /** ValidationError */
         ValidationError: {
@@ -1708,6 +1857,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explain_api_explain_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplainOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_one_api_explanations__explanation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                explanation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplainOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cell_evidence_api_evidence_cell_get: {
+        parameters: {
+            query: {
+                nurse_id: string;
+                day: string;
+                run_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

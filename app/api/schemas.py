@@ -211,6 +211,8 @@ class MessageReply(BaseModel):
     reply: str
     reply_kind: Literal["confirm", "clarify", "answer", "refuse"]
     language: str
+    explanation_id: str | None = None  # a question answered by the explainer (7.5)
+    claims: list[dict[str, Any]] = []
 
 
 class MessageRecord(BaseModel):
@@ -223,6 +225,8 @@ class MessageRecord(BaseModel):
     reply_kind: str | None
     request_ids: list[str]
     requests: list[RequestOut]  # their current status, so a reloaded chat shows Confirm only once
+    explanation_id: str | None = None
+    claims: list[dict[str, Any]] = []
 
 
 class RequestAction(BaseModel):
@@ -277,3 +281,43 @@ class ProposalOut(BaseModel):
 
 class ChooseBody(BaseModel):
     nurse_id: str | None = None
+
+
+class ClaimOut(BaseModel):
+    text: str
+    call_id: str
+    path: str
+    value: Any = None
+
+
+class ToolCallOut(BaseModel):
+    call_id: str
+    tool: str
+    args: dict[str, Any]
+    result: dict[str, Any]
+
+
+class CellContext(BaseModel):
+    nurse_id: str
+    day: date
+    shift: str | None = None
+
+
+class ExplainBody(BaseModel):
+    question: str
+    asker_id: str = "charge"
+    run_id: str | None = None  # default: the published run
+    context: CellContext | None = None  # the clicked cell
+
+
+class ExplainOut(BaseModel):
+    explanation_id: str
+    answer: str
+    claims: list[ClaimOut]
+    tool_calls: list[ToolCallOut]
+    grounded: bool  # the model's own answer passed the claim check
+    fallback_used: bool  # the answer shown is the deterministic describe() text
+    problems: list[str]
+    language: str
+    run_id: str | None = None
+    latency_ms: int | None = None

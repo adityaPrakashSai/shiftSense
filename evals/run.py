@@ -27,7 +27,7 @@ from app.llm.gateway import LLMGateway
 from app.store import repo
 from app.store.db import connect, open_db
 from app.store.seed import seed_db
-from evals.score import score_case, summarize
+from evals.score import score_case, score_explain, summarize, summarize_explain
 
 ROOT = Path(__file__).resolve().parent.parent
 EVALS = ROOT / "evals"
@@ -75,7 +75,7 @@ async def run_intake(
             try:
                 res = await handle_message(
                     c, ward, case["sender"], case["message"], gateway=gw,
-                    now=datetime.fromisoformat(case["now"]), check_roster=False,
+                    now=datetime.fromisoformat(case["now"]), check_roster=False, explain=False,
                 )  # fmt: skip
                 confirmed = res.reply_kind == "confirm"
                 row["got"] = {
@@ -115,6 +115,72 @@ async def run_intake(
     return list(rows)
 
 
+async def run_explain(
+    cases: list[dict[str, Any]], *, provider: str, mode: str, max_usd: float, workers: int, db: Path
+) -> list[dict[str, Any]]:
+    """Each case gets its own world database (evals/setups.py); the gateway's cache and call log
+    live in `db`, which imports and (live) exports data/llm_cache.jsonl."""
+    from app.explain.agent import ask
+    from evals.setups import prepare
+
+    s = get_settings().model_copy(
+        update={
+            "llm_mode": mode,
+            "db_path": str(db),
+            "llm_provider_default": provider if provider != "mock" else "baseten",
+            "llm_provider_explain": None,
+            "llm_spend_cap_usd": max_usd,
+        }
+    )
+    conn = open_db(db)
+    cache.import_jsonl(conn, CACHE_FILE)
+    conn.close()
+    gw = LLMGateway(s)
+    sem = asyncio.Semaphore(workers)
+
+    async def one(case: dict[str, Any]) -> dict[str, Any]:
+        async with sem:
+            world = open_db(db.with_name(f"{case['id']}.db"))
+            row: dict[str, Any] = {"id": case["id"], "tags": case["tags"], "expect": case["expect"],
+                                   "question": case["question"]}  # fmt: skip
+            try:
+                now = datetime.fromisoformat(case["now"])
+                run_id = prepare(world, case["setup"], now)  # synchronous: nothing interleaves
+                ward = repo.get_ward(world)
+                assert ward is not None
+                r = await ask(world, ward, case["question"], asker_id=case["asker"], gateway=gw,
+                              run_id=run_id, cell=case.get("cell"),
+                              today=now.date().isoformat())  # fmt: skip
+                calls = [{"tool": c["tool"], "args": c["args"]} for c in r.tool_calls]
+                got = {"answer": r.answer, "claims": r.claims, "tool_calls": calls}
+                row |= {"got": got, "grounded": r.grounded, "fallback_used": r.fallback_used,
+                        "retried": r.retried, "problems": r.problems, "latency_ms": r.latency_ms,
+                        "cost_usd": r.cost_usd, "model_turns": r.model_turns}  # fmt: skip
+            except Exception as exc:  # noqa: BLE001 - a failed case is a finding, not a crash
+                row |= {"got": {"error": repr(exc)}, "error": repr(exc), "latency_ms": 0}
+            finally:
+                world.close()
+            row["score"] = score_explain(case["expect"], row["got"])
+            row["pass"] = row["score"]["pass"]
+            mark = "PASS" if row["pass"] else "FAIL"
+            g = (
+                "grounded"
+                if row.get("grounded")
+                else ("FALLBACK" if row.get("fallback_used") else "")
+            )
+            print(f"{mark} {case['id']} {row['latency_ms']:>6} ms {g:9} "
+                  f"{'; '.join(row['score']['reasons'])[:120]}")  # fmt: skip
+            return row
+
+    rows = await asyncio.gather(*(one(c) for c in cases))
+    if mode == "live":
+        conn = connect(db)
+        n = cache.export_jsonl(conn, CACHE_FILE)
+        conn.close()
+        print(f"cache: {n} entries in {CACHE_FILE.relative_to(ROOT)}")
+    return list(rows)
+
+
 def markdown(suite: str, provider: str, mode: str, summary: dict[str, Any], rows: list[Any]) -> str:
     keys = [k for k in summary if k != "by_tag"]
     lines = [
@@ -130,7 +196,11 @@ def markdown(suite: str, provider: str, mode: str, summary: dict[str, Any], rows
         "",
         "## Failures",
         "",
-        *[f"- `{r['id']}`: {'; '.join(r['reasons'])}" for r in rows if not r["pass"]],
+        *[
+            f"- `{r['id']}`: {'; '.join(r.get('reasons') or r['score']['reasons'])}"
+            for r in rows
+            if not r["pass"]
+        ],
     ]
     return "\n".join(lines) + "\n"
 
@@ -146,7 +216,7 @@ def compare_table(results: dict[str, dict[str, Any]]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run a fixed eval suite.")
-    ap.add_argument("--suite", default="intake", choices=["intake"])
+    ap.add_argument("--suite", default="intake", choices=["intake", "explain"])
     ap.add_argument("--provider", default="baseten", choices=["baseten", "meta", "modal", "mock"])
     ap.add_argument("--mode", default="live", choices=["live", "replay", "mock"])
     ap.add_argument("--limit", type=int)
@@ -162,12 +232,13 @@ def main(argv: list[str] | None = None) -> int:
     errors = 0
     for prov in providers:
         mode = "mock" if prov == "mock" else a.mode
+        runner = run_explain if a.suite == "explain" else run_intake
         with tempfile.TemporaryDirectory() as tmp:
             rows = asyncio.run(
-                run_intake(cases, provider=prov, mode=mode, max_usd=a.max_usd,
-                           workers=a.workers, db=Path(tmp) / "eval.db")
+                runner(cases, provider=prov, mode=mode, max_usd=a.max_usd,
+                       workers=a.workers, db=Path(tmp) / "eval.db")
             )  # fmt: skip
-        summary = summarize(rows)
+        summary = summarize_explain(rows) if a.suite == "explain" else summarize(rows)
         summaries[prov] = summary
         errors += summary["errors"]
         print(json.dumps({k: v for k, v in summary.items()}, indent=1, ensure_ascii=False))

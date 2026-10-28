@@ -947,6 +947,161 @@
      }
     }
    }
+  },
+  "/api/explain": {
+   "post": {
+    "tags": [
+     "explain"
+    ],
+    "summary": "Explain",
+    "description": "Answer a why-question from tool results only; claims are checked (7.4).",
+    "operationId": "explain_api_explain_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ExplainBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExplainOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/explanations/{explanation_id}": {
+   "get": {
+    "tags": [
+     "explain"
+    ],
+    "summary": "Get One",
+    "operationId": "get_one_api_explanations__explanation_id__get",
+    "parameters": [
+     {
+      "name": "explanation_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Explanation Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExplainOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/evidence/cell": {
+   "get": {
+    "tags": [
+     "explain"
+    ],
+    "summary": "Cell Evidence",
+    "description": "Shift, change, cost rows and blocked alternatives for one cell (the \"Why?\" popover).",
+    "operationId": "cell_evidence_api_evidence_cell_get",
+    "parameters": [
+     {
+      "name": "nurse_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Nurse Id"
+      }
+     },
+     {
+      "name": "day",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "date",
+       "title": "Day"
+      }
+     },
+     {
+      "name": "run_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Cell Evidence Api Evidence Cell Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -1177,6 +1332,36 @@
     ],
     "title": "Cell"
    },
+   "CellContext": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shift"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "day"
+    ],
+    "title": "CellContext"
+   },
    "Change": {
     "properties": {
      "nurse_id": {
@@ -1248,6 +1433,32 @@
     },
     "type": "object",
     "title": "ChooseBody"
+   },
+   "ClaimOut": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "call_id": {
+      "type": "string",
+      "title": "Call Id"
+     },
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "value": {
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "text",
+     "call_id",
+     "path"
+    ],
+    "title": "ClaimOut"
    },
    "ConstraintEdit": {
     "properties": {
@@ -1660,6 +1871,124 @@
     ],
     "title": "Excluded"
    },
+   "ExplainBody": {
+    "properties": {
+     "question": {
+      "type": "string",
+      "title": "Question"
+     },
+     "asker_id": {
+      "type": "string",
+      "title": "Asker Id",
+      "default": "charge"
+     },
+     "run_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Run Id"
+     },
+     "context": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CellContext"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "question"
+    ],
+    "title": "ExplainBody"
+   },
+   "ExplainOut": {
+    "properties": {
+     "explanation_id": {
+      "type": "string",
+      "title": "Explanation Id"
+     },
+     "answer": {
+      "type": "string",
+      "title": "Answer"
+     },
+     "claims": {
+      "items": {
+       "$ref": "#/components/schemas/ClaimOut"
+      },
+      "type": "array",
+      "title": "Claims"
+     },
+     "tool_calls": {
+      "items": {
+       "$ref": "#/components/schemas/ToolCallOut"
+      },
+      "type": "array",
+      "title": "Tool Calls"
+     },
+     "grounded": {
+      "type": "boolean",
+      "title": "Grounded"
+     },
+     "fallback_used": {
+      "type": "boolean",
+      "title": "Fallback Used"
+     },
+     "problems": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Problems"
+     },
+     "language": {
+      "type": "string",
+      "title": "Language"
+     },
+     "run_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Run Id"
+     },
+     "latency_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latency Ms"
+     }
+    },
+    "type": "object",
+    "required": [
+     "explanation_id",
+     "answer",
+     "claims",
+     "tool_calls",
+     "grounded",
+     "fallback_used",
+     "problems",
+     "language"
+    ],
+    "title": "ExplainOut"
+   },
    "Grade": {
     "type": "string",
     "enum": [
@@ -1917,6 +2246,26 @@
       },
       "type": "array",
       "title": "Requests"
+     },
+     "explanation_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Explanation Id"
+     },
+     "claims": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Claims",
+      "default": []
      }
     },
     "type": "object",
@@ -1984,6 +2333,26 @@
      "language": {
       "type": "string",
       "title": "Language"
+     },
+     "explanation_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Explanation Id"
+     },
+     "claims": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Claims",
+      "default": []
      }
     },
     "type": "object",
@@ -2968,6 +3337,36 @@
      "locked"
     ],
     "title": "StageOut"
+   },
+   "ToolCallOut": {
+    "properties": {
+     "call_id": {
+      "type": "string",
+      "title": "Call Id"
+     },
+     "tool": {
+      "type": "string",
+      "title": "Tool"
+     },
+     "args": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Args"
+     },
+     "result": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Result"
+     }
+    },
+    "type": "object",
+    "required": [
+     "call_id",
+     "tool",
+     "args",
+     "result"
+    ],
+    "title": "ToolCallOut"
    },
    "ValidationError": {
     "properties": {

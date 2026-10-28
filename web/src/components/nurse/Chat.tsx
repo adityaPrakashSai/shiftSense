@@ -4,6 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, type MessageRecord } from "../../api/client";
+import ClaimChip from "../panel/ClaimChip";
 import { t, type Lang } from "./i18n";
 
 function Status({ m, lang }: { m: MessageRecord; lang: Lang }) {
@@ -94,6 +95,13 @@ export default function Chat({ nurseId, lang }: { nurseId: string; lang: Lang })
                       >
                         {L.edit}
                       </button>
+                    </div>
+                  )}
+                  {m.claims.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {m.claims.map((c, i) => (
+                        <ClaimChip key={i} claim={c as { text: string; call_id: string; path: string; value?: unknown }} />
+                      ))}
                     </div>
                   )}
                   <Status m={m} lang={lang} />

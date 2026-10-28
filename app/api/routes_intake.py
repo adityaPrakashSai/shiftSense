@@ -14,6 +14,7 @@ from app.api.schemas import MessageRecord, MessageReply, RequestAction, RequestO
 from app.api.ws import hub
 from app.domain.edits import CHARGE_ID
 from app.domain.models import Request, RequestStatus, Ward
+from app.explain.agent import get_explanation
 from app.intake.pipeline import handle_message
 from app.llm.gateway import get_gateway
 from app.planner import requests as lifecycle
@@ -56,6 +57,8 @@ async def post_message(
         reply=res.reply,
         reply_kind=res.reply_kind,
         language=res.language,
+        explanation_id=res.explanation_id,
+        claims=res.claims,
     )
 
 
@@ -67,9 +70,14 @@ def list_messages(conn: Conn, nurse_id: str, limit: int = 100) -> list[MessageRe
     out = []
     for m in repo.list_messages(conn, ward.id, nurse_id, limit):
         reqs = [repo.get_request(conn, rid) for rid in m["request_ids"]]
+        ex = get_explanation(conn, m["explanation_id"]) if m.get("explanation_id") else None
         out.append(
             MessageRecord.model_validate(
-                {**m, "requests": [request_out(r, outcomes) for r in reqs if r is not None]}
+                {
+                    **m,
+                    "requests": [request_out(r, outcomes) for r in reqs if r is not None],
+                    "claims": [] if ex is None else ex["claims"],
+                }
             )
         )
     return out

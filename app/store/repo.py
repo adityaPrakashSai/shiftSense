@@ -230,16 +230,18 @@ def set_message_reply(
     reply: str,
     reply_kind: str,
     request_ids: list[str],
+    explanation_id: str | None = None,
 ) -> None:
     conn.execute(
         "UPDATE message SET language = ?, parse_json = ?, reply = ?, reply_kind = ?, "
-        "request_ids_json = ? WHERE id = ?",
+        "request_ids_json = ?, explanation_id = ? WHERE id = ?",
         (
             language,
             None if parse is None else json.dumps(parse, ensure_ascii=False),
             reply,
             reply_kind,
             json.dumps(request_ids),
+            explanation_id,
             message_id,
         ),
     )
@@ -258,6 +260,7 @@ def _message_row(r: sqlite3.Row) -> dict[str, Any]:
         "reply": r["reply"],
         "reply_kind": r["reply_kind"],
         "request_ids": json.loads(r["request_ids_json"] or "[]"),
+        "explanation_id": r["explanation_id"],
     }
 
 

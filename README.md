@@ -4,7 +4,7 @@ A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language
 photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
 the solver's actual results.
 
-> **Status:** milestone M7 (minimal-change re-solve and ranked sick-call replacements).
+> **Status:** milestone M8 (counterfactual re-solves and a tool-calling explainer with claim checking).
 > The build started on **28 Oct 2026**. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full
 > design and the milestone plan (section 12).
 
@@ -39,6 +39,11 @@ minute and absorb a sick call with as few changes as possible.
   candidate replacement is a real forced re-solve, ranked by tier vector. On the demo ward the
   proposal is on screen in about half a second with one changed cell; without the stability tier
   the same sick call moves 41 cells.
+- **Explanations are grounded.** "Why Arun and not Priya?" goes to a Muse Spark agent with seven
+  read-only tools over the evidence store and the counterfactual service, which re-solves the
+  roster with Priya on that shift. Every fact in the answer is a claim that cites a tool result
+  by path and value; code checks each one, and an answer that fails twice is withheld in favour
+  of a deterministic explanation built from the same results.
 
 ## Architecture
 
