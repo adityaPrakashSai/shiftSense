@@ -4,7 +4,7 @@
 // the message from their chat. The voice chip sends a recorded Hindi clip (synthetic speech) as a
 // voice note, so the voice path runs without a microphone and replays from the cache. Below the lg breakpoint (a phone or tablet) one pane shows at a time.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import ModeBadge from "../components/common/ModeBadge";
 import { NAMES } from "../components/common/ProviderBadge";
@@ -27,6 +27,21 @@ const CHIPS: { label: string; nurseId: string; text: string; audioUrl?: string }
   { label: "Why every weekend?", nurseId: "N02", text: "Why do I get every weekend?" },
 ];
 
+const SPLIT_KEY = "shiftsense.demoSplit";
+const SPLIT_DEFAULT = 65;
+const clampSplit = (v: number): number => Math.min(80, Math.max(45, v));
+
+function loadSplit(): number {
+  try {
+    const raw = window.localStorage.getItem(SPLIT_KEY);
+    if (raw === null) return SPLIT_DEFAULT;
+    const v = Number(raw);
+    return Number.isFinite(v) ? clampSplit(v) : SPLIT_DEFAULT;
+  } catch {
+    return SPLIT_DEFAULT;
+  }
+}
+
 /** Tailwind's lg breakpoint, as state: one nurse view is mounted, framed or full screen. */
 function useWide(): boolean {
   const query = "(min-width: 1024px)";
@@ -48,6 +63,23 @@ export default function DemoPage() {
   const [nurseId, setNurseId] = useState(START_NURSE);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [pane, setPane] = useState<"charge" | "nurse">("charge");
+  const [split, setSplit] = useState(loadSplit);
+  const [dragging, setDragging] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SPLIT_KEY, String(split));
+    } catch {
+      // private mode: the split just won't survive a reload
+    }
+  }, [split]);
+  const splitFromClientX = useCallback((clientX: number) => {
+    const el = gridRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    setSplit(clampSplit(((clientX - rect.left) / rect.width) * 100));
+  }, []);
   const [confirmingReset, setConfirmingReset] = useState(false);
   // the confirm prompt reverts by itself after 5 s
   useEffect(() => {
@@ -173,13 +205,41 @@ export default function DemoPage() {
         ))}
       </nav>
 
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[13fr_7fr]">
+      <div
+        ref={gridRef}
+        style={wide ? { gridTemplateColumns: `${split}% 6px 1fr` } : undefined}
+        className={`grid min-h-0 flex-1 ${dragging ? "cursor-col-resize select-none" : ""}`}
+      >
         <section
-          className={`min-h-0 overflow-auto border-slate-300 bg-slate-50 lg:block lg:border-r ${pane === "charge" ? "" : "hidden"}`}
+          className={`min-h-0 overflow-auto border-slate-300 bg-slate-50 lg:block ${pane === "charge" ? "" : "hidden"}`}
           aria-label="Charge nurse view"
         >
           <ChargeView embedded />
         </section>
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize panes"
+          aria-valuemin={45}
+          aria-valuemax={80}
+          aria-valuenow={Math.round(split)}
+          tabIndex={0}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDragging(true);
+          }}
+          onPointerMove={(e) => {
+            if (dragging) splitFromClientX(e.clientX);
+          }}
+          onPointerUp={() => setDragging(false)}
+          onPointerCancel={() => setDragging(false)}
+          onDoubleClick={() => setSplit(SPLIT_DEFAULT)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") setSplit((s) => clampSplit(s - 2));
+            else if (e.key === "ArrowRight") setSplit((s) => clampSplit(s + 2));
+          }}
+          className="hidden cursor-col-resize bg-slate-200 hover:bg-indigo-300 focus-visible:bg-indigo-400 focus-visible:outline-none lg:block"
+        />
         <section
           className={`min-h-0 items-center justify-center overflow-hidden lg:flex lg:p-4 ${pane === "nurse" ? "flex" : "hidden"}`}
           aria-label="Nurse phone"
