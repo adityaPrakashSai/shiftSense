@@ -56,9 +56,9 @@ function fmtRange(start: string, days: number): string {
 
 function SocketDot({ mode }: { mode: SocketMode }) {
   const tone = { live: "bg-emerald-500", polling: "bg-amber-500", connecting: "bg-slate-400" }[mode];
-  const text = { live: "live", polling: "polling every 3 s", connecting: "connecting…" }[mode];
+  const text = { live: "connected", polling: "polling every 3 s", connecting: "connecting…" }[mode];
   return (
-    <span className="flex items-center gap-1 text-xs text-slate-500">
+    <span className="flex items-center gap-1 text-xs text-slate-500" title="Live updates connection">
       <span className={`h-2 w-2 rounded-full ${tone}`} /> {text}
     </span>
   );
