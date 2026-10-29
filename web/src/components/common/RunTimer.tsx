@@ -26,9 +26,11 @@ export default function RunTimer({
   return (
     <div className="flex items-center gap-3 text-sm">
       <div className="text-right">
-        <div className={`font-mono text-lg tabular-nums ${stoppedAt ? "text-emerald-700" : "text-slate-800"}`}>
-          {elapsed === null ? "–" : `${elapsed.toFixed(1)} s`}
-        </div>
+        {elapsed !== null && (
+          <div className={`font-mono text-lg tabular-nums ${stoppedAt ? "text-emerald-700" : "text-slate-800"}`}>
+            {`${elapsed.toFixed(1)} s`}
+          </div>
+        )}
         <div className="text-[11px] text-slate-500">
           {serverSecs !== null ? `server ${serverSecs.toFixed(2)} s` : "By hand: about 2 hours"}
         </div>
