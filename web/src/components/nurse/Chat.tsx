@@ -56,9 +56,15 @@ export default function Chat({
   const send = useMutation({
     mutationFn: (m: Outgoing) => ("wav" in m ? api.sendVoice(nurseId, m.wav) : api.sendMessage(nurseId, m.text)),
     onMutate: (m) => setSent("wav" in m ? `🎤 ${L.voiceSending}` : m.text),
-    onSettled: () => {
+    // A message sent while the chat's first fetch is still in flight (a /demo chip right after
+    // the page loads) must not be lost: TanStack Query dedupes a refetch into an in-flight fetch
+    // that has no data yet, and that fetch read the list before the message was stored. So cancel
+    // it, then fetch again; the pending bubble stays until the list with the message is back.
+    onSettled: async () => {
+      const key = ["messages", nurseId];
+      await qc.cancelQueries({ queryKey: key });
+      await qc.refetchQueries({ queryKey: key });
       setSent(null);
-      refresh();
     },
   });
   const confirm = useMutation({ mutationFn: api.confirm, onSettled: refresh });

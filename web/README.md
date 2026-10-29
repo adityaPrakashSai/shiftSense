@@ -18,8 +18,9 @@ it on :5173 and proxies `/api` and `/ws` to the FastAPI server on :8000 (`make d
 - `public/samples/`: the synthetic Hindi voice note the /demo chip sends.
 - Right panel tabs (`src/components/panel/`): Alerts (approvals, proposals with the agent's
   claim-checked summary, conflicts, messages to nurses), Ask, Agent (live roster-agent traces),
-  Fairness (Recharts), Log (decision timeline by run with lineage) and Versions (planned vs
-  current, 6.5c). Priority chips in the header reorder the tiers.
+  Fairness (Recharts), Log (decision timeline by run with lineage), Versions (planned vs
+  current, 6.5c) and Staffing (the 6.7 what-if: nurses out, hires, standby, floor or target, with
+  the lower-bound caveat). Priority chips in the header reorder the tiers.
 - Nurse view: Chat (text or a voice note from the mic), Inbox (replacement and swap asks with Accept / Decline) and My shifts.
 - `playwright.config.ts` + `../tests/e2e/`: the demo script in mock mode on /charge and /nurse
   (`demo.spec.ts`), on /demo, including Reset and phone width (`demo_page.spec.ts`), and the voice

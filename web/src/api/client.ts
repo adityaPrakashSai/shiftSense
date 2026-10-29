@@ -38,6 +38,8 @@ export type VersionChange = S["VersionChange"];
 export type PhotoReadOut = S["PhotoReadOut"];
 export type PhotoRowOut = S["PhotoRowOut"];
 export type ImportOut = S["ImportOut"];
+export type StaffingOut = S["StaffingOut"];
+export type StaffingBody = S["StaffingBody"];
 
 export class ApiError extends Error {
   constructor(
@@ -108,6 +110,8 @@ export const api = {
   },
   importRoster: (rows: { nurse_id: string; cells: string[] }[]) =>
     request<ImportOut>("/api/import", { method: "POST", body: JSON.stringify({ rows }) }),
+  staffingCheck: (body: StaffingBody) =>
+    request<StaffingOut>("/api/staffing-check", { method: "POST", body: JSON.stringify(body) }),
   messages: (nurseId: string) => request<MessageRecord[]>(`/api/messages${qs({ nurse_id: nurseId })}`),
   requests: (params: { nurse_id?: string; status?: string }) =>
     request<RequestOut[]>(`/api/requests${qs(params)}`),

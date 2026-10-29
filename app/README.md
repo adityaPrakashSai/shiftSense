@@ -52,3 +52,8 @@ two-tile fallback, merge, name mapping, totals checksum), `planner/importer.py` 
 as the published `import` run, leave cells as leave requests, rule breaks as warnings) and
 `api/routes_import.py`.
 
+Staffing check (M14): `solver/staffing.py` (used[n] per nurse on the roster model, lexicographic
+shortfall / nurses used / standby shifts / balance, hire symmetry breaking), `planner/staffing.py`
+(the what-if from the database, read-only), `api/routes_staffing.py` and the agent's
+`staffing_check` compute tool (conflict and leave workflows).
+

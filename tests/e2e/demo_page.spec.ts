@@ -7,7 +7,8 @@ test("demo page: chip to accepted replacement, then reset", async ({ page, reque
   await request.post("/api/demo/reset"); // the other spec may have run first
   await page.goto("/");
   await expect(page).toHaveURL(/\/demo$/);
-  await expect(page.getByText("Model: Muse Spark Open on Baseten")).toBeVisible();
+  // the demo banner (the charge header's provider badge says the same once a model has answered)
+  await expect(page.getByText("Model: Muse Spark Open on Baseten").first()).toBeVisible();
   const charge = page.getByRole("region", { name: "Charge nurse view", exact: true });
   const phone = page.getByRole("region", { name: "Nurse phone", exact: true });
   await expect(charge.getByText("Published", { exact: true })).toBeVisible();
@@ -34,7 +35,8 @@ test("demo page: chip to accepted replacement, then reset", async ({ page, reque
   await expect(phone.getByTestId("inbox-badge")).toHaveCount(0);
 });
 
-test("demo page at phone width shows one pane at a time", async ({ browser }) => {
+test("demo page at phone width shows one pane at a time", async ({ browser, request }) => {
+  await request.post("/api/demo/reset"); // a clean chat for Priya, whatever ran before
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.goto("/demo");
   const charge = page.getByRole("region", { name: "Charge nurse view", exact: true });

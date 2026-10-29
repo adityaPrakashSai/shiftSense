@@ -55,6 +55,11 @@ are in this repository).
   guessed: each is a real forced re-solve, ranked by tier vector.
 - **Conflicts with options.** When no legal roster exists, CP-SAT's unsat core names exactly the
   rules that cannot all hold, and code turns each waivable one into an option for the charge nurse.
+- **Staffing what-ifs.** "How many nurses does this period need, and what if two are out?" The
+  staffing check reuses the hard rules and coverage, adds one "in use" flag per nurse, and finds
+  the minimum headcount, the shortfall and the standby shifts, as lower bounds. On the mini ward it
+  reproduces the prototype exactly: today's 7 nurses are 3 slots short on the two Monday mornings,
+  and with Kavya out the ward is 4 short even with both standby nurses at their cap.
 - **Muse Spark around the solver.** It parses messages into a closed set of typed edits,
   transcribes voice notes, reads roster photos into an editable grid, answers "why" questions
   with tools over the solver's evidence, writes the message to the replacement, and runs the
@@ -100,7 +105,7 @@ below is the latest live run of each suite.
 | explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | pending (no key yet) | | | |
 | writer: 20 replacement asks | Muse Spark Open (Baseten) | 20/20 pass, 90% model drafts kept | 7.5 / 10.5 s | $0.0054 | `2026-10-29-writer-baseten-live` |
 | writer: 20 replacement asks | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.5 / 4.7 s | $0.0030 | `2026-10-29-agent-baseten-live` |
+| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.4 / 6.9 s | $0.0032 | `2026-10-29-agent-baseten-live` |
 | agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | pending (no key yet) | | | |
 | vision: 5 roster sheets, per cell | Muse Spark Open (Baseten) | 98.2% of cells, 5/5 (>= 95%) sheets | 16.0 / 57.3 s | $0.0222 | `2026-10-29-vision-baseten-live` |
 | vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | pending (no key yet) | | | |

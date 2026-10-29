@@ -679,6 +679,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/staffing-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Staffing Check
+         * @description Minimum headcount, shortfall cells, standby shifts and per-nurse load for this period under
+         *     a what-if (hires, nurses out for the whole period, standby, target or floor). Nothing is
+         *     stored; the published roster is untouched. Every number is a lower bound (see `caveat`).
+         */
+        post: operations["staffing_check_api_staffing_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1361,6 +1383,23 @@ export interface components {
              */
             language: string;
         };
+        /** NurseLoad */
+        NurseLoad: {
+            /** Nurse Id */
+            nurse_id: string;
+            /** Name */
+            name: string;
+            /** Total */
+            total: number;
+            /** M */
+            M: number;
+            /** E */
+            E: number;
+            /** N */
+            N: number;
+            /** Weekend */
+            weekend: number;
+        };
         /** NurseMessageOut */
         NurseMessageOut: {
             /** Id */
@@ -1707,6 +1746,98 @@ export interface components {
              * @default 8
              */
             hours: number;
+        };
+        /** ShortCell */
+        ShortCell: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Shift */
+            shift: string;
+            /** Assigned */
+            assigned: number;
+            /** Target */
+            target: number;
+        };
+        /** StaffedNurse */
+        StaffedNurse: {
+            /** Nurse Id */
+            nurse_id: string;
+            /** Name */
+            name: string;
+        };
+        /** StaffingBody */
+        StaffingBody: {
+            /**
+             * Hires
+             * @default 0
+             */
+            hires: number;
+            /**
+             * Removed
+             * @default []
+             */
+            removed: string[];
+            /**
+             * Coverage
+             * @default target
+             * @enum {string}
+             */
+            coverage: "target" | "floor";
+            /**
+             * Standby
+             * @default false
+             */
+            standby: boolean;
+            /**
+             * Keep Staff
+             * @default true
+             */
+            keep_staff: boolean;
+        };
+        /** StaffingOut */
+        StaffingOut: {
+            /** Status */
+            status: string;
+            /** Inputs */
+            inputs: {
+                [key: string]: unknown;
+            };
+            /** Stages */
+            stages: components["schemas"]["StaffingStageOut"][];
+            /** Shortfall */
+            shortfall: number | null;
+            /** Headcount */
+            headcount: number | null;
+            /** Hires Needed */
+            hires_needed: number;
+            /** Standby Shifts */
+            standby_shifts: number | null;
+            /** Used */
+            used: components["schemas"]["StaffedNurse"][];
+            /** Short Cells */
+            short_cells: components["schemas"]["ShortCell"][];
+            /** Load */
+            load: components["schemas"]["NurseLoad"][];
+            /** Target Slots */
+            target_slots: number;
+            /** Secs */
+            secs: number;
+            /** Caveat */
+            caveat: string;
+        };
+        /** StaffingStageOut */
+        StaffingStageOut: {
+            /** Stage */
+            stage: string;
+            /** Value */
+            value: number;
+            /** Proven */
+            proven: boolean;
+            /** Bound */
+            bound: number | null;
         };
         /** StageOut */
         StageOut: {
@@ -3015,6 +3146,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    staffing_check_api_staffing_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffingBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffingOut"];
                 };
             };
             /** @description Validation Error */

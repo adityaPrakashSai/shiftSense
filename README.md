@@ -64,6 +64,12 @@ minute and absorb a sick call with as few changes as possible.
   cannot all hold; code turns each waivable one into an option ("Ask Arun to come in", "Add a
   float nurse"), Muse writes a two-sentence summary that is checked against the option list, and
   the charge nurse's choice starts a new solve.
+- **Staffing check** (`app/solver/staffing.py`, the Staffing tab): "how many nurses does this period
+  need, and what if Kavya is out?" CP-SAT finds the minimum headcount, the shortfall cells and the
+  standby shifts for a what-if (nurses out for the period, hypothetical hires, standby, target or
+  floor coverage), without touching the published roster. The roster agent can call it in the
+  conflict and leave workflows. Requests and fairness are ignored, so the numbers are lower bounds,
+  and the panel says so.
 
 ## Architecture
 
@@ -98,7 +104,7 @@ cost are per model call, from runs with the cache off (`--fresh`).
 | explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | pending (no key yet) | | | |
 | writer: 20 replacement asks | Muse Spark Open (Baseten) | 20/20 pass, 90% model drafts kept | 7.5 / 10.5 s | $0.0054 | `2026-10-29-writer-baseten-live` |
 | writer: 20 replacement asks | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.5 / 4.7 s | $0.0030 | `2026-10-29-agent-baseten-live` |
+| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.4 / 6.9 s | $0.0032 | `2026-10-29-agent-baseten-live` |
 | agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | pending (no key yet) | | | |
 | vision: 5 roster sheets, per cell | Muse Spark Open (Baseten) | 98.2% of cells, 5/5 (>= 95%) sheets | 16.0 / 57.3 s | $0.0222 | `2026-10-29-vision-baseten-live` |
 | vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | pending (no key yet) | | | |

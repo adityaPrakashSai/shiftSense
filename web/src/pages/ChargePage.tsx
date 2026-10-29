@@ -1,7 +1,7 @@
 // Charge nurse view (design doc 10.3): header with Generate, the live run timer and editable
 // priority chips, roster grid with coverage footer and proposal diff highlighting, stage strip,
 // Publish for a draft, and the right panel: Alerts (approvals, proposals with the agent's summary,
-// replacement messages), Ask, Agent (live roster-agent traces), Fairness, Log and Versions.
+// replacement messages), Ask, Agent (live roster-agent traces), Fairness, Log, Versions and Staffing (6.7).
 // `ChargeView` is the same view embedded in /demo (left 65%).
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
@@ -17,6 +17,7 @@ import AgentTab from "../components/panel/AgentTab";
 import AlertsTab from "../components/panel/AlertsTab";
 import AskTab, { type AskPrefill } from "../components/panel/AskTab";
 import LogTab from "../components/panel/LogTab";
+import StaffingTab from "../components/panel/StaffingTab";
 import VersionsTab from "../components/panel/VersionsTab";
 import Priorities from "../components/common/Priorities";
 import CellPanel from "../components/roster/CellPanel";
@@ -25,7 +26,7 @@ import StageStrip from "../components/roster/StageStrip";
 // Recharts is most of the bundle: load it when the Fairness tab first opens, not on /demo's cold load
 const FairnessTab = lazy(() => import("../components/panel/FairnessTab"));
 
-type Tab = "alerts" | "ask" | "agent" | "fairness" | "log" | "versions";
+type Tab = "alerts" | "ask" | "agent" | "fairness" | "log" | "versions" | "staffing";
 const TABS: [Tab, string][] = [
   ["alerts", "Alerts"],
   ["ask", "Ask"],
@@ -33,6 +34,7 @@ const TABS: [Tab, string][] = [
   ["fairness", "Fairness"],
   ["log", "Log"],
   ["versions", "Versions"],
+  ["staffing", "Staffing"],
 ];
 
 type Timer = {
@@ -341,6 +343,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
         )}
         {tab === "log" && <LogTab />}
         {tab === "versions" && ward.data && <VersionsTab nurses={ward.data.nurses} />}
+        {tab === "staffing" && ward.data && <StaffingTab nurses={ward.data.nurses} />}
       </aside>
       </div>
     </div>

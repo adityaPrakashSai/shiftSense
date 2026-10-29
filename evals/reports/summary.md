@@ -8,7 +8,7 @@
 | explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | pending (no key yet) | | | |
 | writer: 20 replacement asks | Muse Spark Open (Baseten) | 20/20 pass, 90% model drafts kept | 7.5 / 10.5 s | $0.0054 | `2026-10-29-writer-baseten-live` |
 | writer: 20 replacement asks | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.5 / 4.7 s | $0.0030 | `2026-10-29-agent-baseten-live` |
+| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.4 / 6.9 s | $0.0032 | `2026-10-29-agent-baseten-live` |
 | agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | pending (no key yet) | | | |
 | vision: 5 roster sheets, per cell | Muse Spark Open (Baseten) | 98.2% of cells, 5/5 (>= 95%) sheets | 16.0 / 57.3 s | $0.0222 | `2026-10-29-vision-baseten-live` |
 | vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | pending (no key yet) | | | |

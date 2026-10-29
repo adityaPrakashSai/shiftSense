@@ -532,3 +532,56 @@ class ImportOut(BaseModel):
     superseded: str | None
     leave_requests: list[str]
     warnings: list[str]  # hard rules the imported plan breaks (validator names)
+
+
+class StaffingBody(BaseModel):
+    hires: int = 0  # hypothetical night-qualified nurses H1..Hk on the standard contract
+    removed: list[str] = []  # nurse ids out for the whole period
+    coverage: Literal["target", "floor"] = "target"
+    standby: bool = False  # may standby nurses be rostered
+    keep_staff: bool = True  # today's staff count as used ("how many extra?")
+
+
+class StaffingStageOut(BaseModel):
+    stage: str  # shortfall | nurses_used | standby_shifts | balance
+    value: int
+    proven: bool
+    bound: int | None
+
+
+class StaffedNurse(BaseModel):
+    nurse_id: str
+    name: str
+
+
+class ShortCell(BaseModel):
+    day: date
+    shift: str
+    assigned: int
+    target: int
+
+
+class NurseLoad(BaseModel):
+    nurse_id: str
+    name: str
+    total: int
+    M: int
+    E: int
+    N: int
+    weekend: int
+
+
+class StaffingOut(BaseModel):
+    status: str
+    inputs: dict[str, Any]
+    stages: list[StaffingStageOut]
+    shortfall: int | None
+    headcount: int | None
+    hires_needed: int
+    standby_shifts: int | None
+    used: list[StaffedNurse]
+    short_cells: list[ShortCell]
+    load: list[NurseLoad]
+    target_slots: int
+    secs: float
+    caveat: str

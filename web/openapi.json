@@ -1737,6 +1737,48 @@
      }
     }
    }
+  },
+  "/api/staffing-check": {
+   "post": {
+    "tags": [
+     "staffing"
+    ],
+    "summary": "Staffing Check",
+    "description": "Minimum headcount, shortfall cells, standby shifts and per-nurse load for this period under\na what-if (hires, nurses out for the whole period, standby, target or floor). Nothing is\nstored; the published roster is untouched. Every number is a lower bound (see `caveat`).",
+    "operationId": "staffing_check_api_staffing_check_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/StaffingBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StaffingOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -3722,6 +3764,49 @@
     ],
     "title": "Nurse"
    },
+   "NurseLoad": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "M": {
+      "type": "integer",
+      "title": "M"
+     },
+     "E": {
+      "type": "integer",
+      "title": "E"
+     },
+     "N": {
+      "type": "integer",
+      "title": "N"
+     },
+     "weekend": {
+      "type": "integer",
+      "title": "Weekend"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "name",
+     "total",
+     "M",
+     "E",
+     "N",
+     "weekend"
+    ],
+    "title": "NurseLoad"
+   },
    "NurseMessageOut": {
     "properties": {
      "id": {
@@ -4920,6 +5005,233 @@
      "end"
     ],
     "title": "ShiftType"
+   },
+   "ShortCell": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "shift": {
+      "type": "string",
+      "title": "Shift"
+     },
+     "assigned": {
+      "type": "integer",
+      "title": "Assigned"
+     },
+     "target": {
+      "type": "integer",
+      "title": "Target"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "shift",
+     "assigned",
+     "target"
+    ],
+    "title": "ShortCell"
+   },
+   "StaffedNurse": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "name"
+    ],
+    "title": "StaffedNurse"
+   },
+   "StaffingBody": {
+    "properties": {
+     "hires": {
+      "type": "integer",
+      "title": "Hires",
+      "default": 0
+     },
+     "removed": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Removed",
+      "default": []
+     },
+     "coverage": {
+      "type": "string",
+      "enum": [
+       "target",
+       "floor"
+      ],
+      "title": "Coverage",
+      "default": "target"
+     },
+     "standby": {
+      "type": "boolean",
+      "title": "Standby",
+      "default": false
+     },
+     "keep_staff": {
+      "type": "boolean",
+      "title": "Keep Staff",
+      "default": true
+     }
+    },
+    "type": "object",
+    "title": "StaffingBody"
+   },
+   "StaffingOut": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "inputs": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Inputs"
+     },
+     "stages": {
+      "items": {
+       "$ref": "#/components/schemas/StaffingStageOut"
+      },
+      "type": "array",
+      "title": "Stages"
+     },
+     "shortfall": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shortfall"
+     },
+     "headcount": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Headcount"
+     },
+     "hires_needed": {
+      "type": "integer",
+      "title": "Hires Needed"
+     },
+     "standby_shifts": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Standby Shifts"
+     },
+     "used": {
+      "items": {
+       "$ref": "#/components/schemas/StaffedNurse"
+      },
+      "type": "array",
+      "title": "Used"
+     },
+     "short_cells": {
+      "items": {
+       "$ref": "#/components/schemas/ShortCell"
+      },
+      "type": "array",
+      "title": "Short Cells"
+     },
+     "load": {
+      "items": {
+       "$ref": "#/components/schemas/NurseLoad"
+      },
+      "type": "array",
+      "title": "Load"
+     },
+     "target_slots": {
+      "type": "integer",
+      "title": "Target Slots"
+     },
+     "secs": {
+      "type": "number",
+      "title": "Secs"
+     },
+     "caveat": {
+      "type": "string",
+      "title": "Caveat"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "inputs",
+     "stages",
+     "shortfall",
+     "headcount",
+     "hires_needed",
+     "standby_shifts",
+     "used",
+     "short_cells",
+     "load",
+     "target_slots",
+     "secs",
+     "caveat"
+    ],
+    "title": "StaffingOut"
+   },
+   "StaffingStageOut": {
+    "properties": {
+     "stage": {
+      "type": "string",
+      "title": "Stage"
+     },
+     "value": {
+      "type": "integer",
+      "title": "Value"
+     },
+     "proven": {
+      "type": "boolean",
+      "title": "Proven"
+     },
+     "bound": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bound"
+     }
+    },
+    "type": "object",
+    "required": [
+     "stage",
+     "value",
+     "proven",
+     "bound"
+    ],
+    "title": "StaffingStageOut"
    },
    "StageOut": {
     "properties": {

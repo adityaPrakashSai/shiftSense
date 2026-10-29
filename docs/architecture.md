@@ -89,8 +89,8 @@ How the rule is enforced in code, not only by convention:
 | Web UI | `web/` | Charge nurse view, nurse view (mobile first), `/demo` split view |
 | API layer | `app/api/` | REST routes, WebSocket hub, background solves and agent tasks, demo reset |
 | Intake | `app/intake/` | Text and voice-note transcripts → validated `ConstraintEdit` → template confirmation; roster photo → preview grid |
-| Solver engine | `app/solver/` | CP-SAT model (hard rules, soft terms in priority tiers), lexicographic solve, minimal-change re-solve, unsat core, independent validator |
-| Planner | `app/planner/` | Runs: full solves, re-solves from the published roster, sick-call ranking, conflict options, request lifecycle, photo import, versions |
+| Solver engine | `app/solver/` | CP-SAT model (hard rules, soft terms in priority tiers), lexicographic solve, minimal-change re-solve, unsat core, independent validator, staffing check (minimum headcount what-if) |
+| Planner | `app/planner/` | Runs: full solves, re-solves from the published roster, sick-call ranking, conflict options, request lifecycle, photo import, versions, the read-only staffing check |
 | Evidence store | `app/evidence/` | Stage, cost, request-outcome and fairness rows per run; counterfactual re-solves ("what if Priya took it?"); rule checker |
 | Explainer | `app/explain/` | Muse Spark tool loop over evidence tools, claim checker, deterministic fallback, conflict narrator |
 | Roster agent | `app/agent/` | Muse Spark runs sick calls, conflicts, leave, swaps and new periods with tools; pauses for nurse replies and charge-nurse approval; fixed-code fallback |

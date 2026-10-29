@@ -5,7 +5,7 @@ may call, in three classes.
   `get_pending_requests`);
 - compute: create runs that are never published by themselves (`rank_replacements`,
   `run_resolve`, `run_full`, `what_if`, `rule_check_swap`, `explain_denied_requests`, `diagnose`,
-  `list_conflict_options`, `apply_option`);
+  `list_conflict_options`, `apply_option`) or compute a read-only what-if (`staffing_check`);
 - action: side effects, all logged (`send_message`, `wait_for_reply`, `request_approval`,
   `escalate`). `wait_for_reply` and `request_approval` pause the task until a person answers.
 
@@ -39,6 +39,7 @@ from app.intake.dates import ward_now
 from app.llm.gateway import LLMGateway
 from app.log.decision_log import DecisionLog
 from app.planner.build_input import day_index, horizon_dates
+from app.planner.staffing import run_check
 from app.solver.input import SolveInput
 from app.solver.rules import rule_check
 from app.store import repo
@@ -323,6 +324,35 @@ def _what_if_in_thread(run_id: str, q: Question) -> Any:
         conn.close()
 
 
+async def staffing_check(
+    ctx: AgentCtx, hires: Any = 0, removed: Any = None, coverage: Any = "target",
+    standby: Any = True,
+) -> dict[str, Any]:  # fmt: skip
+    """6.7: minimum headcount, shortfall and standby shifts for the period under a what-if.
+    Read-only: nothing is stored and the published roster is untouched."""
+    gone = [str(n) for n in (removed or [])]
+    if coverage not in ("target", "floor"):
+        raise ToolError("coverage is 'target' or 'floor'")
+    try:
+        out = await asyncio.to_thread(_staffing_in_thread, ctx.ward.id, int(hires), gone,
+                                      coverage, bool(standby))  # fmt: skip
+    except (ValueError, LookupError) as exc:
+        raise ToolError(str(exc)) from exc
+    return {k: out[k] for k in ("status", "inputs", "shortfall", "headcount", "hires_needed",
+                                "standby_shifts", "short_cells", "used", "caveat")}  # fmt: skip
+
+
+def _staffing_in_thread(
+    ward_id: str, hires: int, removed: list[str], coverage: Any, standby: bool
+) -> dict[str, Any]:
+    conn = connect(get_settings().db_path)
+    try:
+        return run_check(conn, ward_id, hires=hires, removed=removed, coverage=coverage,
+                         standby=standby)  # fmt: skip
+    finally:
+        conn.close()
+
+
 async def rule_check_swap(ctx: AgentCtx, request_id: Any = None) -> dict[str, Any]:
     """Hard rules each nurse would break by taking the other's cell, everyone else fixed."""
     r = _request(ctx, request_id)
@@ -594,6 +624,12 @@ REGISTRY: dict[str, AgentTool] = {
         _t("what_if", ToolClass.COMPUTE, "Impact of granting a pending leave or swap on the "
            "published roster: verdict, reason code, tier deltas, changed cells.", what_if_tool,
            {"request_id": REQ}),
+        _t("staffing_check", ToolClass.COMPUTE, "Read-only what-if for this period: minimum "
+           "headcount, coverage shortfall cells and standby shifts with some nurses out for the "
+           "whole period and/or k hypothetical hires. Numbers are lower bounds.", staffing_check,
+           {"hires": {"type": "integer"}, "removed": {"type": "array", "items": NURSE},
+            "coverage": {"type": "string", "enum": ["target", "floor"]},
+            "standby": {"type": "boolean"}}),
         _t("rule_check_swap", ToolClass.COMPUTE, "Hard rules each nurse in a swap would break.",
            rule_check_swap, {"request_id": REQ}),
         _t("explain_denied_requests", ToolClass.COMPUTE, "Fill and list the reason code of each "
@@ -639,12 +675,12 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     "sick_call": frozenset(SICK),
     "demand_change": frozenset(SICK),
     "conflict": frozenset((*READ_BASE, "diagnose", "list_conflict_options", "apply_option",
-                           "run_resolve", "request_approval", "escalate")),
+                           "staffing_check", "run_resolve", "request_approval", "escalate")),
     "swap": frozenset((*READ_BASE, "get_pending_requests", "rule_check_swap", "what_if",
                        "send_message", "wait_for_reply", "request_approval", "run_resolve",
                        "escalate")),
     "leave": frozenset((*READ_BASE, "get_pending_requests", "get_request_outcome", "what_if",
-                        "request_approval", "run_resolve", "escalate")),
+                        "staffing_check", "request_approval", "run_resolve", "escalate")),
     "new_period": frozenset((*READ_BASE, "get_request_outcome", "run_full",
                              "explain_denied_requests", "request_approval", "escalate")),
 }  # fmt: skip
