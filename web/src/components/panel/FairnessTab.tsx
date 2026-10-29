@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, type FairnessOut } from "../../api/client";
+import QueryState from "../common/QueryState";
 
 const EARLIER = "#86b6ef"; // blue 250 (validated ordinal pair, light end clears 2:1)
 const CURRENT = "#1c5cab"; // blue 550
@@ -58,11 +59,13 @@ function Chart({ f, m }: { f: FairnessOut; m: Measure }) {
 export default function FairnessTab() {
   const f = useQuery({ queryKey: ["fairness"], queryFn: api.fairness });
   const [table, setTable] = useState(false);
-  if (!f.data) return <p className="text-xs text-slate-500">Loading…</p>;
+  const data = f.data;
   return (
-    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-3">
-      <Chart f={f.data} m="nights" />
-      <Chart f={f.data} m="weekends" />
+    <QueryState query={f} label="fairness">
+      {data && (
+        <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-3">
+          <Chart f={data} m="nights" />
+          <Chart f={data} m="weekends" />
       <button onClick={() => setTable((x) => !x)} className="text-[11px] text-indigo-600 hover:underline">
         {table ? "Hide table" : "Show as table"}
       </button>
@@ -77,7 +80,7 @@ export default function FairnessTab() {
             </tr>
           </thead>
           <tbody>
-            {f.data.nurses.map((n) => (
+            {data.nurses.map((n) => (
               <tr key={n.nurse_id} className="border-t border-slate-100">
                 <td>
                   {n.name}
@@ -97,6 +100,8 @@ export default function FairnessTab() {
           </tbody>
         </table>
       )}
-    </div>
+        </div>
+      )}
+    </QueryState>
   );
 }

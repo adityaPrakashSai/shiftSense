@@ -3,6 +3,7 @@
 // plus the nights per day against target so a short night stands out.
 import { useQuery } from "@tanstack/react-query";
 import { api, type Nurse, type VersionOut } from "../../api/client";
+import QueryState from "../common/QueryState";
 
 const CAUSE: Record<string, string> = {
   request: "text-red-700",
@@ -81,17 +82,22 @@ function Version({ v, days, nurses }: { v: VersionOut; days: string[]; nurses: N
 
 export default function VersionsTab({ nurses }: { nurses: Nurse[] }) {
   const v = useQuery({ queryKey: ["versions"], queryFn: api.versions });
-  if (!v.data) return <p className="text-xs text-slate-500">Loading…</p>;
-  if (!v.data.planned) return <p className="text-xs text-slate-500">Nothing published for this period yet.</p>;
+  const data = v.data;
   return (
-    <div className="space-y-3">
-      <p className="text-[11px] text-slate-500">
-        Planned version <span className="font-mono">{v.data.planned.run_id}</span> ({v.data.planned.trigger}) against
-        what changed since.
-      </p>
-      {v.data.versions.map((x) => (
-        <Version key={x.run.run_id} v={x} days={v.data.days} nurses={nurses} />
-      ))}
-    </div>
+    <QueryState query={v} label="versions">
+      {!data ? null : !data.planned ? (
+        <p className="text-xs text-slate-500">Nothing published for this period yet.</p>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-[11px] text-slate-500">
+            Planned version <span className="font-mono">{data.planned.run_id}</span> ({data.planned.trigger}) against
+            what changed since.
+          </p>
+          {data.versions.map((x) => (
+            <Version key={x.run.run_id} v={x} days={data.days} nurses={nurses} />
+          ))}
+        </div>
+      )}
+    </QueryState>
   );
 }

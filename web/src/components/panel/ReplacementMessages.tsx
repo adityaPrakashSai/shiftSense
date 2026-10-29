@@ -2,6 +2,7 @@
 // nurse's answer, so the charge nurse sees "Arun accepted" without leaving Alerts.
 import { useQuery } from "@tanstack/react-query";
 import { api, type Nurse } from "../../api/client";
+import QueryState from "../common/QueryState";
 
 const TONE: Record<string, string> = {
   asked: "bg-sky-100 text-sky-900",
@@ -12,11 +13,14 @@ const TONE: Record<string, string> = {
 export default function ReplacementMessages({ nurses }: { nurses: Nurse[] }) {
   const inbox = useQuery({ queryKey: ["inbox", "all"], queryFn: () => api.inbox() });
   const rows = (inbox.data ?? []).slice(0, 5);
-  if (!rows.length) return null;
+  if (inbox.isPending) return null;
   const name = (id: string) => nurses.find((n) => n.id === id)?.name ?? id;
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-3">
-      <h3 className="mb-1 text-sm font-semibold">Messages to nurses</h3>
+    <QueryState query={inbox} label="messages to nurses">
+      {inbox.data &&
+        (rows.length === 0 ? null : (
+          <section className="rounded-lg border border-slate-200 bg-white p-3">
+            <h3 className="mb-1 text-sm font-semibold">Messages to nurses</h3>
       <ul className="space-y-2">
         {rows.map((m) => (
           <li key={m.id} className="text-xs" data-testid="sent-message">
@@ -31,6 +35,8 @@ export default function ReplacementMessages({ nurses }: { nurses: Nurse[] }) {
           </li>
         ))}
       </ul>
-    </section>
+          </section>
+        ))}
+    </QueryState>
   );
 }

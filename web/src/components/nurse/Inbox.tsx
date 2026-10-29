@@ -2,6 +2,7 @@
 // (07:00-15:00)?", with Accept / Decline. Answering resumes the agent's workflow.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import QueryState from "../common/QueryState";
 import { t, type Lang } from "./i18n";
 
 export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }) {
@@ -13,9 +14,13 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
     onSettled: () => void qc.invalidateQueries({ queryKey: ["inbox"] }),
   });
   const rows = inbox.data ?? [];
-  if (!rows.length) return <p className="p-4 text-center text-sm text-slate-500">{L.inboxEmpty}</p>;
   return (
-    <ul className="space-y-3 p-3">
+    <QueryState query={inbox} label="inbox">
+      {inbox.data &&
+        (rows.length === 0 ? (
+          <p className="p-4 text-center text-sm text-slate-500">{L.inboxEmpty}</p>
+        ) : (
+          <ul className="space-y-3 p-3">
       {rows.map((m) => (
         <li key={m.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm" data-testid="inbox-item">
           <p className="text-sm text-slate-800">{m.text}</p>
@@ -43,6 +48,8 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
           )}
         </li>
       ))}
-    </ul>
+          </ul>
+        ))}
+    </QueryState>
   );
 }

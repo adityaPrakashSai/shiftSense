@@ -4,6 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, type AgentTaskOut, type Nurse, type TraceStep } from "../../api/client";
+import QueryState from "../common/QueryState";
 
 const WORKFLOW: Record<string, string> = {
   sick_call: "Sick call",
@@ -130,14 +131,15 @@ export default function AgentTab({ nurses }: { nurses: Nurse[] }) {
         Muse Spark runs each workflow through planner tools; you approve before anything is published. There is no
         publish tool.
       </p>
-      {rows.map((t) => (
-        <Task key={t.id} t={t} nurses={nurses} now={now} />
-      ))}
-      {rows.length === 0 && (
-        <p className="rounded border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">
-          No agent tasks yet. A confirmed sick call starts one.
-        </p>
-      )}
+      <QueryState query={tasks} label="agent tasks">
+        {tasks.data &&
+          rows.map((t) => <Task key={t.id} t={t} nurses={nurses} now={now} />)}
+        {tasks.data && rows.length === 0 && (
+          <p className="rounded border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">
+            No agent tasks yet. A confirmed sick call starts one.
+          </p>
+        )}
+      </QueryState>
     </div>
   );
 }

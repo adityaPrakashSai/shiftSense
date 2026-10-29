@@ -4,6 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type EventOut } from "../../api/client";
+import QueryState from "../common/QueryState";
 
 const ACTOR_TONE: Record<string, string> = {
   solver: "bg-slate-100 text-slate-700",
@@ -110,8 +111,10 @@ export default function LogTab() {
           </button>
         )}
       </div>
-      {groups.map((g) => (
-        <section key={g.key} className="rounded-lg border border-slate-200 bg-white p-2" data-testid="log-group">
+      <QueryState query={events} label="event log">
+        {events.data &&
+          groups.map((g) => (
+            <section key={g.key} className="rounded-lg border border-slate-200 bg-white p-2" data-testid="log-group">
           <header className="mb-1 space-y-1">
             {g.runId ? (
               <>
@@ -129,9 +132,10 @@ export default function LogTab() {
               <Row key={e.seq} e={e} />
             ))}
           </ol>
-        </section>
-      ))}
-      {groups.length === 0 && <p className="text-xs text-slate-500">No events yet.</p>}
+            </section>
+          ))}
+        {events.data && groups.length === 0 && <p className="text-xs text-slate-500">No events yet.</p>}
+      </QueryState>
     </div>
   );
 }

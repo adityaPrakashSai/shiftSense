@@ -2,6 +2,7 @@
 // Alerts tab (M7) takes over; Approve makes the request hard and starts a solve.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Nurse } from "../../api/client";
+import QueryState from "../common/QueryState";
 
 function fmt(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -19,10 +20,13 @@ export default function PendingApprovals({ nurses }: { nurses: Nurse[] }) {
   const decline = useMutation({ mutationFn: api.reject, onSettled: done });
   const name = (id: string | null | undefined) => nurses.find((n) => n.id === id)?.name ?? id ?? "";
   const rows = pending.data ?? [];
-  if (!rows.length) return null;
+  if (pending.isPending) return null;
   return (
-    <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-      <h2 className="mb-2 text-sm font-semibold text-amber-900">Waiting for your approval</h2>
+    <QueryState query={pending} label="pending approvals">
+      {pending.data &&
+        (rows.length === 0 ? null : (
+          <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <h2 className="mb-2 text-sm font-semibold text-amber-900">Waiting for your approval</h2>
       <ul className="space-y-1.5">
         {rows.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center gap-2 text-sm">
@@ -52,6 +56,8 @@ export default function PendingApprovals({ nurses }: { nurses: Nurse[] }) {
           </li>
         ))}
       </ul>
-    </section>
+          </section>
+        ))}
+    </QueryState>
   );
 }

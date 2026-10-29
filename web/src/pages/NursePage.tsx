@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useWardSocket, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
+import QueryState from "../components/common/QueryState";
 import Chat, { type Suggestion } from "../components/nurse/Chat";
 import Inbox from "../components/nurse/Inbox";
 import { t, type Lang } from "../components/nurse/i18n";
@@ -131,7 +132,11 @@ export function NurseView({
           </div>
         ) : (
           <div className="h-full overflow-y-auto p-3">
-            {roster.data && <MyShifts roster={roster.data} nurseId={nurseId} lang={lang} shiftNames={shiftNames} />}
+            <QueryState query={roster} label="my shifts">
+              {roster.data && (
+                <MyShifts roster={roster.data} nurseId={nurseId} lang={lang} shiftNames={shiftNames} />
+              )}
+            </QueryState>
           </div>
         )}
       </main>
