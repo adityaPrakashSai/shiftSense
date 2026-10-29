@@ -7,6 +7,7 @@ import { api } from "../api/client";
 import { useWardSocket, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
 import Chat from "../components/nurse/Chat";
+import Inbox from "../components/nurse/Inbox";
 import { t, type Lang } from "../components/nurse/i18n";
 import MyShifts from "../components/nurse/MyShifts";
 
@@ -20,7 +21,9 @@ export default function NursePage() {
   const nurse = ward.data?.nurses.find((n) => n.id === nurseId);
   const [langOverride, setLang] = useState<Lang | null>(null);
   const lang: Lang = langOverride ?? (nurse?.language === "en" ? "en" : "hi");
-  const [tab, setTab] = useState<"chat" | "shifts">("chat");
+  const [tab, setTab] = useState<"chat" | "shifts" | "inbox">("chat");
+  const inbox = useQuery({ queryKey: ["inbox", nurseId], queryFn: () => api.inbox(nurseId) });
+  const asks = (inbox.data ?? []).filter((m) => m.status === "asked").length;
   const L = t(lang);
 
   const onMessage = useCallback(
@@ -28,6 +31,7 @@ export default function NursePage() {
       if (m.type === "request_updated" || m.type === "run_finished")
         void qc.invalidateQueries({ queryKey: ["messages", nurseId] });
       if (m.type === "roster_published") void qc.invalidateQueries({ queryKey: ["roster"] });
+      if (m.type === "message_for_nurse") void qc.invalidateQueries({ queryKey: ["inbox"] });
     },
     [qc, nurseId],
   );
@@ -73,13 +77,18 @@ export default function NursePage() {
           </Link>
         </div>
         <nav className="mt-2 flex gap-1">
-          {(["chat", "shifts"] as const).map((k) => (
+          {(["chat", "inbox", "shifts"] as const).map((k) => (
             <button
               key={k}
               onClick={() => setTab(k)}
               className={`flex-1 rounded-md py-1 text-sm font-medium ${tab === k ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"}`}
             >
-              {k === "chat" ? L.chat : L.myShifts}
+              {k === "chat" ? L.chat : k === "inbox" ? L.inbox : L.myShifts}
+              {k === "inbox" && asks > 0 && (
+                <span className="ml-1 rounded-full bg-red-500 px-1.5 text-[10px] text-white" data-testid="inbox-badge">
+                  {asks}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -87,6 +96,10 @@ export default function NursePage() {
       <main className="min-h-0 flex-1">
         {tab === "chat" ? (
           <Chat key={nurseId} nurseId={nurseId} lang={lang} />
+        ) : tab === "inbox" ? (
+          <div className="h-full overflow-y-auto">
+            <Inbox nurseId={nurseId} lang={lang} />
+          </div>
         ) : (
           <div className="h-full overflow-y-auto p-3">
             {roster.data && <MyShifts roster={roster.data} nurseId={nurseId} lang={lang} shiftNames={shiftNames} />}

@@ -22,9 +22,12 @@ jobs:
       - run: make setup
       - run: make test
       - run: make web
+      - run: npx --prefix web playwright install --with-deps chromium
+      - run: make e2e
       # prompt regressions: the intake suite against the committed response cache, no credits
       - run: uv run python -m evals.run --suite intake --mode replay --no-report
       - run: uv run python -m evals.run --suite explain --mode replay --no-report
+      - run: uv run python -m evals.run --suite writer --mode replay --no-report
 
   docker:
     runs-on: ubuntu-latest

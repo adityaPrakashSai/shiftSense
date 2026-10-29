@@ -208,6 +208,48 @@
     }
    }
   },
+  "/api/ward/priorities": {
+   "put": {
+    "tags": [
+     "ward"
+    ],
+    "summary": "Set Priorities",
+    "description": "Reorder the priority tiers (5.3, P1); the next solve uses the new order.",
+    "operationId": "set_priorities_api_ward_priorities_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PrioritiesBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Ward"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/roster": {
    "get": {
     "tags": [
@@ -682,7 +724,7 @@
      "intake"
     ],
     "summary": "Confirm Request",
-    "description": "The sender confirms (7.3 step 7); a full re-solve starts when the roster inputs changed.",
+    "description": "The sender confirms (7.3 step 7); a re-solve starts when the roster inputs changed, and\nthe roster agent takes over the workflow.",
     "operationId": "confirm_request_api_requests__request_id__confirm_post",
     "parameters": [
      {
@@ -768,7 +810,7 @@
      "intake"
     ],
     "summary": "Approve Request",
-    "description": "The charge nurse approves a leave or swap (Q7).",
+    "description": "The charge nurse approves a leave or swap (Q7); a waiting agent task continues with the\nre-solve this starts.",
     "operationId": "approve_request_api_requests__request_id__approve_post",
     "parameters": [
      {
@@ -1244,10 +1286,559 @@
      }
     }
    }
+  },
+  "/api/agent/tasks": {
+   "get": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "List Tasks",
+    "description": "Newest first, with each task's step trace (the Agent tab).",
+    "operationId": "list_tasks_api_agent_tasks_get",
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 20,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/AgentTaskOut"
+         },
+         "title": "Response List Tasks Api Agent Tasks Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agent/tasks/{task_id}": {
+   "get": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Get Task",
+    "operationId": "get_task_api_agent_tasks__task_id__get",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/inbox": {
+   "get": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Inbox",
+    "description": "Messages to nurses (replacement and swap asks), newest first; all nurses when no id.",
+    "operationId": "inbox_api_inbox_get",
+    "parameters": [
+     {
+      "name": "nurse_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Nurse Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/NurseMessageOut"
+         },
+         "title": "Response Inbox Api Inbox Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/inbox/{message_id}/respond": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Respond",
+    "description": "The nurse taps Accept or Decline; the waiting agent task continues (6.5).",
+    "operationId": "respond_api_inbox__message_id__respond_post",
+    "parameters": [
+     {
+      "name": "message_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Message Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RespondBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/NurseMessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/proposals/{run_id}/respond": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Respond Proposal",
+    "description": "The replacement's answer by proposal (10.1): the open ask to that nurse for this run.",
+    "operationId": "respond_proposal_api_proposals__run_id__respond_post",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProposalRespondBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/NurseMessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/fairness": {
+   "get": {
+    "tags": [
+     "insight"
+    ],
+    "summary": "Fairness",
+    "description": "Nights, weekend shifts and denied requests per nurse: earlier published periods (carry-in)\nand the current published roster, with the ward average over regular nurses.",
+    "operationId": "fairness_api_fairness_get",
+    "parameters": [
+     {
+      "name": "nurse_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Nurse Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FairnessOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/versions": {
+   "get": {
+    "tags": [
+     "insight"
+    ],
+    "summary": "Versions",
+    "description": "Planned vs current (6.5c): every cell the current roster and each open proposal change\nagainst the period's planned version, with the cause and the decision behind it.",
+    "operationId": "versions_api_versions_get",
+    "parameters": [
+     {
+      "name": "period_start",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "date"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Period Start"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VersionsOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
   "schemas": {
+   "AgentTaskOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "workflow": {
+      "type": "string",
+      "title": "Workflow"
+     },
+     "trigger_ref": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trigger Ref"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "waiting_on": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Waiting On"
+     },
+     "mode": {
+      "type": "string",
+      "title": "Mode"
+     },
+     "steps": {
+      "type": "integer",
+      "title": "Steps"
+     },
+     "outcome": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Outcome"
+     },
+     "created_at": {
+      "type": "string",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "trace": {
+      "items": {
+       "$ref": "#/components/schemas/TraceStep"
+      },
+      "type": "array",
+      "title": "Trace"
+     },
+     "waiting": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Waiting"
+     },
+     "counters": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Counters"
+     },
+     "fallback_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fallback Reason"
+     },
+     "calls": {
+      "items": {
+       "$ref": "#/components/schemas/ToolCallOut"
+      },
+      "type": "array",
+      "title": "Calls",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "workflow",
+     "trigger_ref",
+     "status",
+     "waiting_on",
+     "mode",
+     "steps",
+     "outcome",
+     "created_at",
+     "updated_at",
+     "trace",
+     "waiting",
+     "counters",
+     "fallback_reason"
+    ],
+    "title": "AgentTaskOut"
+   },
+   "ApprovalAsk": {
+    "properties": {
+     "task_id": {
+      "type": "string",
+      "title": "Task Id"
+     },
+     "workflow": {
+      "type": "string",
+      "title": "Workflow"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "ref": {
+      "type": "string",
+      "title": "Ref"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary"
+     },
+     "claims": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Claims",
+      "default": []
+     },
+     "summary_source": {
+      "type": "string",
+      "title": "Summary Source"
+     }
+    },
+    "type": "object",
+    "required": [
+     "task_id",
+     "workflow",
+     "kind",
+     "ref",
+     "summary",
+     "summary_source"
+    ],
+    "title": "ApprovalAsk"
+   },
    "Blocked": {
     "properties": {
      "nurse": {
@@ -2330,6 +2921,105 @@
     ],
     "title": "ExplainOut"
    },
+   "FairnessOut": {
+    "properties": {
+     "run_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Run Id"
+     },
+     "earlier_periods": {
+      "type": "integer",
+      "title": "Earlier Periods"
+     },
+     "nurses": {
+      "items": {
+       "$ref": "#/components/schemas/FairnessRow"
+      },
+      "type": "array",
+      "title": "Nurses"
+     },
+     "ward_average": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "type": "object",
+      "title": "Ward Average"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run_id",
+     "earlier_periods",
+     "nurses",
+     "ward_average"
+    ],
+    "title": "FairnessOut"
+   },
+   "FairnessRow": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "standby": {
+      "type": "boolean",
+      "title": "Standby"
+     },
+     "earlier_nights": {
+      "type": "integer",
+      "title": "Earlier Nights"
+     },
+     "earlier_weekends": {
+      "type": "integer",
+      "title": "Earlier Weekends"
+     },
+     "earlier_denied": {
+      "type": "integer",
+      "title": "Earlier Denied"
+     },
+     "nights": {
+      "type": "integer",
+      "title": "Nights"
+     },
+     "weekend_shifts": {
+      "type": "integer",
+      "title": "Weekend Shifts"
+     },
+     "total_shifts": {
+      "type": "integer",
+      "title": "Total Shifts"
+     },
+     "requests_denied": {
+      "type": "integer",
+      "title": "Requests Denied"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "name",
+     "standby",
+     "earlier_nights",
+     "earlier_weekends",
+     "earlier_denied",
+     "nights",
+     "weekend_shifts",
+     "total_shifts",
+     "requests_denied"
+    ],
+    "title": "FairnessRow"
+   },
    "Grade": {
     "type": "string",
     "enum": [
@@ -2835,6 +3525,141 @@
     ],
     "title": "Nurse"
    },
+   "NurseMessageOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "run_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Run Id"
+     },
+     "request_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request Id"
+     },
+     "task_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Task Id"
+     },
+     "day": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day"
+     },
+     "shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shift"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "language": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Language"
+     },
+     "source": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "created_at": {
+      "type": "string",
+      "title": "Created At"
+     },
+     "answered_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Answered At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "nurse_id",
+     "kind",
+     "run_id",
+     "request_id",
+     "task_id",
+     "day",
+     "shift",
+     "text",
+     "language",
+     "source",
+     "status",
+     "created_at",
+     "answered_at"
+    ],
+    "title": "NurseMessageOut"
+   },
    "OpenCell": {
     "properties": {
      "nurse": {
@@ -2907,6 +3732,22 @@
      "detail"
     ],
     "title": "Outcome"
+   },
+   "PrioritiesBody": {
+    "properties": {
+     "priorities": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Priorities"
+     }
+    },
+    "type": "object",
+    "required": [
+     "priorities"
+    ],
+    "title": "PrioritiesBody"
    },
    "ProposalOut": {
     "properties": {
@@ -3022,6 +3863,27 @@
        }
       ],
       "title": "Message Draft"
+     },
+     "replacement_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Replacement Status"
+     },
+     "agent": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ApprovalAsk"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -3042,6 +3904,24 @@
      "message_draft"
     ],
     "title": "ProposalOut"
+   },
+   "ProposalRespondBody": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "accept": {
+      "type": "boolean",
+      "title": "Accept"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "accept"
+    ],
+    "title": "ProposalRespondBody"
    },
    "ProviderUsage": {
     "properties": {
@@ -3383,6 +4263,19 @@
      "run_id"
     ],
     "title": "ResolveOut"
+   },
+   "RespondBody": {
+    "properties": {
+     "accept": {
+      "type": "boolean",
+      "title": "Accept"
+     }
+    },
+    "type": "object",
+    "required": [
+     "accept"
+    ],
+    "title": "RespondBody"
    },
    "Role": {
     "type": "string",
@@ -3787,6 +4680,78 @@
     ],
     "title": "ToolCallOut"
    },
+   "TraceStep": {
+    "properties": {
+     "n": {
+      "type": "integer",
+      "title": "N"
+     },
+     "ts": {
+      "type": "string",
+      "title": "Ts"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "mode": {
+      "type": "string",
+      "title": "Mode"
+     },
+     "tool": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tool"
+     },
+     "plan": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plan"
+     },
+     "brief": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Brief"
+     },
+     "call_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Call Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "n",
+     "ts",
+     "kind",
+     "mode"
+    ],
+    "title": "TraceStep"
+   },
    "ValidationError": {
     "properties": {
      "loc": {
@@ -3826,6 +4791,197 @@
      "type"
     ],
     "title": "ValidationError"
+   },
+   "VersionChange": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "from_shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "From Shift"
+     },
+     "to_shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "To Shift"
+     },
+     "cause": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cause"
+     },
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     },
+     "trigger": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trigger"
+     },
+     "request_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request Id"
+     },
+     "approved_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approved By"
+     },
+     "approved_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approved At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "day",
+     "from_shift",
+     "to_shift",
+     "cause",
+     "run_id",
+     "trigger",
+     "request_id",
+     "approved_by",
+     "approved_at"
+    ],
+    "title": "VersionChange"
+   },
+   "VersionOut": {
+    "properties": {
+     "run": {
+      "$ref": "#/components/schemas/RunSummary"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "changes": {
+      "items": {
+       "$ref": "#/components/schemas/VersionChange"
+      },
+      "type": "array",
+      "title": "Changes"
+     },
+     "night_totals": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Night Totals"
+     },
+     "night_targets": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Night Targets"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run",
+     "label",
+     "changes",
+     "night_totals",
+     "night_targets"
+    ],
+    "title": "VersionOut"
+   },
+   "VersionsOut": {
+    "properties": {
+     "period_start": {
+      "type": "string",
+      "format": "date",
+      "title": "Period Start"
+     },
+     "days": {
+      "items": {
+       "type": "string",
+       "format": "date"
+      },
+      "type": "array",
+      "title": "Days"
+     },
+     "planned": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RunSummary"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "versions": {
+      "items": {
+       "$ref": "#/components/schemas/VersionOut"
+      },
+      "type": "array",
+      "title": "Versions"
+     }
+    },
+    "type": "object",
+    "required": [
+     "period_start",
+     "days",
+     "planned",
+     "versions"
+    ],
+    "title": "VersionsOut"
    },
    "Ward": {
     "properties": {

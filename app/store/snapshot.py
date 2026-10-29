@@ -31,7 +31,14 @@ def restore(conn: sqlite3.Connection, path: Path) -> None:
             for r in conn.execute("SELECT name FROM snap.sqlite_master WHERE type = 'table'")
             if r[0] not in KEEP
         ]
+        newer = [
+            r[0]
+            for r in conn.execute("SELECT name FROM main.sqlite_master WHERE type = 'table'")
+            if r[0] not in KEEP and r[0] not in tables
+        ]
         with conn:
+            for t in newer:  # tables added after the snapshot was taken start empty
+                conn.execute(f"DELETE FROM main.{t}")  # noqa: S608 - names from sqlite_master
             for t in tables:
                 # by column name, so a snapshot taken before a column was added still restores
                 main_cols = {r[1] for r in conn.execute(f"PRAGMA main.table_info({t})")}

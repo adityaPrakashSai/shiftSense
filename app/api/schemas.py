@@ -277,6 +277,8 @@ class ProposalOut(BaseModel):
     change_set: list[Change]
     chosen_nurse: str | None
     message_draft: str | None
+    replacement_status: str | None = None  # asked | accepted | declined
+    agent: "ApprovalAsk | None" = None  # the agent task waiting for approval of this proposal
 
 
 class ChooseBody(BaseModel):
@@ -368,3 +370,126 @@ class ResolveOut(BaseModel):
     conflict_id: str
     option_id: str
     run_id: str  # the new run that applies the choice
+
+
+# ---------------------------------------------------------------- roster agent (7.10)
+
+
+class ApprovalAsk(BaseModel):
+    task_id: str
+    workflow: str
+    kind: str  # run | conflict | request
+    ref: str
+    summary: str
+    claims: list[dict[str, Any]] = []
+    summary_source: str  # agent | describe (the agent's claims failed the check)
+
+
+class TraceStep(BaseModel):
+    n: int
+    ts: str
+    kind: str  # tool | wait | resumed | error | fallback | done | escalated
+    mode: str  # agent | fallback
+    tool: str | None = None
+    plan: str | None = None
+    brief: str | None = None
+    call_id: str | None = None
+
+
+class AgentTaskOut(BaseModel):
+    id: str
+    workflow: str
+    trigger_ref: str | None
+    status: str  # running | waiting_reply | waiting_approval | done | escalated | failed
+    waiting_on: str | None
+    mode: str  # agent | fallback
+    steps: int
+    outcome: str | None
+    created_at: str
+    updated_at: str | None
+    trace: list[TraceStep]
+    waiting: dict[str, Any] | None
+    counters: dict[str, int]
+    fallback_reason: str | None
+    calls: list[ToolCallOut] = []
+
+
+class NurseMessageOut(BaseModel):
+    id: str
+    nurse_id: str
+    kind: str  # replacement | swap
+    run_id: str | None
+    request_id: str | None
+    task_id: str | None
+    day: date | None
+    shift: str | None
+    text: str
+    language: str | None
+    source: str | None  # model | template
+    status: str  # asked | accepted | declined | withdrawn
+    created_at: str
+    answered_at: str | None
+
+
+class RespondBody(BaseModel):
+    accept: bool
+
+
+class ProposalRespondBody(BaseModel):
+    nurse_id: str
+    accept: bool
+
+
+class PrioritiesBody(BaseModel):
+    priorities: list[str]
+
+
+class FairnessRow(BaseModel):
+    nurse_id: str
+    name: str
+    standby: bool
+    earlier_nights: int
+    earlier_weekends: int
+    earlier_denied: int
+    nights: int
+    weekend_shifts: int
+    total_shifts: int
+    requests_denied: int
+
+
+class FairnessOut(BaseModel):
+    run_id: str | None
+    earlier_periods: int
+    nurses: list[FairnessRow]
+    ward_average: dict[str, float]  # regular nurses: nights, weekends, ... (earlier + current)
+
+
+class VersionChange(BaseModel):
+    nurse_id: str
+    day: date
+    from_shift: str | None
+    to_shift: str | None
+    cause: str | None  # request | replacement | knock_on | hand_edit
+    run_id: str  # the version that made this change
+    trigger: str | None
+    request_id: str | None
+    approved_by: str | None
+    approved_at: str | None
+
+
+class VersionOut(BaseModel):
+    run: RunSummary
+    label: str  # planned | current | proposal
+    changes: list[VersionChange]  # against the planned version
+    night_totals: list[int]
+    night_targets: list[int]
+
+
+class VersionsOut(BaseModel):
+    period_start: date
+    days: list[date]
+    planned: RunSummary | None
+    versions: list[VersionOut]  # current first, then open proposals
+
+
+ProposalOut.model_rebuild()

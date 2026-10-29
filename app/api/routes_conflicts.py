@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from app.agent.runtime import answers_for_conflict
 from app.api import jobs
 from app.api.deps import Conn, require_ward
 from app.api.errors import ApiError
@@ -61,4 +62,6 @@ async def resolve(conn: Conn, conflict_id: str, body: ResolveBody) -> ResolveOut
         await hub.broadcast(ward.id, {"type": "run_started", "run_id": run_id})
         jobs.spawn_resolve(plan)
     conflicts.link_run(conn, conflict_id, run_id)
+    jobs.agent_answer(ward.id, answers_for_conflict(conn, ward.id, conflict_id, body.option_id,
+                                                    run_id))  # fmt: skip
     return ResolveOut(conflict_id=conflict_id, option_id=body.option_id, run_id=run_id)

@@ -35,6 +35,9 @@ ADDED_COLUMNS = [
     ("explanation", "latency_ms", "INT"),
     ("explanation", "language", "TEXT"),
     ("message", "explanation_id", "TEXT"),
+    ("agent_task", "mode", "TEXT"),
+    ("agent_task", "state_json", "TEXT"),
+    ("agent_task", "outcome", "TEXT"),
 ]
 
 

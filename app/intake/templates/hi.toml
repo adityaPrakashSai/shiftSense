@@ -53,3 +53,12 @@ G = "General"
 [words]
 and = "aur"
 whole_day = "poora din"
+
+[message]
+# Replacement and swap asks (design doc 7.7): the template used when Muse's draft fails a check
+replacement = "Namaste {name}, kya aap {date} ki {shift} duty ({times}) cover kar sakte hain? {why} Kripya Accept ya Decline karein."
+swap = "Namaste {name}, {requester} aapke saath duty swap karna chahte hain: aap unki {theirs} lenge aur woh aapki {mine}. Kripya Accept ya Decline karein."
+reason_standby = "Aap standby par hain, aur aapke aane se kisi aur ki duty nahi badalti."
+reason_no_change = "Aapke aane se kisi aur ki duty nahi badalti."
+reason_changes = "Is vikalp mein sabse kam doosri duties badalti hain ({cells} cells)."
+reason_tie = "Kai nurses barabar the; aapko {tie_break} ke hisaab se chuna gaya."

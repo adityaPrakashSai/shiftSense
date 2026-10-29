@@ -37,3 +37,12 @@ tools), `explain/agent.py` (loop, budgets, both tool modes), `explain/claims.py`
 Conflicts (M9): `solver/diagnose.py` (unsat core over guarded constraints, minimized),
 `planner/conflicts.py` (waivable core, context, template options, float nurse, waivers),
 `explain/narrate.py` (checked summary) and `api/routes_conflicts.py`.
+
+Roster agent (M10): `agent/tools.py` (tool registry in three classes, per-workflow allowlists, no
+publish tool), `agent/loop.py` (resumable Muse Spark tool loop over `agent_task`, budgets,
+guardrails, switch to the fallback), `agent/fallback.py` (the workflows as fixed code, approval
+summaries, trace lines), `agent/runtime.py` (start, resume, match approvals and replies to the
+waiting task), `agent/writer.py` (message writer with post-checks and templates), `agent/mock.py`
+and `agent/env.py`. `api/jobs.py` runs tasks in the background; `api/routes_agent.py` serves the
+Agent tab and the nurse inbox; `api/routes_insight.py` serves Fairness and Versions.
+

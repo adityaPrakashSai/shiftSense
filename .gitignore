@@ -22,6 +22,10 @@ data/*.db
 data/*.db-*
 logs/
 
+# playwright
+web/test-results/
+web/playwright-report/
+
 # os / editors
 .DS_Store
 .idea/

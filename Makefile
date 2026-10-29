@@ -33,8 +33,9 @@ test:
 reference:
 	uv run pytest reference
 
-e2e:
-	@echo "make e2e arrives in M10 (Playwright demo script)"; exit 1
+e2e:  # build the web app, start the API in mock mode, run the Playwright demo script (11.3)
+	npm --prefix web run build
+	cd web && NODE_PATH=$(CURDIR)/web/node_modules npx playwright test
 
 # live intake eval against Baseten (spends credits, at most 3 full runs a day, 9.4);
 # EVAL_ARGS="--mode replay" re-runs it from data/llm_cache.jsonl for free

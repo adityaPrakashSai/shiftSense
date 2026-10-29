@@ -1,0 +1,20 @@
+{"id": "wr-001", "nurse": "N01", "day": "2026-11-03", "shift": "M", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-002", "nurse": "N03", "day": "2026-11-04", "shift": "E", "kind": "replacement", "facts": {"standby": false, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-003", "nurse": "N04", "day": "2026-11-05", "shift": "N", "kind": "replacement", "facts": {"standby": false, "changed_cells": 3, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-004", "nurse": "N06", "day": "2026-11-06", "shift": "M", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1, "tie": true, "tie_break": "fewest shifts this period"}, "tags": ["replacement"]}
+{"id": "wr-005", "nurse": "N07", "day": "2026-11-07", "shift": "E", "kind": "replacement", "facts": {"standby": false, "changed_cells": 2, "rank": 2}, "tags": ["replacement"]}
+{"id": "wr-006", "nurse": "N08", "day": "2026-11-08", "shift": "N", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-007", "nurse": "N10", "day": "2026-11-03", "shift": "M", "kind": "replacement", "facts": {"standby": false, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-008", "nurse": "N11", "day": "2026-11-04", "shift": "E", "kind": "replacement", "facts": {"standby": false, "changed_cells": 3, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-009", "nurse": "N13", "day": "2026-11-05", "shift": "N", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1, "tie": true, "tie_break": "fewest shifts this period"}, "tags": ["replacement"]}
+{"id": "wr-010", "nurse": "N14", "day": "2026-11-06", "shift": "M", "kind": "replacement", "facts": {"standby": false, "changed_cells": 2, "rank": 2}, "tags": ["replacement"]}
+{"id": "wr-011", "nurse": "N15", "day": "2026-11-07", "shift": "E", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-012", "nurse": "N17", "day": "2026-11-08", "shift": "N", "kind": "replacement", "facts": {"standby": false, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-013", "nurse": "N18", "day": "2026-11-03", "shift": "M", "kind": "replacement", "facts": {"standby": false, "changed_cells": 3, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-014", "nurse": "N19", "day": "2026-11-04", "shift": "E", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1, "tie": true, "tie_break": "fewest shifts this period"}, "tags": ["replacement"]}
+{"id": "wr-015", "nurse": "N20", "day": "2026-11-05", "shift": "N", "kind": "replacement", "facts": {"standby": false, "changed_cells": 2, "rank": 2}, "tags": ["replacement"]}
+{"id": "wr-016", "nurse": "S01", "day": "2026-11-06", "shift": "M", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-017", "nurse": "S02", "day": "2026-11-07", "shift": "E", "kind": "replacement", "facts": {"standby": false, "changed_cells": 1, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-018", "nurse": "S04", "day": "2026-11-08", "shift": "N", "kind": "replacement", "facts": {"standby": false, "changed_cells": 3, "rank": 1}, "tags": ["replacement"]}
+{"id": "wr-019", "nurse": "N02", "day": "2026-11-03", "shift": "M", "kind": "replacement", "facts": {"standby": true, "changed_cells": 1, "rank": 1, "tie": true, "tie_break": "fewest shifts this period"}, "tags": ["replacement"]}
+{"id": "wr-020", "nurse": "N05", "day": "2026-11-04", "shift": "E", "kind": "replacement", "facts": {"standby": false, "changed_cells": 2, "rank": 2}, "tags": ["replacement"]}

@@ -716,3 +716,145 @@ def active_waivers(conn: sqlite3.Connection, ward_id: str) -> frozenset[str]:
         if chosen and chosen.get("waive"):
             out.add(str(chosen["waive"]))
     return frozenset(out)
+
+
+def set_proposal_message(
+    conn: sqlite3.Connection, run_id: str, draft: str | None, status: str | None
+) -> None:
+    conn.execute(
+        "UPDATE proposal SET message_draft = ?, replacement_status = ? WHERE run_id = ?",
+        (draft, status, run_id),
+    )
+    conn.commit()
+
+
+def set_replacement_status(conn: sqlite3.Connection, run_id: str, status: str) -> None:
+    conn.execute("UPDATE proposal SET replacement_status = ? WHERE run_id = ?", (status, run_id))
+    conn.commit()
+
+
+# ---------------------------------------------------------------- roster agent (7.10)
+
+
+def insert_agent_task(
+    conn: sqlite3.Connection,
+    task_id: str,
+    *,
+    ward_id: str,
+    workflow: str,
+    trigger_ref: str,
+    state: dict[str, Any],
+) -> None:
+    now = now_iso_ms()
+    conn.execute(
+        "INSERT OR REPLACE INTO agent_task(id, ward_id, workflow, trigger_ref, status, waiting_on, "
+        "messages_json, pending_call_json, steps, created_at, updated_at, mode, state_json, "
+        "outcome) VALUES(?, ?, ?, ?, 'running', NULL, '[]', NULL, 0, ?, ?, 'agent', ?, NULL)",
+        (task_id, ward_id, workflow, trigger_ref, now, now, json.dumps(state, default=str)),
+    )
+    conn.commit()
+
+
+def _task_row(r: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": r["id"],
+        "ward_id": r["ward_id"],
+        "workflow": r["workflow"],
+        "trigger_ref": r["trigger_ref"],
+        "status": r["status"],
+        "waiting_on": r["waiting_on"],
+        "messages": json.loads(r["messages_json"] or "[]"),
+        "pending_call": json.loads(r["pending_call_json"]) if r["pending_call_json"] else None,
+        "steps": r["steps"] or 0,
+        "created_at": r["created_at"],
+        "updated_at": r["updated_at"],
+        "mode": r["mode"] or "agent",
+        "state": json.loads(r["state_json"] or "{}"),
+        "outcome": r["outcome"],
+    }
+
+
+def get_agent_task(conn: sqlite3.Connection, task_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM agent_task WHERE id = ?", (task_id,)).fetchone()
+    return None if row is None else _task_row(row)
+
+
+def list_agent_tasks(
+    conn: sqlite3.Connection, ward_id: str, *, status: str | None = None, limit: int = 50
+) -> list[dict[str, Any]]:
+    """Newest first."""
+    sql, args = "SELECT * FROM agent_task WHERE ward_id = ?", [ward_id]
+    if status is not None:
+        sql += " AND status = ?"
+        args.append(status)
+    rows = conn.execute(sql + " ORDER BY created_at DESC, id DESC LIMIT ?", (*args, limit))
+    return [_task_row(r) for r in rows]
+
+
+def save_agent_task(conn: sqlite3.Connection, task: dict[str, Any]) -> None:
+    conn.execute(
+        "UPDATE agent_task SET status = ?, waiting_on = ?, messages_json = ?, "
+        "pending_call_json = ?, steps = ?, updated_at = ?, mode = ?, state_json = ?, outcome = ? "
+        "WHERE id = ?",
+        (
+            task["status"],
+            task["waiting_on"],
+            json.dumps(task["messages"], ensure_ascii=False, default=str),
+            None if task["pending_call"] is None else json.dumps(task["pending_call"], default=str),
+            task["steps"],
+            now_iso_ms(),
+            task["mode"],
+            json.dumps(task["state"], ensure_ascii=False, default=str),
+            task["outcome"],
+            task["id"],
+        ),
+    )
+    conn.commit()
+
+
+# ---------------------------------------------------------------- nurse inbox (7.7)
+
+
+def next_nurse_message_id(conn: sqlite3.Connection) -> str:
+    (n,) = conn.execute("SELECT COUNT(*) FROM nurse_message").fetchone()
+    return f"NM-{int(n) + 1:04d}"
+
+
+def insert_nurse_message(conn: sqlite3.Connection, row: dict[str, Any]) -> None:
+    cols = ["id", "ward_id", "nurse_id", "kind", "run_id", "request_id", "task_id", "day",
+            "shift", "text", "language", "source", "status", "created_at"]  # fmt: skip
+    vals = [row.get(c) for c in cols]
+    vals[cols.index("created_at")] = row.get("created_at") or now_iso_ms()
+    conn.execute(
+        f"INSERT INTO nurse_message({', '.join(cols)}) VALUES({', '.join('?' * len(cols))})",  # noqa: S608
+        vals,
+    )
+    conn.commit()
+
+
+def get_nurse_message(conn: sqlite3.Connection, message_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM nurse_message WHERE id = ?", (message_id,)).fetchone()
+    return None if row is None else dict(row)
+
+
+def list_nurse_messages(
+    conn: sqlite3.Connection, ward_id: str, *, nurse_id: str | None = None,
+    run_id: str | None = None,
+) -> list[dict[str, Any]]:  # fmt: skip
+    """Newest first."""
+    sql, args = "SELECT * FROM nurse_message WHERE ward_id = ?", [ward_id]
+    if nurse_id is not None:
+        sql += " AND nurse_id = ?"
+        args.append(nurse_id)
+    if run_id is not None:
+        sql += " AND run_id = ?"
+        args.append(run_id)
+    return [dict(r) for r in conn.execute(sql + " ORDER BY created_at DESC, id DESC", args)]
+
+
+def set_nurse_message_status(conn: sqlite3.Connection, message_id: str, status: str) -> None:
+    conn.execute(
+        "UPDATE nurse_message SET status = ?, answered_at = ? WHERE id = ?",
+        (status, now_iso_ms(), message_id),
+    )
+    conn.commit()

@@ -12,6 +12,13 @@ to make a run pass, and never used as few-shot examples (the intake examples liv
 - `explain.jsonl`: 15 why-questions, each on a scripted world (`setups.py`: the mini ward's
   reference baseline, optionally the scenario-A sick call or the scenario-C demand change) with
   the tools it should use, facts it must cite and words it must not say.
+- `writer.jsonl`: 20 replacement asks (nurse, day, shift, the facts behind the choice) for the
+  message writer (7.7); checked for the date, the shift name, length and the health blocklist.
+  `tests/unit/test_agent.py` replays the recorded drafts from the cache.
+- `agent.jsonl` + `agent_eval.py`: 10 roster-agent scenarios on the mini ward (sick call with
+  accept, declines and escalation, a non-top choice, a rejection, a demand change, a conflict, a
+  leave, a swap, a new period), each run by the agent and by the fixed-code fallback with a
+  scripted charge nurse and scripted replies.
 - `score.py`: code-only scoring (no LLM judge) and the summary metrics.
 - `reports/`: one JSON and one markdown file per run.
 

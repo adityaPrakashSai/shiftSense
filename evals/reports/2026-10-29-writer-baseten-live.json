@@ -1,0 +1,310 @@
+{
+ "suite": "writer",
+ "provider": "baseten",
+ "mode": "live",
+ "date": "2026-10-29",
+ "summary": {
+  "cases": 20,
+  "final_pass": "20/20",
+  "model_draft_accepted": "85%",
+  "drafts_with_health_words": 0,
+  "final_with_health_words": 0,
+  "cache_misses": 0,
+  "errors": 0,
+  "by_tag": {}
+ },
+ "cases": [
+  {
+   "id": "wr-001",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Anjali Verma, 3 Nov Tuesday ko Morning shift 07:00-15:00 ke liye replacement chahiye. Aap standby par hain aur isse sirf 1 cell change hoga, rank 1 par hone ki wajah se aapko pucha hai. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-002",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Neha Gupta, 4 Nov ko Evening shift (15:00-23:00) ke liye replacement cover ka request hai. Aap rank 1 par hain aur is change se sirf 1 duty me badlav hoga isliye aapko pucha hai. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-003",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hi Kavya Reddy, can you cover the Night shift on 5 Nov (Thursday) 23:00-07:00? You were ranked 1 for this slot and this option changes 3 cells in the roster. Please tap Accept or Decline. Thanks!",
+   "source": "model",
+   "language": "en",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-004",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Fatima Khan, kya aap 6 Nov Friday Morning shift 07:00-15:00 cover kar sakte hain? Aap standby par hain, tie me fewest shifts this period ke basis par aapko chuna gaya hai. Ye rank 1 option hai jisme sirf 1 duty change hoga. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-005",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Meena Sharma, kya aap 7 Nov Saturday Evening shift 15:00-23:00 cover kar sakte hain? Aap standby par nahi hain phir bhi rank 2 par hone aur sirf 2 duty changes ki wajah se aapse request ki hai. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-006",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Ritu Singh, kya aap 8 Nov Sunday ko Night shift 23:00-07:00 cover kar sakte hain? Aap standby par hain, rank 1 par hain aur isse kisi aur nurse ki duty me koi change nahi hoga. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-007",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hello Asha Kurian, could you cover the Morning shift on 3 Nov (07:00-15:00)? With you on it, no other nurse's duty changes. Please tap Accept or Decline.",
+   "source": "template",
+   "language": "en",
+   "problems": [
+    "ValueError: empty answer"
+   ],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": [
+    "draft: ValueError: empty answer"
+   ]
+  },
+  {
+   "id": "wr-008",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hi Shalini Bose, could you cover the Evening shift on 4 Nov, Wednesday 15:00-23:00? You are rank 1 for this replacement with only 3 changed cells needed. Please tap Accept or Decline. Thank you!",
+   "source": "model",
+   "language": "en",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-009",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Geeta Yadav, kya aap 5 Nov Thursday Night 23:00-07:00 shift cover kar denge? Aap standby par hain aur tie fewest shifts this period se decide hua hai, isliye aap rank 1 par hain. Isse kisi aur nurse ki duty change nahi hogi. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-010",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hi Mercy Joseph, can you cover the Morning shift on 6 Nov (07:00-15:00)? You were asked because this option changes only 2 duties and you are rank 2 for fewest shifts this period. Please tap Accept or Decline. Thanks!",
+   "source": "model",
+   "language": "en",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-011",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Swati Kulkarni, 7 Nov ko Evening shift (15:00-23:00) ke liye replacement chahiye. Aap standby par hain aur isse sirf 1 duty change hogi (rank 1) isliye aapko contact kiya hai. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-012",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Rekha Menon, kya aap 8 Nov Sunday Night shift (23:00-07:00) cover kar sakte hain? Aapko isliye request kiya hai kyunki isse sirf 1 cell change hoga aur aap rank 1 par hain. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-013",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Sneha Patil, kya aap 3 Nov Tuesday ko Morning shift (07:00-15:00) cover kar denge? Aap rank 1 par hain aur is replacement se sirf 3 cells change honge. Kripya Accept ya Decline tap karein. Dhanyavaad.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-014",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Nisha Thakur, 4 Nov Wednesday Evening shift 15:00-23:00 cover ke liye aap standby par hain isliye aapse request hai. Tie hua tha jo fewest shifts this period se decide hua aur aap rank 1 par hain. Isse kisi aur nurse ki duty change nahi hogi. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-015",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hi Bindu Thomas, can you cover the Night shift on 5 Nov (Thursday 23:00-07:00)? You were asked because this option changes only 2 cells and you are rank 2 for this cover. Please tap Accept or Decline. Thanks!",
+   "source": "model",
+   "language": "en",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-016",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Arun Kumar, kya aap 6 Nov Friday ko Morning shift 07:00-15:00 cover kar sakte hain? Aap standby par hain isliye aapko contact kiya hai. Isse kisi aur nurse ki duty change nahi hogi (sirf 1 cell change) aur aap rank 1 par hain. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-017",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Namaste Kiran Das, kya aap 7 Nov Saturday Evening shift (15:00-23:00) cover kar sakte hain? Iske liye sirf 1 duty change hoga aur aap rank 1 par hain, isliye aapse request ki hai. Aap standby par nahi hain. Kripya Accept ya Decline tap karein.",
+   "source": "model",
+   "language": "hi",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "wr-018",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hello Joseph Mathew, could you cover the Night shift on 8 Nov (23:00-07:00)? It is the option that changes the fewest other duties (2 other cells). Please tap Accept or Decline.",
+   "source": "template",
+   "language": "en",
+   "problems": [
+    "ValueError: empty answer"
+   ],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": [
+    "draft: ValueError: empty answer"
+   ]
+  },
+  {
+   "id": "wr-019",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hello Pooja Iyer, could you cover the Morning shift on 3 Nov (07:00-15:00)? Several nurses were equally good; you were picked by fewest shifts this period. Please tap Accept or Decline.",
+   "source": "template",
+   "language": "en",
+   "problems": [
+    "ValueError: empty answer"
+   ],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": [
+    "draft: ValueError: empty answer"
+   ]
+  },
+  {
+   "id": "wr-020",
+   "tags": [
+    "replacement"
+   ],
+   "text": "Hi Priya Nair, could you cover the Evening shift on 4 Nov (Wednesday 15:00-23:00)? You were asked as rank 2 with only 2 changed cells. Please tap Accept or Decline. Thank you!",
+   "source": "model",
+   "language": "en",
+   "problems": [],
+   "draft_health_words": [],
+   "final_problems": [],
+   "pass": true,
+   "reasons": []
+  }
+ ]
+}

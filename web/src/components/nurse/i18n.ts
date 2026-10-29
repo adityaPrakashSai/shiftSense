@@ -28,6 +28,12 @@ const L = {
     } as Record<string, string>,
     granted: "granted in the latest roster",
     denied: "not granted in the latest roster",
+    inbox: "Inbox",
+    inboxEmpty: "No requests to cover a shift.",
+    accept: "Accept",
+    decline: "Decline",
+    accepted: "You accepted. Thank you!",
+    declined: "You declined.",
   },
   hi: {
     myShifts: "Meri shifts",
@@ -54,6 +60,12 @@ const L = {
     } as Record<string, string>,
     granted: "naye roster mein mil gaya",
     denied: "naye roster mein nahi mil paya",
+    inbox: "Inbox",
+    inboxEmpty: "Koi duty cover karne ki request nahi hai.",
+    accept: "Haan, kar lungi",
+    decline: "Nahi kar paungi",
+    accepted: "Aapne accept kiya. Dhanyavaad!",
+    declined: "Aapne mana kiya.",
   },
 };
 

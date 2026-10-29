@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     solver_total_seconds: float = 9.0  # cap on one full solve, so a draft stays under 10 s (G1)
     log_dir: str = "logs"  # per-stage CP-SAT search logs: logs/{run_id}/{tier}.solver.log
     explain_denied: bool = True  # after each solve, find why each denied request was denied (M8)
+    agent_enabled: bool = True  # the roster agent runs sick calls, conflicts, ... (7.10)
 
     def model_for(self, provider: ProviderName) -> str | None:
         return {

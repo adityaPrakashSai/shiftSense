@@ -1,7 +1,7 @@
-// Charge nurse view (design doc 10.3): header with Generate and the live run timer, roster grid
-// with coverage footer and proposal diff highlighting, stage strip, Publish for a draft, and the
-// Alerts panel (approvals, sick-call proposals with ranked replacements). A confirmed nurse
-// request starts a minimal-change re-solve whose proposal shows here live via useWardSocket.
+// Charge nurse view (design doc 10.3): header with Generate, the live run timer and editable
+// priority chips, roster grid with coverage footer and proposal diff highlighting, stage strip,
+// Publish for a draft, and the right panel: Alerts (approvals, proposals with the agent's summary,
+// replacement messages), Ask, Agent (live roster-agent traces), Fairness, Log and Versions.
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -11,10 +11,25 @@ import ModeBadge from "../components/common/ModeBadge";
 import ProviderBadge from "../components/common/ProviderBadge";
 import RunTimer, { type TierTick } from "../components/common/RunTimer";
 import RosterGrid from "../components/roster/RosterGrid";
+import AgentTab from "../components/panel/AgentTab";
 import AlertsTab from "../components/panel/AlertsTab";
 import AskTab, { type AskPrefill } from "../components/panel/AskTab";
+import FairnessTab from "../components/panel/FairnessTab";
+import LogTab from "../components/panel/LogTab";
+import VersionsTab from "../components/panel/VersionsTab";
+import Priorities from "../components/common/Priorities";
 import CellPanel from "../components/roster/CellPanel";
 import StageStrip from "../components/roster/StageStrip";
+
+type Tab = "alerts" | "ask" | "agent" | "fairness" | "log" | "versions";
+const TABS: [Tab, string][] = [
+  ["alerts", "Alerts"],
+  ["ask", "Ask"],
+  ["agent", "Agent"],
+  ["fairness", "Fairness"],
+  ["log", "Log"],
+  ["versions", "Versions"],
+];
 
 type Timer = {
   runId: string | null;
@@ -51,7 +66,7 @@ export default function ChargePage() {
   const [viewRunId, setViewRunId] = useState<string | null>(null); // null = published
   const [solving, setSolving] = useState<string | null>(null);
   const [timer, setTimer] = useState<Timer>(IDLE);
-  const [tab, setTab] = useState<"alerts" | "ask">("alerts");
+  const [tab, setTab] = useState<Tab>("alerts");
   const [cell, setCell] = useState<Cell | null>(null);
   const [prefill, setPrefill] = useState<AskPrefill | null>(null);
 
@@ -89,12 +104,21 @@ export default function ChargePage() {
         void qc.invalidateQueries({ queryKey: ["roster", m.run_id] });
       }
       if (m.type === "request_updated") void qc.invalidateQueries({ queryKey: ["requests"] });
+      if (m.type === "agent_updated") {
+        void qc.invalidateQueries({ queryKey: ["agent"] });
+        void qc.invalidateQueries({ queryKey: ["proposals"] });
+      }
+      if (m.type === "message_for_nurse") void qc.invalidateQueries({ queryKey: ["inbox"] });
+      if (m.type === "ward_updated") void qc.invalidateQueries({ queryKey: ["ward"] });
       if (m.type === "roster_published") {
         setViewRunId(null);
         void qc.invalidateQueries({ queryKey: ["proposals"] });
         void qc.invalidateQueries({ queryKey: ["roster"] });
         void qc.invalidateQueries({ queryKey: ["run"] });
+        void qc.invalidateQueries({ queryKey: ["fairness"] });
+        void qc.invalidateQueries({ queryKey: ["versions"] });
       }
+      if (m.type === "run_finished") void qc.invalidateQueries({ queryKey: ["versions"] });
     },
     [qc],
   );
@@ -181,14 +205,7 @@ export default function ChargePage() {
             </button>
           </div>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-500">Priorities</span>
-          {(ward.data?.priorities ?? []).map((p, i) => (
-            <span key={p} className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">
-              {i + 1}. {p}
-            </span>
-          ))}
-        </div>
+        {ward.data && <Priorities priorities={ward.data.priorities ?? []} />}
       </header>
 
       <div className="flex items-start gap-4 px-6 py-4">
@@ -267,16 +284,16 @@ export default function ChargePage() {
             }}
           />
         )}
-        <nav className="mb-2 flex gap-1">
-          {(["alerts", "ask"] as const).map((k) => (
+        <nav className="mb-2 flex flex-wrap gap-1">
+          {TABS.map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`rounded-md px-3 py-1 text-sm font-medium ${
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
                 tab === k ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
-              {k === "alerts" ? "Alerts" : "Ask"}
+              {label}
             </button>
           ))}
         </nav>
@@ -294,6 +311,10 @@ export default function ChargePage() {
         <div className={tab === "ask" ? "" : "hidden"}>
           <AskTab runId={run?.run_id ?? null} prefill={prefill} />
         </div>
+        {tab === "agent" && ward.data && <AgentTab nurses={ward.data.nurses} />}
+        {tab === "fairness" && <FairnessTab />}
+        {tab === "log" && <LogTab />}
+        {tab === "versions" && ward.data && <VersionsTab nurses={ward.data.nurses} />}
       </aside>
       </div>
     </div>

@@ -15,6 +15,7 @@ Writes `evals/reports/{date}-{suite}-{provider}.json` and a markdown table besid
 import argparse
 import asyncio
 import json
+import os
 import sys
 import tempfile
 from datetime import date, datetime
@@ -27,6 +28,7 @@ from app.llm.gateway import LLMGateway
 from app.store import repo
 from app.store.db import connect, open_db
 from app.store.seed import seed_db
+from evals.agent_eval import summarize_agent
 from evals.score import score_case, score_explain, summarize, summarize_explain
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -181,6 +183,103 @@ async def run_explain(
     return list(rows)
 
 
+def _settings(provider: str, mode: str, db: Path, max_usd: float) -> Any:
+    return get_settings().model_copy(
+        update={
+            "llm_mode": mode,
+            "db_path": str(db),
+            "llm_provider_default": provider if provider != "mock" else "baseten",
+            "llm_provider_explain": None,
+            "llm_provider_message": None,
+            "llm_spend_cap_usd": max_usd,
+        }
+    )
+
+
+def _export(mode: str, db: Path) -> None:
+    if mode == "live":
+        conn = connect(db)
+        n = cache.export_jsonl(conn, CACHE_FILE)
+        conn.close()
+        print(f"cache: {n} entries in {CACHE_FILE.relative_to(ROOT)}")
+
+
+async def run_writer(
+    cases: list[dict[str, Any]], *, provider: str, mode: str, max_usd: float, workers: int, db: Path
+) -> list[dict[str, Any]]:
+    """Message writer (7.7): each case drafts one ask on the default seed ward."""
+    from app.agent.writer import check, write
+    from app.explain.narrate import health_words
+
+    conn = open_db(db)
+    seed_db(conn, "default", solve=False)
+    cache.import_jsonl(conn, CACHE_FILE)
+    ward = repo.get_ward(conn)
+    conn.close()
+    assert ward is not None
+    gw = LLMGateway(_settings(provider, mode, db, max_usd))
+    sem = asyncio.Semaphore(workers)
+
+    async def one(case: dict[str, Any]) -> dict[str, Any]:
+        async with sem:
+            w = await write(ward, nurse_id=case["nurse"], day=date.fromisoformat(case["day"]),
+                            shift=case["shift"], kind=case["kind"], facts=case["facts"],
+                            gateway=gw)  # fmt: skip
+            final = check(w.text, w.context)
+            leaked = health_words(w.draft)
+            row = {"id": case["id"], "tags": case["tags"], "text": w.text, "source": w.source,
+                   "language": w.language, "problems": w.problems, "draft_health_words": leaked,
+                   "final_problems": final, "pass": not final,
+                   "reasons": final + [f"draft: {p}" for p in w.problems]}  # fmt: skip
+            print(f"{'PASS' if row['pass'] else 'FAIL'} {case['id']} {w.source:8} {w.text[:90]}")
+            return row
+
+    rows = list(await asyncio.gather(*(one(c) for c in cases)))
+    _export(mode, db)
+    return rows
+
+
+def summarize_writer(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    n = len(rows) or 1
+    return {
+        "cases": len(rows),
+        "final_pass": f"{sum(r['pass'] for r in rows)}/{len(rows)}",
+        "model_draft_accepted": f"{100 * sum(r['source'] == 'model' for r in rows) / n:.0f}%",
+        "drafts_with_health_words": sum(1 for r in rows if r["draft_health_words"]),
+        "final_with_health_words": sum(
+            1 for r in rows if any("health" in p for p in r["final_problems"])
+        ),
+        "cache_misses": sum(1 for r in rows if any("CacheMiss" in p for p in r["problems"])),
+        "errors": sum(1 for r in rows if not r["pass"]),
+        "by_tag": {},
+    }
+
+
+async def run_agent(
+    cases: list[dict[str, Any]], *, provider: str, mode: str, max_usd: float, workers: int, db: Path
+) -> list[dict[str, Any]]:
+    """Roster agent (7.10): every scenario by the agent, then by the deterministic fallback."""
+    from evals.agent_eval import run_agent_suite
+
+    saved = {k: os.environ.get(k) for k in ("DEMO_NOW", "DB_PATH")}
+    conn = open_db(db)
+    cache.import_jsonl(conn, CACHE_FILE)
+    conn.close()
+    gw = LLMGateway(_settings(provider, mode, db, max_usd))
+    try:
+        rows = await run_agent_suite(cases, gateway=gw, tmp=db.parent,
+                                     modes=("agent", "fallback"))  # fmt: skip
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        get_settings.cache_clear()
+    _export(mode, db)
+    return rows
+
+
 def markdown(suite: str, provider: str, mode: str, summary: dict[str, Any], rows: list[Any]) -> str:
     keys = [k for k in summary if k != "by_tag"]
     lines = [
@@ -216,7 +315,7 @@ def compare_table(results: dict[str, dict[str, Any]]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run a fixed eval suite.")
-    ap.add_argument("--suite", default="intake", choices=["intake", "explain"])
+    ap.add_argument("--suite", default="intake", choices=["intake", "explain", "writer", "agent"])
     ap.add_argument("--provider", default="baseten", choices=["baseten", "meta", "modal", "mock"])
     ap.add_argument("--mode", default="live", choices=["live", "replay", "mock"])
     ap.add_argument("--limit", type=int)
@@ -232,13 +331,19 @@ def main(argv: list[str] | None = None) -> int:
     errors = 0
     for prov in providers:
         mode = "mock" if prov == "mock" else a.mode
-        runner = run_explain if a.suite == "explain" else run_intake
+        runner = {"explain": run_explain, "writer": run_writer, "agent": run_agent}.get(
+            a.suite, run_intake
+        )
         with tempfile.TemporaryDirectory() as tmp:
             rows = asyncio.run(
                 runner(cases, provider=prov, mode=mode, max_usd=a.max_usd,
                        workers=a.workers, db=Path(tmp) / "eval.db")
             )  # fmt: skip
-        summary = summarize_explain(rows) if a.suite == "explain" else summarize(rows)
+        summary = {
+            "explain": summarize_explain,
+            "writer": summarize_writer,
+            "agent": summarize_agent,
+        }.get(a.suite, summarize)(rows)
         summaries[prov] = summary
         errors += summary["errors"]
         print(json.dumps({k: v for k, v in summary.items()}, indent=1, ensure_ascii=False))

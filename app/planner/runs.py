@@ -253,9 +253,11 @@ def resolve_input(
     *,
     affected: Iterable[date] = (),
     now: datetime | None = None,
+    extra_unavailable: Iterable[tuple[str, int, str | None]] = (),
 ) -> tuple[Ward, SolveInput, dict[str, Any], list[Request], datetime]:
     """6.2 steps 1-3 without writing anything: (ward, input with previous / frozen point /
-    waivers, published run, active requests, now)."""
+    waivers, published run, active requests, now). `extra_unavailable` holds cells a declined
+    replacement cannot take (6.5): hard for this re-solve only, never stored as a request."""
     ward = repo.get_ward(conn, ward_id)
     if ward is None:
         raise LookupError("no ward in the database")
@@ -278,7 +280,7 @@ def resolve_input(
         previous=previous,
         frozen_before_day=point,
         frozen_cells=cells,
-        unavailable=inp.unavailable | blocked,
+        unavailable=inp.unavailable | blocked | frozenset(extra_unavailable),
     )
     return ward, inp, published, active, now
 
@@ -292,10 +294,13 @@ def start_resolve(
     request_id: str | None = None,
     now: datetime | None = None,
     log: DecisionLog | None = None,
+    extra_unavailable: Iterable[tuple[str, int, str | None]] = (),
 ) -> ResolvePlan:
     """6.2 steps 1-3 (`resolve_input`), then insert the run (status `solving`) and log
     `run.started`."""
-    ward, inp, published, active, now = resolve_input(conn, ward_id, affected=affected, now=now)
+    ward, inp, published, active, now = resolve_input(
+        conn, ward_id, affected=affected, now=now, extra_unavailable=extra_unavailable
+    )
     point = inp.frozen_before_day
     old = SolveInput.from_json(published["input_json"]) if published["input_json"] else None
     log = log or DecisionLog(conn, ward.id)

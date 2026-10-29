@@ -5,9 +5,11 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from app.agent.runtime import answers_for_published
 from app.api import jobs
 from app.api.deps import Conn, require_ward
 from app.api.errors import ApiError
+from app.api.routes_agent import approval_for_run
 from app.api.routes_intake import request_out
 from app.api.routes_runs import change_set_rows
 from app.api.schemas import ChooseBody, ProposalOut, RunSummary
@@ -42,6 +44,8 @@ def proposal_out(conn: sqlite3.Connection, p: dict[str, Any]) -> ProposalOut:
             "change_set": change_set_rows(conn, p["run_id"]),
             "chosen_nurse": p["chosen_nurse"],
             "message_draft": p["message_draft"],
+            "replacement_status": p["replacement_status"],
+            "agent": approval_for_run(conn, str(run["ward_id"]), p["run_id"]),
         }
     )
 
@@ -82,6 +86,7 @@ async def choose(conn: Conn, run_id: str, body: ChooseBody) -> RunSummary:
     async with jobs.ward_lock(ward_id):
         publish(conn, target, by="charge", log=jobs.live_log(conn, ward_id))
     await hub.broadcast(ward_id, {"type": "roster_published", "run_id": target})
+    jobs.agent_answer(ward_id, answers_for_published(conn, ward_id, target))
     published = repo.get_run(conn, target)
     assert published is not None
     return RunSummary.model_validate(run_summary(published))

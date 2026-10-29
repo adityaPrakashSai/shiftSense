@@ -74,9 +74,19 @@ CREATE TABLE IF NOT EXISTS agent_task(  -- roster agent (7.10)
   status TEXT,                -- running | waiting_reply | waiting_approval | done | escalated | failed
   waiting_on TEXT,            -- nurse id or "charge"
   messages_json TEXT,         -- full chat + tool history, so a resume continues the same plan
-  pending_call_json TEXT, steps INT, created_at TEXT, updated_at TEXT);
+  pending_call_json TEXT, steps INT, created_at TEXT, updated_at TEXT,
+  mode TEXT,                  -- agent | fallback (7.10 deterministic fallback)
+  state_json TEXT,            -- counters, step trace, results by call id, waiting details
+  outcome TEXT);              -- one line: what the task ended with
+CREATE TABLE IF NOT EXISTS nurse_message(  -- replacement asks and swap asks (7.7), nurse inbox
+  id TEXT PRIMARY KEY, ward_id TEXT, nurse_id TEXT, kind TEXT,   -- replacement | swap
+  run_id TEXT, request_id TEXT, task_id TEXT, day TEXT, shift TEXT,
+  text TEXT, language TEXT, source TEXT,                         -- model | template
+  status TEXT,                -- asked | accepted | declined | withdrawn
+  created_at TEXT, answered_at TEXT);
 
 CREATE INDEX IF NOT EXISTS ix_assignment_day ON assignment(run_id, day, shift);
 CREATE INDEX IF NOT EXISTS ix_event_run ON event(run_id, seq);
 CREATE INDEX IF NOT EXISTS ix_request_ward ON request(ward_id, nurse_id, status);
 CREATE INDEX IF NOT EXISTS ix_llm_call_ts ON llm_call(ts);
+CREATE INDEX IF NOT EXISTS ix_nurse_message ON nurse_message(ward_id, nurse_id, status);

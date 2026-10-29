@@ -20,8 +20,17 @@ from app.llm.types import LLMError, LLMRequest, Role
 from app.log.decision_log import DecisionLog
 from app.store import repo
 
-HEALTH = ["fever", "bukhar", "sick", "bimar", "ill", "illness", "symptom", "hospitalised",
-          "pregnan", "injur", "medical", "doctor", "health"]  # fmt: skip
+HEALTH = ["fever", "bukhar", "sick", "bimar", "beemar", "ill", "illness", "unwell", "symptom",
+          "temperature", "tabiyat", "hospitalised", "pregnan", "injur", "medical", "doctor",
+          "health", "बुखार", "बीमार", "तबीयत"]  # fmt: skip
+
+
+def health_words(text: str) -> list[str]:
+    """Blocklisted words in `text`: whole words, or substrings for words longer than 4 letters
+    (so "ill" does not match "will")."""
+    low = text.lower()
+    words = set(low.replace(",", " ").replace(".", " ").replace("?", " ").replace("!", " ").split())
+    return [w for w in HEALTH if w in words or (len(w) > 4 and w in low)]
 
 
 class NarrOption(BaseModel):
@@ -64,7 +73,7 @@ def validate(n: Narrative, conflict: dict[str, Any]) -> list[str]:
     text = " ".join([n.summary, *(o.label for o in n.options)]).lower()
     if not n.summary.strip() or any(not o.label.strip() for o in n.options):
         problems.append("empty text")
-    bad = [w for w in HEALTH if w in text.split() or (len(w) > 4 and w in text)]
+    bad = health_words(text)
     if bad:
         problems.append(f"health words {bad}")
     return problems

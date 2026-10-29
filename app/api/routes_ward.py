@@ -6,9 +6,11 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Query
 
+from app.api import jobs
 from app.api.deps import Conn, require_run, require_ward
 from app.api.errors import ApiError
-from app.api.schemas import RosterOut
+from app.api.schemas import PrioritiesBody, RosterOut
+from app.api.ws import hub
 from app.config import get_settings
 from app.domain.models import Ward
 from app.planner.roster_view import roster_cells, run_summary
@@ -20,6 +22,22 @@ router = APIRouter(prefix="/api", tags=["ward"])
 @router.get("/ward", response_model=Ward)
 def get_ward(conn: Conn) -> Ward:
     return require_ward(conn)
+
+
+@router.put("/ward/priorities", response_model=Ward)
+async def set_priorities(conn: Conn, body: PrioritiesBody) -> Ward:
+    """Reorder the priority tiers (5.3, P1); the next solve uses the new order."""
+    ward = require_ward(conn)
+    if sorted(body.priorities) != sorted(ward.priorities):
+        raise ApiError(422, "BAD_PRIORITIES",
+                       f"Give the tiers {sorted(ward.priorities)} in a new order.")  # fmt: skip
+    before = list(ward.priorities)
+    ward.priorities = list(body.priorities)
+    repo.save_ward(conn, ward)
+    jobs.live_log(conn, ward.id).emit("ward.priorities", "user:charge", None, None,
+                                      before=before, after=ward.priorities)  # fmt: skip
+    await hub.broadcast(ward.id, {"type": "ward_updated"})
+    return ward
 
 
 def ward_today(tz: str) -> date:

@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, status
 
+from app.agent.runtime import answers_for_published
 from app.api import jobs
 from app.api.deps import Conn, require_run, require_ward
 from app.api.errors import ApiError
@@ -25,6 +26,7 @@ async def create_run(conn: Conn, body: CreateRun | None = None) -> RunAccepted:
     prep = start_full(conn, ward.id, trigger="generate", log=jobs.live_log(conn, ward.id))
     await hub.broadcast(ward.id, {"type": "run_started", "run_id": prep.run_id})
     jobs.spawn(prep)
+    jobs.agent_start(ward.id, "new_period", prefetch=prep.run_id, run_id=prep.run_id)
     return RunAccepted(run_id=prep.run_id)
 
 
@@ -74,9 +76,11 @@ async def publish_run(conn: Conn, run_id: str, body: PublishBody | None = None) 
     if run["status"] != RunStatus.PROPOSED.value:
         raise ApiError(409, "RUN_NOT_PROPOSED", f"Run {run_id} is {run['status']}, not proposed.")
     by = (body or PublishBody()).by
-    async with jobs.ward_lock(str(run["ward_id"])):
-        publish(conn, run_id, by=by, log=jobs.live_log(conn, str(run["ward_id"])))
-    await hub.broadcast(str(run["ward_id"]), {"type": "roster_published", "run_id": run_id})
+    ward_id = str(run["ward_id"])
+    async with jobs.ward_lock(ward_id):
+        publish(conn, run_id, by=by, log=jobs.live_log(conn, ward_id))
+    await hub.broadcast(ward_id, {"type": "roster_published", "run_id": run_id})
+    jobs.agent_answer(ward_id, answers_for_published(conn, ward_id, run_id))
     return RunSummary.model_validate(run_summary(require_run(conn, run_id)))
 
 

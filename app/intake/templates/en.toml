@@ -53,3 +53,12 @@ G = "General"
 [words]
 and = "and"
 whole_day = "whole day"
+
+[message]
+# Replacement and swap asks (design doc 7.7): the template used when Muse's draft fails a check
+replacement = "Hello {name}, could you cover the {shift} shift on {date} ({times})? {why} Please tap Accept or Decline."
+swap = "Hello {name}, {requester} would like to swap: you take their {theirs} and they take your {mine}. Please tap Accept or Decline."
+reason_standby = "You are on standby, and with you on it no other nurse's duty changes."
+reason_no_change = "With you on it, no other nurse's duty changes."
+reason_changes = "It is the option that changes the fewest other duties ({cells} other cells)."
+reason_tie = "Several nurses were equally good; you were picked by {tie_break}."

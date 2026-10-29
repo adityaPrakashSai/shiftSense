@@ -1,7 +1,8 @@
 // Proposal card (design doc 10.3, 6.4): the open cell, ranked candidates with tier deltas and
 // changed cells, excluded nurses with the rule that blocks each, Approve / choose another.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type Candidate, type Nurse, type ProposalOut } from "../../api/client";
+import { api, type Candidate, type ClaimOut, type Nurse, type ProposalOut } from "../../api/client";
+import ClaimChip from "./ClaimChip";
 import { ruleLabels } from "./rules";
 
 const SHIFT = { M: "Morning", E: "Evening", N: "Night", G: "General" } as Record<string, string>;
@@ -71,6 +72,24 @@ export default function ProposalCard({
           {viewing === p.run_id ? "On grid" : "Show"}
         </button>
       </header>
+
+      {p.agent && (
+        <div className="mt-2 rounded bg-indigo-50 px-2 py-1.5 text-xs text-indigo-950" data-testid="agent-summary">
+          <p>
+            <span className="font-semibold">Muse agent:</span> {p.agent.summary}
+          </p>
+          {p.agent.claims.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {p.agent.claims.map((c, i) => (
+                <ClaimChip key={i} claim={c as ClaimOut} />
+              ))}
+            </div>
+          )}
+          {p.agent.summary_source === "describe" && (
+            <p className="mt-0.5 text-[10px] text-indigo-700">model summary withheld: unverified claims</p>
+          )}
+        </div>
+      )}
 
       {p.coverage_worse && (
         <p className="mt-2 rounded bg-red-50 px-2 py-1 text-xs text-red-800">

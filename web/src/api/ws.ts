@@ -14,6 +14,8 @@ export type WardMessage =
   | { type: "proposal_created"; run_id: string; request_id: string | null }
   | { type: "message_for_nurse"; nurse_id: string }
   | { type: "conflict_created"; conflict_id: string; run_id: string }
+  | { type: "agent_updated"; task_id: string }
+  | { type: "ward_updated" }
   | { type: "event"; seq: number };
 
 export type SocketMode = "connecting" | "live" | "polling";
@@ -43,6 +45,24 @@ function nudgeFor(e: EventOut): WardMessage | null {
     }
     case "candidates.ranked":
       return e.run_id ? { type: "proposal_created", run_id: e.run_id, request_id: null } : null;
+    case "agent.started":
+    case "agent.step":
+    case "agent.waiting":
+    case "agent.resumed":
+    case "agent.fallback":
+    case "agent.escalated":
+    case "agent.done": {
+      const id = (e.payload as { task_id?: string }).task_id;
+      return id ? { type: "agent_updated", task_id: id } : null;
+    }
+    case "message.drafted":
+    case "replacement.accepted":
+    case "replacement.declined": {
+      const p = e.payload as { nurse?: string };
+      return p.nurse ? { type: "message_for_nurse", nurse_id: p.nurse } : null;
+    }
+    case "ward.priorities":
+      return { type: "ward_updated" };
     case "request.confirmed":
     case "request.rejected":
     case "request.approved": {

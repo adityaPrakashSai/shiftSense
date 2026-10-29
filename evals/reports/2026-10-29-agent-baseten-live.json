@@ -1,0 +1,409 @@
+{
+ "suite": "agent",
+ "provider": "baseten",
+ "mode": "live",
+ "date": "2026-10-29",
+ "summary": {
+  "agent_success": "10/10",
+  "agent_tool_calls_per_success": 3.8,
+  "agent_forbidden_attempts": 0,
+  "agent_approvals_respected": "100%",
+  "agent_escalation_correct": "10/10",
+  "fallback_success": "10/10",
+  "fallback_tool_calls_per_success": 3.7,
+  "fallback_forbidden_attempts": 0,
+  "fallback_approvals_respected": "100%",
+  "fallback_escalation_correct": "10/10",
+  "agent_fell_back": 0,
+  "agent_model_turns": 64,
+  "agent_model_s": 84.7,
+  "errors": 0,
+  "by_tag": {}
+ },
+ "cases": [
+  {
+   "id": "ag-01",
+   "tags": [
+    "sick_call"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 5,
+    "model_ms": 8946,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "Arun Kumar accepted",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "Arun Kumar accepted",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-02",
+   "tags": [
+    "sick_call",
+    "decline"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 5,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 9,
+    "model_ms": 6409,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "Ritu Singh accepted",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 5,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "Ritu Singh accepted",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-03",
+   "tags": [
+    "sick_call",
+    "escalation"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": true,
+    "escalation_ok": true,
+    "tool_calls": 8,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 13,
+    "model_ms": 7393,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "Three ranked replacements declined: Arun Kumar (S01, standby), Ritu Singh (N05), and Kavya Reddy (N04) for Morning shift on 2026-11-03. No further candidates available without escalation.",
+    "status": "escalated"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": true,
+    "escalation_ok": true,
+    "tool_calls": 8,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "3 nurses declined the shift: S01, N05, N04",
+    "status": "escalated"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-04",
+   "tags": [
+    "sick_call",
+    "choose"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 5,
+    "model_ms": 5472,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "Ritu Singh accepted",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "Ritu Singh accepted",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-05",
+   "tags": [
+    "sick_call",
+    "approval"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 2,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 3,
+    "model_ms": 1729,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "rejected by the charge nurse",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 2,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "rejected by the charge nurse",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-06",
+   "tags": [
+    "demand_change"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 6,
+    "model_ms": 10113,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "Arun Kumar accepted",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "Arun Kumar accepted",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-07",
+   "tags": [
+    "conflict"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 5,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 7,
+    "model_ms": 14765,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 4,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-08",
+   "tags": [
+    "leave"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 2,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 5,
+    "model_ms": 8781,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 2,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-09",
+   "tags": [
+    "swap"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 4,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 7,
+    "model_ms": 11504,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 4,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  },
+  {
+   "id": "ag-10",
+   "tags": [
+    "new_period"
+   ],
+   "agent": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 4,
+    "model_ms": 9577,
+    "fell_back": false,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "fallback": {
+    "pass": true,
+    "reasons": [],
+    "escalated": false,
+    "escalation_ok": true,
+    "tool_calls": 3,
+    "forbidden": 0,
+    "respected": true,
+    "model_turns": 0,
+    "model_ms": 0,
+    "fell_back": true,
+    "fallback_reason": null,
+    "outcome": "published by the charge nurse",
+    "status": "done"
+   },
+   "pass": true,
+   "reasons": []
+  }
+ ]
+}

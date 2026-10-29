@@ -26,6 +26,15 @@ export type ClaimOut = S["ClaimOut"];
 export type ToolCallOut = S["ToolCallOut"];
 export type ExplainBody = S["ExplainBody"];
 export type ConflictOut = S["ConflictOut"];
+export type AgentTaskOut = S["AgentTaskOut"];
+export type TraceStep = S["TraceStep"];
+export type ApprovalAsk = S["ApprovalAsk"];
+export type NurseMessageOut = S["NurseMessageOut"];
+export type FairnessOut = S["FairnessOut"];
+export type FairnessRow = S["FairnessRow"];
+export type VersionsOut = S["VersionsOut"];
+export type VersionOut = S["VersionOut"];
+export type VersionChange = S["VersionChange"];
 
 export class ApiError extends Error {
   constructor(
@@ -103,6 +112,18 @@ export const api = {
       `/api/evidence/cell${qs({ run_id: runId, nurse_id: nurseId, day })}`,
     ),
   proposal: (runId: string) => request<ProposalOut>(`/api/proposals/${runId}`),
+  agentTasks: () => request<AgentTaskOut[]>("/api/agent/tasks"),
+  agentTask: (id: string) => request<AgentTaskOut>(`/api/agent/tasks/${id}`),
+  inbox: (nurseId?: string) => request<NurseMessageOut[]>(`/api/inbox${qs({ nurse_id: nurseId })}`),
+  respond: (messageId: string, accept: boolean) =>
+    request<NurseMessageOut>(`/api/inbox/${messageId}/respond`, {
+      method: "POST",
+      body: JSON.stringify({ accept }),
+    }),
+  fairness: () => request<FairnessOut>("/api/fairness"),
+  versions: () => request<VersionsOut>("/api/versions"),
+  setPriorities: (priorities: string[]) =>
+    request<Ward>("/api/ward/priorities", { method: "PUT", body: JSON.stringify({ priorities }) }),
   choose: (runId: string, nurseId: string | null) =>
     request<RunSummary>(`/api/proposals/${runId}/choose`, {
       method: "POST",

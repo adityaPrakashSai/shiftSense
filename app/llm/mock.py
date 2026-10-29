@@ -5,7 +5,8 @@ the UI shows a MOCK MODE badge while it is active.
 - Intake: a small rule-based parser (sick words, aaj / kal / parson, weekday names, shift words)
   that emits a valid ConstraintEdit; anything else gets a clarification.
 - Narrate / message: template text. Explain: `app/explain/mock.py` calls the real tools and
-  answers from `describe()` templates, so the grounding check passes.
+  answers from `describe()` templates, so the grounding check passes. Agent: `app/agent/mock.py`
+  follows the fixed-code workflow, so mock mode runs the agent path end to end.
 - Fixtures: tests/fixtures/mock/*.json pin exact responses by cache key, for tests that need odd
   outputs (malformed JSON, a wrong claim) to exercise repair and grounding paths.
 
@@ -423,10 +424,14 @@ class MockProvider:
                     if isinstance(o, dict)
                 ],
             }
-        elif req.role in (Role.EXPLAIN, Role.AGENT):
+        elif req.role is Role.EXPLAIN:
             from app.explain.mock import respond  # the explainer imports llm; import lazily
 
             return respond(req)
+        elif req.role is Role.AGENT:
+            from app.agent.mock import respond as agent_respond
+
+            return agent_respond(req)
         else:
             body = {"text": "mock"}
         return ProviderResult(text=json.dumps(body, ensure_ascii=False))

@@ -3,9 +3,10 @@
     uv run python -m scripts.cache_prune [--dry-run]
 
 An entry is live when every system message it was asked with (stored as a sha256) is one the
-app would send today: the intake prompt with its examples, the schema prompt, the explain prompt,
-or the JSON tool-protocol prompt. Editing a prompt changes its hash, so the old answers can never
-be hit again (the cache key includes the prompt version); this keeps the committed file small.
+app would send today: the intake prompt with its examples, the schema prompts, the explain,
+narrate, message and agent prompts, or the JSON tool-protocol prompts. Editing a prompt changes
+its hash, so the old answers can never be hit again (the cache key includes the prompt version);
+this keeps the committed file small.
 """
 
 import argparse
@@ -13,8 +14,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from app.agent.tools import ALLOWLIST, specs
+from app.agent.writer import Draft
 from app.domain.edits import constraint_edit_schema
 from app.explain.agent import prompt
+from app.explain.narrate import Narrative
 from app.explain.tools import SPECS
 from app.intake.pipeline import system_prompt
 from app.llm.jsonproto import schema_prompt, tools_prompt
@@ -32,6 +36,12 @@ def current() -> set[str]:
         sha(schema_prompt(constraint_edit_schema())),
         sha(prompt("explain")),
         sha(tools_prompt(SPECS)),
+        sha(prompt("narrate")),
+        sha(schema_prompt(Narrative.model_json_schema())),
+        sha(prompt("message")),
+        sha(schema_prompt(Draft.model_json_schema())),
+        sha(prompt("agent")),
+        *(sha(tools_prompt(specs(wf))) for wf in ALLOWLIST),
     }
 
 

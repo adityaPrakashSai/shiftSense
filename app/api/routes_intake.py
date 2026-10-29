@@ -7,6 +7,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, File, Form, UploadFile
 
+from app.agent.runtime import answers_for_request, workflow_for
 from app.api import jobs
 from app.api.deps import Conn, require_ward
 from app.api.errors import ApiError
@@ -145,19 +146,48 @@ def _ref_dates(conn: sqlite3.Connection, request_id: str) -> list[date]:
     return [] if r is None else list(r.dates)
 
 
+def start_agent(conn: sqlite3.Connection, ward: Ward, out: RequestAction) -> str | None:
+    """The roster agent takes over a confirmed sick call, demand change, leave or swap (7.10).
+    The re-solve the confirm already started is handed over, so ranking runs while Muse thinks."""
+    if repo.get_published_run(conn, ward.id) is None:
+        return None
+    for r in sorted(out.requests, key=lambda x: x.id != out.request.id):
+        req = repo.get_request(conn, r.id)
+        wf = None if req is None else workflow_for(req)
+        if req is None or wf is None:
+            continue
+        prefetch = out.run_id if wf in ("sick_call", "demand_change") else None
+        return jobs.agent_start(ward.id, wf, prefetch=prefetch, request_id=req.id,
+                                counterpart=req.counterpart_id)  # fmt: skip
+    return None
+
+
 @router.post("/requests/{request_id}/confirm", response_model=RequestAction)
 async def confirm_request(conn: Conn, request_id: str) -> RequestAction:
-    """The sender confirms (7.3 step 7); a full re-solve starts when the roster inputs changed."""
-    return await _act(conn, require_ward(conn), request_id, lifecycle.confirm)
+    """The sender confirms (7.3 step 7); a re-solve starts when the roster inputs changed, and
+    the roster agent takes over the workflow."""
+    ward = require_ward(conn)
+    out = await _act(conn, ward, request_id, lifecycle.confirm)
+    start_agent(conn, ward, out)
+    return out
 
 
 @router.post("/requests/{request_id}/reject", response_model=RequestAction)
 async def reject_request(conn: Conn, request_id: str) -> RequestAction:
     """The parse was wrong (sender), or the charge nurse declines a leave or swap."""
-    return await _act(conn, require_ward(conn), request_id, lifecycle.reject)
+    ward = require_ward(conn)
+    before = repo.get_request(conn, request_id)
+    out = await _act(conn, ward, request_id, lifecycle.reject)
+    if before is not None and before.status is RequestStatus.PENDING_APPROVAL:
+        jobs.agent_answer(ward.id, answers_for_request(conn, ward.id, request_id, False, None))
+    return out
 
 
 @router.post("/requests/{request_id}/approve", response_model=RequestAction)
 async def approve_request(conn: Conn, request_id: str) -> RequestAction:
-    """The charge nurse approves a leave or swap (Q7)."""
-    return await _act(conn, require_ward(conn), request_id, lifecycle.approve)
+    """The charge nurse approves a leave or swap (Q7); a waiting agent task continues with the
+    re-solve this starts."""
+    ward = require_ward(conn)
+    out = await _act(conn, ward, request_id, lifecycle.approve)
+    jobs.agent_answer(ward.id, answers_for_request(conn, ward.id, request_id, True, out.run_id))
+    return out

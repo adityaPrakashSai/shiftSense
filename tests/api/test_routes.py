@@ -16,6 +16,9 @@ from app.store.db import connect
 @pytest.fixture
 def client(db_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setenv("SEED", "mini")
+    # these tests read the event stream around one solve; the new-period agent (M10) would add
+    # its own events concurrently, so it is off here and tested in test_agent.py
+    monkeypatch.setenv("AGENT_ENABLED", "false")
     with TestClient(app) as c:
         yield c
 

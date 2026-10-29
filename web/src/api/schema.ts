@@ -95,6 +95,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ward/priorities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Priorities
+         * @description Reorder the priority tiers (5.3, P1); the next solve uses the new order.
+         */
+        put: operations["set_priorities_api_ward_priorities_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roster": {
         parameters: {
             query?: never;
@@ -258,7 +278,8 @@ export interface paths {
         put?: never;
         /**
          * Confirm Request
-         * @description The sender confirms (7.3 step 7); a full re-solve starts when the roster inputs changed.
+         * @description The sender confirms (7.3 step 7); a re-solve starts when the roster inputs changed, and
+         *     the roster agent takes over the workflow.
          */
         post: operations["confirm_request_api_requests__request_id__confirm_post"];
         delete?: never;
@@ -298,7 +319,8 @@ export interface paths {
         put?: never;
         /**
          * Approve Request
-         * @description The charge nurse approves a leave or swap (Q7).
+         * @description The charge nurse approves a leave or swap (Q7); a waiting agent task continues with the
+         *     re-solve this starts.
          */
         post: operations["approve_request_api_requests__request_id__approve_post"];
         delete?: never;
@@ -476,10 +498,211 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tasks
+         * @description Newest first, with each task's step trace (the Agent tab).
+         */
+        get: operations["list_tasks_api_agent_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Task */
+        get: operations["get_task_api_agent_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inbox
+         * @description Messages to nurses (replacement and swap asks), newest first; all nurses when no id.
+         */
+        get: operations["inbox_api_inbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inbox/{message_id}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Respond
+         * @description The nurse taps Accept or Decline; the waiting agent task continues (6.5).
+         */
+        post: operations["respond_api_inbox__message_id__respond_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/proposals/{run_id}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Respond Proposal
+         * @description The replacement's answer by proposal (10.1): the open ask to that nurse for this run.
+         */
+        post: operations["respond_proposal_api_proposals__run_id__respond_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fairness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fairness
+         * @description Nights, weekend shifts and denied requests per nurse: earlier published periods (carry-in)
+         *     and the current published roster, with the ward average over regular nurses.
+         */
+        get: operations["fairness_api_fairness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Versions
+         * @description Planned vs current (6.5c): every cell the current roster and each open proposal change
+         *     against the period's planned version, with the cause and the decision behind it.
+         */
+        get: operations["versions_api_versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentTaskOut */
+        AgentTaskOut: {
+            /** Id */
+            id: string;
+            /** Workflow */
+            workflow: string;
+            /** Trigger Ref */
+            trigger_ref: string | null;
+            /** Status */
+            status: string;
+            /** Waiting On */
+            waiting_on: string | null;
+            /** Mode */
+            mode: string;
+            /** Steps */
+            steps: number;
+            /** Outcome */
+            outcome: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string | null;
+            /** Trace */
+            trace: components["schemas"]["TraceStep"][];
+            /** Waiting */
+            waiting: {
+                [key: string]: unknown;
+            } | null;
+            /** Counters */
+            counters: {
+                [key: string]: number;
+            };
+            /** Fallback Reason */
+            fallback_reason: string | null;
+            /**
+             * Calls
+             * @default []
+             */
+            calls: components["schemas"]["ToolCallOut"][];
+        };
+        /** ApprovalAsk */
+        ApprovalAsk: {
+            /** Task Id */
+            task_id: string;
+            /** Workflow */
+            workflow: string;
+            /** Kind */
+            kind: string;
+            /** Ref */
+            ref: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Claims
+             * @default []
+             */
+            claims: {
+                [key: string]: unknown;
+            }[];
+            /** Summary Source */
+            summary_source: string;
+        };
         /** Blocked */
         Blocked: {
             /** Nurse */
@@ -832,6 +1055,42 @@ export interface components {
             /** Latency Ms */
             latency_ms?: number | null;
         };
+        /** FairnessOut */
+        FairnessOut: {
+            /** Run Id */
+            run_id: string | null;
+            /** Earlier Periods */
+            earlier_periods: number;
+            /** Nurses */
+            nurses: components["schemas"]["FairnessRow"][];
+            /** Ward Average */
+            ward_average: {
+                [key: string]: number;
+            };
+        };
+        /** FairnessRow */
+        FairnessRow: {
+            /** Nurse Id */
+            nurse_id: string;
+            /** Name */
+            name: string;
+            /** Standby */
+            standby: boolean;
+            /** Earlier Nights */
+            earlier_nights: number;
+            /** Earlier Weekends */
+            earlier_weekends: number;
+            /** Earlier Denied */
+            earlier_denied: number;
+            /** Nights */
+            nights: number;
+            /** Weekend Shifts */
+            weekend_shifts: number;
+            /** Total Shifts */
+            total_shifts: number;
+            /** Requests Denied */
+            requests_denied: number;
+        };
         /**
          * Grade
          * @enum {string}
@@ -1020,6 +1279,37 @@ export interface components {
              */
             language: string;
         };
+        /** NurseMessageOut */
+        NurseMessageOut: {
+            /** Id */
+            id: string;
+            /** Nurse Id */
+            nurse_id: string;
+            /** Kind */
+            kind: string;
+            /** Run Id */
+            run_id: string | null;
+            /** Request Id */
+            request_id: string | null;
+            /** Task Id */
+            task_id: string | null;
+            /** Day */
+            day: string | null;
+            /** Shift */
+            shift: string | null;
+            /** Text */
+            text: string;
+            /** Language */
+            language: string | null;
+            /** Source */
+            source: string | null;
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: string;
+            /** Answered At */
+            answered_at: string | null;
+        };
         /** OpenCell */
         OpenCell: {
             /** Nurse */
@@ -1042,6 +1332,11 @@ export interface components {
             reason_code: string | null;
             /** Detail */
             detail: string | null;
+        };
+        /** PrioritiesBody */
+        PrioritiesBody: {
+            /** Priorities */
+            priorities: string[];
         };
         /** ProposalOut */
         ProposalOut: {
@@ -1074,6 +1369,16 @@ export interface components {
             chosen_nurse: string | null;
             /** Message Draft */
             message_draft: string | null;
+            /** Replacement Status */
+            replacement_status?: string | null;
+            agent?: components["schemas"]["ApprovalAsk"] | null;
+        };
+        /** ProposalRespondBody */
+        ProposalRespondBody: {
+            /** Nurse Id */
+            nurse_id: string;
+            /** Accept */
+            accept: boolean;
         };
         /** ProviderUsage */
         ProviderUsage: {
@@ -1180,6 +1485,11 @@ export interface components {
             option_id: string;
             /** Run Id */
             run_id: string;
+        };
+        /** RespondBody */
+        RespondBody: {
+            /** Accept */
+            accept: boolean;
         };
         /**
          * Role
@@ -1312,6 +1622,25 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** TraceStep */
+        TraceStep: {
+            /** N */
+            n: number;
+            /** Ts */
+            ts: string;
+            /** Kind */
+            kind: string;
+            /** Mode */
+            mode: string;
+            /** Tool */
+            tool?: string | null;
+            /** Plan */
+            plan?: string | null;
+            /** Brief */
+            brief?: string | null;
+            /** Call Id */
+            call_id?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1324,6 +1653,57 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VersionChange */
+        VersionChange: {
+            /** Nurse Id */
+            nurse_id: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** From Shift */
+            from_shift: string | null;
+            /** To Shift */
+            to_shift: string | null;
+            /** Cause */
+            cause: string | null;
+            /** Run Id */
+            run_id: string;
+            /** Trigger */
+            trigger: string | null;
+            /** Request Id */
+            request_id: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Approved At */
+            approved_at: string | null;
+        };
+        /** VersionOut */
+        VersionOut: {
+            run: components["schemas"]["RunSummary"];
+            /** Label */
+            label: string;
+            /** Changes */
+            changes: components["schemas"]["VersionChange"][];
+            /** Night Totals */
+            night_totals: number[];
+            /** Night Targets */
+            night_targets: number[];
+        };
+        /** VersionsOut */
+        VersionsOut: {
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Days */
+            days: string[];
+            planned: components["schemas"]["RunSummary"] | null;
+            /** Versions */
+            versions: components["schemas"]["VersionOut"][];
         };
         /** Ward */
         Ward: {
@@ -1533,6 +1913,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Ward"];
+                };
+            };
+        };
+    };
+    set_priorities_api_ward_priorities_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrioritiesBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ward"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2190,6 +2603,232 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResolveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tasks_api_agent_tasks_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_task_api_agent_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inbox_api_inbox_get: {
+        parameters: {
+            query?: {
+                nurse_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NurseMessageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    respond_api_inbox__message_id__respond_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RespondBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NurseMessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    respond_proposal_api_proposals__run_id__respond_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalRespondBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NurseMessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fairness_api_fairness_get: {
+        parameters: {
+            query?: {
+                nurse_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FairnessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    versions_api_versions_get: {
+        parameters: {
+            query?: {
+                period_start?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionsOut"];
                 };
             };
             /** @description Validation Error */
