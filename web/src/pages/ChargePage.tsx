@@ -185,6 +185,8 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
   const run = roster.data?.run;
   const isDraft = run?.status === "proposed";
   const noRoster = roster.error instanceof ApiError && roster.error.status === 404;
+  // the legend explains the diff styling, so it shows exactly when styled cells do
+  const hasDiff = roster.data?.grid.some((c) => c.changed) ?? false;
 
   return (
     <div className={`${embedded ? "" : "min-h-screen"} bg-slate-50 text-slate-800`}>
@@ -279,11 +281,16 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
             onCell={(c) => setCell((cur) => (cur && cur.nurse_id === c.nurse_id && cur.day === c.day ? null : c))}
           />
         )}
-        <p className="text-[11px] text-slate-500">
-          In a proposal: <span className="text-red-600 line-through">M</span> removed by the request,{" "}
-          <span className="rounded px-1 ring-2 ring-inset ring-emerald-500">M</span> replacement,{" "}
-          <span className="rounded px-1 ring-2 ring-inset ring-amber-500">M</span> other change.
-        </p>
+        {hasDiff && (
+          <p className="text-[11px] text-slate-500">
+            In a proposal: <span className="text-red-600 line-through">M</span> removed by the request,{" "}
+            <span className="rounded px-1 ring-2 ring-inset ring-emerald-500">M</span> replacement,{" "}
+            <span className="rounded px-1 outline outline-2 outline-dashed outline-amber-500 -outline-offset-2">
+              M
+            </span>{" "}
+            other change.
+          </p>
+        )}
       </main>
       <aside
         className={`shrink-0 ${embedded ? "order-first w-full lg:sticky lg:top-4 lg:order-none lg:w-[340px]" : "sticky top-4 w-[380px]"}`}

@@ -14,10 +14,10 @@ export function cellStyle(c: CellT): string {
 }
 
 // proposal diff (6.3): the cell the request removed is struck through in red, the replacement is
-// outlined green, any other change amber
+// outlined green, any other change dashed amber (an outline, so it cannot clash with borders)
 const CAUSE_RING: Record<string, string> = {
   replacement: "ring-2 ring-inset ring-emerald-500",
-  knock_on: "ring-2 ring-inset ring-amber-500",
+  knock_on: "outline outline-2 outline-dashed outline-amber-500 -outline-offset-2",
   request: "ring-2 ring-inset ring-red-400",
 };
 
