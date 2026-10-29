@@ -16,6 +16,7 @@ import argparse
 import asyncio
 import json
 import os
+import sqlite3
 import sys
 import tempfile
 from datetime import date, datetime
@@ -66,7 +67,7 @@ async def run_intake(
     )
     conn = open_db(db)
     seed_db(conn, "default", solve=False)
-    cache.import_jsonl(conn, CACHE_FILE)
+    _load_cache(conn)
     ward = repo.get_ward(conn)
     conn.close()
     assert ward is not None
@@ -112,11 +113,7 @@ async def run_intake(
             return row
 
     rows = await asyncio.gather(*(one(c) for c in cases))
-    if mode == "live":
-        conn = connect(db)
-        n = cache.export_jsonl(conn, CACHE_FILE)
-        conn.close()
-        print(f"cache: {n} entries in {CACHE_FILE.relative_to(ROOT)}")
+    _export(mode, db)
     return list(rows)
 
 
@@ -138,7 +135,7 @@ async def run_explain(
         }
     )
     conn = open_db(db)
-    cache.import_jsonl(conn, CACHE_FILE)
+    _load_cache(conn)
     conn.close()
     gw = LLMGateway(s)
     sem = asyncio.Semaphore(workers)
@@ -178,11 +175,7 @@ async def run_explain(
             return row
 
     rows = await asyncio.gather(*(one(c) for c in cases))
-    if mode == "live":
-        conn = connect(db)
-        n = cache.export_jsonl(conn, CACHE_FILE)
-        conn.close()
-        print(f"cache: {n} entries in {CACHE_FILE.relative_to(ROOT)}")
+    _export(mode, db)
     return list(rows)
 
 
@@ -199,12 +192,54 @@ def _settings(provider: str, mode: str, db: Path, max_usd: float) -> Any:
     )
 
 
+FRESH = False  # --fresh: start without the committed cache, so every call is live and timed
+
+
+def _load_cache(conn: sqlite3.Connection) -> None:
+    if not FRESH:
+        cache.import_jsonl(conn, CACHE_FILE)
+
+
 def _export(mode: str, db: Path) -> None:
+    """Live runs add their answers to the committed cache. A fresh run never replaces an entry
+    already there: the scripted demo replays a chain of agent turns, and a new answer to one turn
+    changes every later prompt (found in M13, when a fresh agent eval broke the demo's replay)."""
     if mode == "live":
         conn = connect(db)
+        if FRESH:  # drop this run's answers to keys the committed file already has
+            committed = [json.loads(x)["cache_key"] for x in CACHE_FILE.open(encoding="utf-8")]
+            conn.executemany("DELETE FROM llm_cache WHERE cache_key = ?", [(k,) for k in committed])
+            conn.commit()
+        cache.import_jsonl(conn, CACHE_FILE)
         n = cache.export_jsonl(conn, CACHE_FILE)
         conn.close()
         print(f"cache: {n} entries in {CACHE_FILE.relative_to(ROOT)}")
+
+
+def call_stats(db: Path) -> dict[str, Any]:
+    """Per role, from the gateway's llm_call log: calls, live (uncached) calls, and latency,
+    cost and tokens per live call. A run served from the cache has no live latency to report."""
+    conn = connect(db)
+    rows = conn.execute(
+        "SELECT role, cache_hit, ok, latency_ms, cost_usd, prompt_tokens, completion_tokens "
+        "FROM llm_call"
+    ).fetchall()
+    conn.close()
+    out: dict[str, Any] = {}
+    for role in sorted({r[0] for r in rows}):
+        mine = [r for r in rows if r[0] == role]
+        live = [r for r in mine if not r[1] and r[2]]
+        lat = sorted(r[3] for r in live)
+        out[f"{role}_calls"] = f"{len(live)} live / {len(mine)}"
+        if live:
+            out[f"{role}_latency_p50_ms"] = lat[len(lat) // 2]
+            out[f"{role}_latency_p95_ms"] = lat[min(len(lat) - 1, round(0.95 * (len(lat) - 1)))]
+            out[f"{role}_cost_usd_per_call"] = round(sum(r[4] for r in live) / len(live), 5)
+            out[f"{role}_tokens_per_call"] = (
+                f"{round(sum(r[5] for r in live) / len(live))} in / "
+                f"{round(sum(r[6] for r in live) / len(live))} out"
+            )
+    return out
 
 
 async def run_writer(
@@ -216,7 +251,7 @@ async def run_writer(
 
     conn = open_db(db)
     seed_db(conn, "default", solve=False)
-    cache.import_jsonl(conn, CACHE_FILE)
+    _load_cache(conn)
     ward = repo.get_ward(conn)
     conn.close()
     assert ward is not None
@@ -266,7 +301,7 @@ async def run_agent(
 
     saved = {k: os.environ.get(k) for k in ("DEMO_NOW", "DB_PATH")}
     conn = open_db(db)
-    cache.import_jsonl(conn, CACHE_FILE)
+    _load_cache(conn)
     conn.close()
     gw = LLMGateway(_settings(provider, mode, db, max_usd))
     try:
@@ -288,7 +323,7 @@ async def run_vision_suite(
 ) -> list[dict[str, Any]]:
     """Roster photo reading (7.8): each sheet image read into a grid and scored per cell."""
     conn = open_db(db)
-    cache.import_jsonl(conn, CACHE_FILE)
+    _load_cache(conn)
     conn.close()
     s = _settings(provider, mode, db, max_usd).model_copy(update={"llm_provider_vision": None})
     rows = await run_vision(cases, gateway=LLMGateway(s), db=db, workers=workers)
@@ -339,10 +374,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit", type=int)
     ap.add_argument("--ids", help="comma-separated case ids")
     ap.add_argument("--max-usd", type=float, default=2.0, help="spend cap for this run (9.4)")
-    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--workers", type=int, help="cases at once (default 4; explain 1)")
     ap.add_argument("--compare", help="comma-separated providers, e.g. baseten,meta")
     ap.add_argument("--no-report", action="store_true")
+    ap.add_argument("--fresh", action="store_true",
+                    help="ignore the committed cache; every call is live and timed")  # fmt: skip
     a = ap.parse_args(argv)
+    global FRESH
+    FRESH = a.fresh
+    # the explainer's 20 s budget includes CP-SAT counterfactuals on this machine; parallel cases
+    # starve each other's solves and hit it, so explain runs one question at a time, as in the app
+    workers = a.workers or (1 if a.suite == "explain" else 4)
     cases = load(a.suite, a.limit, a.ids.split(",") if a.ids else None)
     providers = a.compare.split(",") if a.compare else [a.provider]
     summaries: dict[str, dict[str, Any]] = {}
@@ -354,14 +396,16 @@ def main(argv: list[str] | None = None) -> int:
         with tempfile.TemporaryDirectory() as tmp:
             rows = asyncio.run(
                 runner(cases, provider=prov, mode=mode, max_usd=a.max_usd,
-                       workers=a.workers, db=Path(tmp) / "eval.db")
+                       workers=workers, db=Path(tmp) / "eval.db")
             )  # fmt: skip
+            calls = call_stats(Path(tmp) / "eval.db")
         summary = {
             "explain": summarize_explain,
             "writer": summarize_writer,
             "agent": summarize_agent,
             "vision": summarize_vision,
         }.get(a.suite, summarize)(rows)
+        summary = {**summary, **calls, "fresh": FRESH}
         summaries[prov] = summary
         errors += summary["errors"]
         print(json.dumps({k: v for k, v in summary.items()}, indent=1, ensure_ascii=False))

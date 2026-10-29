@@ -25,6 +25,12 @@ to make a run pass, and never used as few-shot examples (the intake examples liv
   `scripts/render_sheets.mjs`. Scored per cell after the app's own name mapping, plus the printed
   totals. A photo of a handwritten copy saved as `vision/photo-<sheet>.jpg` is scored against the
   same labels: `--suite vision`.
+- `sickcall_stats.py`: 20 random sick calls on the default ward, each re-solved with and without
+  the stability tier (changed cells, solve time, proven rate); no model is called.
+- `summary.py`: one table from the latest live report per suite and provider
+  (`reports/summary.md`; `--readme` updates the README's eval table).
+- `--fresh` on `run.py`: start without the committed cache so every call is live; each report then
+  carries per-call latency (p50/p95), cost and tokens by role, from the gateway's call log.
 - `score.py`: code-only scoring (no LLM judge) and the summary metrics.
 - `reports/`: one JSON and one markdown file per run.
 

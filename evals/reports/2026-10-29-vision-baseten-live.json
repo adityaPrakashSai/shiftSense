@@ -5,15 +5,21 @@
  "date": "2026-10-29",
  "summary": {
   "photos": 5,
-  "cell_accuracy": "97.4%",
-  "cells": "1697/1742",
+  "cell_accuracy": "98.2%",
+  "cells": "1710/1742",
   "unreadable_cells": 0,
   "totals_accuracy": "mini-a:100% mini-b:100% mini-c:100% month-a:100% month-b:100%",
-  "photos_passed": "4/5 (>= 95%)",
-  "errors": 1,
+  "photos_passed": "5/5 (>= 95%)",
+  "errors": 0,
   "by_tag": {
-   "rendered": "1697/1742 cells"
-  }
+   "rendered": "1710/1742 cells"
+  },
+  "vision_calls": "5 live / 5",
+  "vision_latency_p50_ms": 15966,
+  "vision_latency_p95_ms": 57336,
+  "vision_cost_usd_per_call": 0.02221,
+  "vision_tokens_per_call": "2935 in / 10371 out",
+  "fresh": true
  },
  "cases": [
   {
@@ -90,8 +96,8 @@
    "tiles": 1,
    "cache_hits": 0,
    "cells": 682,
-   "cells_right": 680,
-   "accuracy": 0.9971,
+   "cells_right": 679,
+   "accuracy": 0.9956,
    "unreadable": 0,
    "rows_found": 22,
    "rows_expected": 22,
@@ -99,12 +105,14 @@
    "checksum_flags": 2,
    "flagged_names": 2,
    "wrong": [
+    "N01 d18: D/O read N/O",
     "N01 d30: M read N/O",
     "N08 d10: D/O read N"
    ],
    "pass": true,
    "reasons": [
-    "accuracy 99.7%",
+    "accuracy 99.6%",
+    "N01 d18: D/O read N/O",
     "N01 d30: M read N/O",
     "N08 d10: D/O read N"
    ]
@@ -117,43 +125,43 @@
    "tiles": 1,
    "cache_hits": 0,
    "cells": 682,
-   "cells_right": 639,
-   "accuracy": 0.937,
+   "cells_right": 653,
+   "accuracy": 0.9575,
    "unreadable": 0,
    "rows_found": 22,
    "rows_expected": 22,
    "totals_accuracy": 1.0,
-   "checksum_flags": 38,
+   "checksum_flags": 31,
    "flagged_names": 2,
    "wrong": [
+    "N01 d16: D/O read N/O",
     "N01 d17: D/O read E",
     "N01 d18: D/O read E",
+    "N01 d19: L:RH read M",
+    "N01 d20: L:CL read M",
+    "N01 d21: L:CL read D/O",
+    "N01 d22: N read M",
+    "N01 d23: N read M",
+    "N01 d25: N/O read E",
     "N02 d24: D/O read N",
     "N02 d30: D/O read M",
-    "N03 d27: M read E",
-    "N03 d28: D/O read M",
-    "N05 d13: D/O read E",
-    "N05 d14: E read N",
-    "N05 d15: D/O read N",
-    "N05 d16: M read N",
-    "N05 d17: D/O read N",
-    "N05 d18: M read N/O"
+    "N05 d13: D/O read E"
    ],
-   "pass": false,
+   "pass": true,
    "reasons": [
-    "accuracy 93.7%",
+    "accuracy 95.8%",
+    "N01 d16: D/O read N/O",
     "N01 d17: D/O read E",
     "N01 d18: D/O read E",
+    "N01 d19: L:RH read M",
+    "N01 d20: L:CL read M",
+    "N01 d21: L:CL read D/O",
+    "N01 d22: N read M",
+    "N01 d23: N read M",
+    "N01 d25: N/O read E",
     "N02 d24: D/O read N",
     "N02 d30: D/O read M",
-    "N03 d27: M read E",
-    "N03 d28: D/O read M",
-    "N05 d13: D/O read E",
-    "N05 d14: E read N",
-    "N05 d15: D/O read N",
-    "N05 d16: M read N",
-    "N05 d17: D/O read N",
-    "N05 d18: M read N/O"
+    "N05 d13: D/O read E"
    ]
   }
  ]

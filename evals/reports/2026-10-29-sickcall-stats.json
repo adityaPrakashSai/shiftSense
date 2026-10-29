@@ -1,0 +1,243 @@
+{
+ "summary": {
+  "ward": "default",
+  "sick_calls": 20,
+  "solved": "20/20",
+  "changed_cells_with_stability_median": 1.0,
+  "changed_cells_with_stability_max": 1,
+  "changed_cells_without_stability_median": 50.5,
+  "changed_cells_without_stability_max": 69,
+  "solve_secs_p50": 0.13,
+  "solve_secs_p95": 0.14,
+  "solve_secs_max": 0.14,
+  "proven_rate": "100%",
+  "solver": {
+   "workers": 8,
+   "stage_seconds": 5.0,
+   "total_seconds": 9.0
+  },
+  "rng_seed": 2026
+ },
+ "cases": [
+  {
+   "nurse": "N04",
+   "day": "2026-11-05",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 48,
+   "secs_with": 0.13,
+   "secs_without": 0.18,
+   "proven": true
+  },
+  {
+   "nurse": "N09",
+   "day": "2026-11-07",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 51,
+   "secs_with": 0.13,
+   "secs_without": 0.17,
+   "proven": true
+  },
+  {
+   "nurse": "N14",
+   "day": "2026-11-08",
+   "shift": "N",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 56,
+   "secs_with": 0.13,
+   "secs_without": 0.18,
+   "proven": true
+  },
+  {
+   "nurse": "N15",
+   "day": "2026-11-03",
+   "shift": "N",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 67,
+   "secs_with": 0.14,
+   "secs_without": 0.23,
+   "proven": true
+  },
+  {
+   "nurse": "N18",
+   "day": "2026-11-06",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 53,
+   "secs_with": 0.13,
+   "secs_without": 0.18,
+   "proven": true
+  },
+  {
+   "nurse": "N03",
+   "day": "2026-11-06",
+   "shift": "E",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 51,
+   "secs_with": 0.13,
+   "secs_without": 0.17,
+   "proven": true
+  },
+  {
+   "nurse": "N07",
+   "day": "2026-11-04",
+   "shift": "E",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 37,
+   "secs_with": 0.13,
+   "secs_without": 0.2,
+   "proven": true
+  },
+  {
+   "nurse": "N17",
+   "day": "2026-11-05",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 46,
+   "secs_with": 0.13,
+   "secs_without": 0.19,
+   "proven": true
+  },
+  {
+   "nurse": "N17",
+   "day": "2026-11-08",
+   "shift": "E",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 44,
+   "secs_with": 0.13,
+   "secs_without": 0.19,
+   "proven": true
+  },
+  {
+   "nurse": "N16",
+   "day": "2026-11-04",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 51,
+   "secs_with": 0.13,
+   "secs_without": 0.23,
+   "proven": true
+  },
+  {
+   "nurse": "N12",
+   "day": "2026-11-04",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 42,
+   "secs_with": 0.13,
+   "secs_without": 0.17,
+   "proven": true
+  },
+  {
+   "nurse": "N16",
+   "day": "2026-11-07",
+   "shift": "N",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 42,
+   "secs_with": 0.13,
+   "secs_without": 0.19,
+   "proven": true
+  },
+  {
+   "nurse": "N16",
+   "day": "2026-11-03",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 61,
+   "secs_with": 0.14,
+   "secs_without": 0.24,
+   "proven": true
+  },
+  {
+   "nurse": "N20",
+   "day": "2026-11-07",
+   "shift": "E",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 54,
+   "secs_with": 0.13,
+   "secs_without": 0.18,
+   "proven": true
+  },
+  {
+   "nurse": "N14",
+   "day": "2026-11-06",
+   "shift": "E",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 50,
+   "secs_with": 0.13,
+   "secs_without": 0.18,
+   "proven": true
+  },
+  {
+   "nurse": "N17",
+   "day": "2026-11-04",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 38,
+   "secs_with": 0.13,
+   "secs_without": 0.19,
+   "proven": true
+  },
+  {
+   "nurse": "N12",
+   "day": "2026-11-07",
+   "shift": "E",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 55,
+   "secs_with": 0.13,
+   "secs_without": 0.18,
+   "proven": true
+  },
+  {
+   "nurse": "N07",
+   "day": "2026-11-06",
+   "shift": "N",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 50,
+   "secs_with": 0.13,
+   "secs_without": 0.18,
+   "proven": true
+  },
+  {
+   "nurse": "N01",
+   "day": "2026-11-03",
+   "shift": "M",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 69,
+   "secs_with": 0.14,
+   "secs_without": 0.23,
+   "proven": true
+  },
+  {
+   "nurse": "N17",
+   "day": "2026-11-07",
+   "shift": "E",
+   "status": "solved",
+   "changed_with": 1,
+   "changed_without": 46,
+   "secs_with": 0.13,
+   "secs_without": 0.2,
+   "proven": true
+  }
+ ]
+}

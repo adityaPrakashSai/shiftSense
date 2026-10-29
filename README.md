@@ -4,9 +4,13 @@ A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language
 photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
 the solver's actual results.
 
-> **Status:** milestone M9 (unsat-core conflict diagnosis with charge-nurse options).
-> The build started on **28 Oct 2026**. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full
-> design and the milestone plan (section 12).
+- **Live demo:** _(URL added after the Railway deployment)_ · open `/demo`
+- **Video (3 min):** _(link to come)_
+- **Write-up:** [`docs/writeup.md`](docs/writeup.md) · **Architecture:**
+  [`docs/architecture.md`](docs/architecture.md) · **Design:** [`docs/DESIGN.md`](docs/DESIGN.md)
+
+> **Status:** feature freeze (milestone M13 of the plan in the design doc, section 12). The build
+> started on 28 Oct 2026.
 
 ## The problem
 
@@ -43,7 +47,7 @@ minute and absorb a sick call with as few changes as possible.
   or "?") and the printed totals rows. Code maps names to nurse ids, flags duplicate names, and
   checks the cells against the printed totals; the charge nurse fixes the highlighted cells in an
   editable preview, and only then is the grid imported as the published, planned run. On five
-  synthetic sheets (14 and 31 days, rendered in handwriting fonts) it copied 98.3% of 1,742 cells
+  synthetic sheets (14 and 31 days, rendered in handwriting fonts) it copied 98.2% of 1,742 cells
   (`evals/reports/2026-10-29-vision-baseten-live.md`).
 - **Replacements are ranked by the solver, not the model.** A confirmed sick call re-plans only the
   future from the published roster (every changed cell costs in the stability tier), and each
@@ -64,7 +68,10 @@ minute and absorb a sick call with as few changes as possible.
 ## Architecture
 
 One FastAPI process serves the API, the WebSocket and the built React app, runs CP-SAT in-process,
-and calls Meta models over HTTPS. State lives in one SQLite file. Details: design doc section 3.
+and calls Meta models over HTTPS. State lives in one SQLite file. Model calls (intake, voice,
+vision, explainer, roster agent) go through one gateway and only read, explain and draft; the
+roster is written only by the planner through CP-SAT, and only a person publishes. Diagram,
+components and the sick-call flow: [`docs/architecture.md`](docs/architecture.md).
 
 | Folder | Contents |
 | --- | --- |
@@ -76,6 +83,38 @@ and calls Meta models over HTTPS. State lives in one SQLite file. Details: desig
 | `evals/` | Fixed LLM eval sets, runner, scorer and reports |
 | `reference/` | Pre-build reference prototypes (specs, not app code) |
 | `docs/` | Design document and design-decision log |
+
+## Evals
+
+Fixed eval sets, scored by code (no LLM judge); every report is in `evals/reports/`. Latency and
+cost are per model call, from runs with the cache off (`--fresh`).
+
+<!-- eval-table -->
+| Suite | Provider | Result | Latency per call (p50 / p95) | Cost per call | Report |
+| --- | --- | --- | --- | --- | --- |
+| intake: 50 messages → ConstraintEdit | Muse Spark Open (Baseten) | 100% first pass, 100% after repair | 3.6 / 6.7 s | $0.0036 | `2026-10-29-intake-baseten-live` |
+| intake: 50 messages → ConstraintEdit | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| explain: 15 why-questions, claim-checked | Muse Spark Open (Baseten) | 93% pass, 100% grounded first time | 2.1 / 6.7 s | $0.0032 | `2026-10-29-explain-baseten-live` |
+| explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| writer: 20 replacement asks | Muse Spark Open (Baseten) | 20/20 pass, 90% model drafts kept | 7.5 / 10.5 s | $0.0054 | `2026-10-29-writer-baseten-live` |
+| writer: 20 replacement asks | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.5 / 4.7 s | $0.0030 | `2026-10-29-agent-baseten-live` |
+| agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| vision: 5 roster sheets, per cell | Muse Spark Open (Baseten) | 98.2% of cells, 5/5 (>= 95%) sheets | 16.0 / 57.3 s | $0.0222 | `2026-10-29-vision-baseten-live` |
+| vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+
+Sick calls (solver only, no model; 20 random sick calls on the default ward, `2026-10-29-sickcall-stats`): 20/20 re-solved, with every tier proven optimal in 100% of them, 0.13 s median and 0.14 s at most. Changed cells besides the sick nurse's own: median 1 (max 1) with the stability tier, median 50.5 (max 69) without it.
+<!-- /eval-table -->
+
+```bash
+uv run python -m evals.run --suite intake --provider baseten --mode live --fresh  # one suite, live
+uv run python -m evals.run --suite intake --mode replay       # from the committed cache, no keys
+uv run python -m evals.run --suite intake --compare baseten,meta   # provider comparison table
+uv run python -m evals.sickcall_stats                         # 20 random sick calls, solver only
+uv run python -m evals.summary --readme                       # rebuild the table above
+```
+
+Suites: `intake`, `explain`, `writer`, `agent`, `vision`. Details in [`evals/README.md`](evals/README.md).
 
 ## Setup
 
@@ -140,7 +179,8 @@ phone's identity selector, the model banner and four suggested messages:
 3. **Why every weekend? Priya**: a grounded answer from her fairness history, with claim chips.
 4. **Voice note (Hindi), Meena**: the same sick call as a recorded voice note (synthetic speech,
    `web/public/samples/sick_call_hi.wav`); the bubble shows the transcript and the same
-   confirmation. The mic button in the phone records your own.
+   confirmation. The mic button in the phone records your own. It is an alternative to chip 1:
+   in replay mode, press Reset demo between the two (the cached answers assume a fresh ward).
 
 **Import photo** in the charge view reads a photo of a paper roster into an editable preview
 (try `evals/vision/mini-a.jpg`, cached for replay mode).
