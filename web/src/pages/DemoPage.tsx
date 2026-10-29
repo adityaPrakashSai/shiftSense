@@ -48,6 +48,13 @@ export default function DemoPage() {
   const [nurseId, setNurseId] = useState(START_NURSE);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [pane, setPane] = useState<"charge" | "nurse">("charge");
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  // the confirm prompt reverts by itself after 5 s
+  useEffect(() => {
+    if (!confirmingReset) return;
+    const id = window.setTimeout(() => setConfirmingReset(false), 5000);
+    return () => window.clearTimeout(id);
+  }, [confirmingReset]);
   const clearSuggestion = useCallback(() => setSuggestion(null), []);
   const names = Object.fromEntries((ward.data?.nurses ?? []).map((n) => [n.id, n.name.split(" ")[0]]));
 
@@ -56,6 +63,7 @@ export default function DemoPage() {
     onSuccess: () => {
       setNurseId(START_NURSE);
       setSuggestion(null);
+      setConfirmingReset(false);
       void qc.invalidateQueries();
     },
   });
@@ -114,13 +122,31 @@ export default function DemoPage() {
               </option>
             ))}
           </select>
-          <button
-            onClick={() => reset.mutate()}
-            disabled={reset.isPending}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
-          >
-            {reset.isPending ? "Resetting…" : "Reset demo"}
-          </button>
+          {confirmingReset && !reset.isPending ? (
+            <span className="flex items-center gap-1.5">
+              <span className="font-semibold text-slate-700">Reset the demo?</span>
+              <button
+                onClick={() => reset.mutate()}
+                className="rounded-md bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-500"
+              >
+                Yes, reset
+              </button>
+              <button
+                onClick={() => setConfirmingReset(false)}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setConfirmingReset(true)}
+              disabled={reset.isPending}
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+            >
+              {reset.isPending ? "Resetting…" : "Reset demo"}
+            </button>
+          )}
           {reset.data && !reset.isPending && (
             <span className="text-slate-500" data-testid="reset-done">
               reset in {reset.data.secs.toFixed(1)} s

@@ -28,6 +28,7 @@ test("demo page: chip to accepted replacement, then reset", async ({ page, reque
   await expect(phone.getByTestId("inbox-item")).toContainText(/accept/i);
 
   await page.getByRole("button", { name: "Reset demo" }).click();
+  await page.getByRole("button", { name: "Yes, reset" }).click();
   await expect(page.getByTestId("reset-done")).toBeVisible();
   await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("N03");
   await expect(charge.getByText("Published", { exact: true })).toBeVisible();
