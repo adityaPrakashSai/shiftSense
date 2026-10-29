@@ -71,6 +71,8 @@ class OpenAICompatProvider:
             "temperature": req.temperature,
             "max_tokens": req.max_tokens,
         }
+        if req.timeout_s is not None:
+            kw["timeout"] = req.timeout_s
         if req.tools and (json_protocol or not self.caps.native_tools):
             messages = with_tools_prompt(messages, req.tools)
         elif req.tools:

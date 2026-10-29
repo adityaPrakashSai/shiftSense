@@ -1,0 +1,160 @@
+{
+ "suite": "vision",
+ "provider": "baseten",
+ "mode": "live",
+ "date": "2026-10-29",
+ "summary": {
+  "photos": 5,
+  "cell_accuracy": "97.4%",
+  "cells": "1697/1742",
+  "unreadable_cells": 0,
+  "totals_accuracy": "mini-a:100% mini-b:100% mini-c:100% month-a:100% month-b:100%",
+  "photos_passed": "4/5 (>= 95%)",
+  "errors": 1,
+  "by_tag": {
+   "rendered": "1697/1742 cells"
+  }
+ },
+ "cases": [
+  {
+   "id": "mini-a",
+   "tags": [
+    "rendered"
+   ],
+   "tiles": 1,
+   "cache_hits": 0,
+   "cells": 126,
+   "cells_right": 126,
+   "accuracy": 1.0,
+   "unreadable": 0,
+   "rows_found": 9,
+   "rows_expected": 9,
+   "totals_accuracy": 1.0,
+   "checksum_flags": 0,
+   "flagged_names": 0,
+   "wrong": [],
+   "pass": true,
+   "reasons": [
+    "accuracy 100.0%"
+   ]
+  },
+  {
+   "id": "mini-b",
+   "tags": [
+    "rendered"
+   ],
+   "tiles": 1,
+   "cache_hits": 0,
+   "cells": 126,
+   "cells_right": 126,
+   "accuracy": 1.0,
+   "unreadable": 0,
+   "rows_found": 9,
+   "rows_expected": 9,
+   "totals_accuracy": 1.0,
+   "checksum_flags": 0,
+   "flagged_names": 0,
+   "wrong": [],
+   "pass": true,
+   "reasons": [
+    "accuracy 100.0%"
+   ]
+  },
+  {
+   "id": "mini-c",
+   "tags": [
+    "rendered"
+   ],
+   "tiles": 1,
+   "cache_hits": 0,
+   "cells": 126,
+   "cells_right": 126,
+   "accuracy": 1.0,
+   "unreadable": 0,
+   "rows_found": 9,
+   "rows_expected": 9,
+   "totals_accuracy": 1.0,
+   "checksum_flags": 0,
+   "flagged_names": 0,
+   "wrong": [],
+   "pass": true,
+   "reasons": [
+    "accuracy 100.0%"
+   ]
+  },
+  {
+   "id": "month-a",
+   "tags": [
+    "rendered"
+   ],
+   "tiles": 1,
+   "cache_hits": 0,
+   "cells": 682,
+   "cells_right": 680,
+   "accuracy": 0.9971,
+   "unreadable": 0,
+   "rows_found": 22,
+   "rows_expected": 22,
+   "totals_accuracy": 1.0,
+   "checksum_flags": 2,
+   "flagged_names": 2,
+   "wrong": [
+    "N01 d30: M read N/O",
+    "N08 d10: D/O read N"
+   ],
+   "pass": true,
+   "reasons": [
+    "accuracy 99.7%",
+    "N01 d30: M read N/O",
+    "N08 d10: D/O read N"
+   ]
+  },
+  {
+   "id": "month-b",
+   "tags": [
+    "rendered"
+   ],
+   "tiles": 1,
+   "cache_hits": 0,
+   "cells": 682,
+   "cells_right": 639,
+   "accuracy": 0.937,
+   "unreadable": 0,
+   "rows_found": 22,
+   "rows_expected": 22,
+   "totals_accuracy": 1.0,
+   "checksum_flags": 38,
+   "flagged_names": 2,
+   "wrong": [
+    "N01 d17: D/O read E",
+    "N01 d18: D/O read E",
+    "N02 d24: D/O read N",
+    "N02 d30: D/O read M",
+    "N03 d27: M read E",
+    "N03 d28: D/O read M",
+    "N05 d13: D/O read E",
+    "N05 d14: E read N",
+    "N05 d15: D/O read N",
+    "N05 d16: M read N",
+    "N05 d17: D/O read N",
+    "N05 d18: M read N/O"
+   ],
+   "pass": false,
+   "reasons": [
+    "accuracy 93.7%",
+    "N01 d17: D/O read E",
+    "N01 d18: D/O read E",
+    "N02 d24: D/O read N",
+    "N02 d30: D/O read M",
+    "N03 d27: M read E",
+    "N03 d28: D/O read M",
+    "N05 d13: D/O read E",
+    "N05 d14: E read N",
+    "N05 d15: D/O read N",
+    "N05 d16: M read N",
+    "N05 d17: D/O read N",
+    "N05 d18: M read N/O"
+   ]
+  }
+ ]
+}

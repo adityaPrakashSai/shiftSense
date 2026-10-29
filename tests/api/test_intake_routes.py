@@ -84,5 +84,10 @@ def test_message_errors(client: TestClient) -> None:
     r = client.post(
         "/api/messages", data={"sender_id": "N03"}, files={"audio": ("a.ogg", b"x", "audio/ogg")}
     )
-    assert r.status_code == 400 and r.json()["error"]["code"] == "MEDIA_NOT_SUPPORTED"
+    # M12: voice notes are WAV or MP3 (the browser converts its recording); photos are imported
+    assert r.status_code == 422 and r.json()["error"]["code"] == "AUDIO_FORMAT"
+    r = client.post(
+        "/api/messages", data={"sender_id": "N03"}, files={"image": ("r.jpg", b"x", "image/jpeg")}
+    )
+    assert r.status_code == 400 and r.json()["error"]["code"] == "USE_PHOTO_IMPORT"
     assert client.post("/api/messages", data={"text": "hi"}).status_code == 422

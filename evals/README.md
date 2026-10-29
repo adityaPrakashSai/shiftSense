@@ -19,6 +19,12 @@ to make a run pass, and never used as few-shot examples (the intake examples liv
   accept, declines and escalation, a non-top choice, a rejection, a demand change, a conflict, a
   leave, a swap, a new period), each run by the agent and by the fixed-code fallback with a
   scripted charge nurse and scripted replies.
+- `vision/` + `vision_eval.py`: the photo-import set (7.8): five synthetic roster sheets with the
+  seed wards' invented names (`labels.json`, three 14-day and two 31-day grids, one with two rows
+  named "Priya Nair"), made by `scripts/vision_sheets.py` and rendered in handwriting fonts by
+  `scripts/render_sheets.mjs`. Scored per cell after the app's own name mapping, plus the printed
+  totals. A photo of a handwritten copy saved as `vision/photo-<sheet>.jpg` is scored against the
+  same labels: `--suite vision`.
 - `score.py`: code-only scoring (no LLM judge) and the summary metrics.
 - `reports/`: one JSON and one markdown file per run.
 

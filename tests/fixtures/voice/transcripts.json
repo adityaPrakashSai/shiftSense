@@ -1,0 +1,4 @@
+{
+ "_about": "What the mock provider 'hears' (LLM_MODE=mock): audio sha256 -> transcript. sick_call_hi.wav is synthetic speech (macOS 'say', voice Lekha) of the demo sick call; the mock transcript is in Roman script because the rule-based mock intake reads Roman Hindi.",
+ "b28d7bada9cbc2f59a55219cc6e64e918ab3c930a6b3c4dcdb28ef3c8d13e5db": "Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai"
+}

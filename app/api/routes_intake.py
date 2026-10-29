@@ -16,6 +16,7 @@ from app.api.ws import hub
 from app.domain.edits import CHARGE_ID
 from app.domain.models import Request, RequestStatus, Ward
 from app.explain.agent import get_explanation
+from app.intake import voice
 from app.intake.pipeline import handle_message
 from app.llm.gateway import get_gateway
 from app.planner import requests as lifecycle
@@ -37,17 +38,27 @@ async def post_message(
     audio: Annotated[UploadFile | None, File()] = None,
     image: Annotated[UploadFile | None, File()] = None,
 ) -> MessageReply:
-    """Intake (7.3): parse a message into a ConstraintEdit, then confirm or clarify."""
+    """Intake (7.3): parse a message, or a voice note's transcript, into a ConstraintEdit, then
+    confirm or clarify."""
     ward = require_ward(conn)
     if sender_id != CHARGE_ID and not any(n.id == sender_id for n in ward.nurses):
         raise ApiError(404, "NURSE_NOT_FOUND", f"No nurse {sender_id} in {ward.id}.")
-    if audio is not None or image is not None:
-        raise ApiError(400, "MEDIA_NOT_SUPPORTED", "Voice notes and photos arrive in M12.")
+    if image is not None:
+        raise ApiError(400, "USE_PHOTO_IMPORT", "Roster photos go to POST /api/import/photo.")
+    channel, transcript = "text", None
+    if audio is not None:
+        try:
+            fmt = voice.audio_format(audio.content_type, audio.filename)
+            transcript = await voice.transcribe(await audio.read(), fmt, get_gateway())
+        except voice.VoiceError as exc:
+            raise ApiError(422, exc.code, str(exc)) from exc
+        channel, text = "voice", transcript
     if not text or not text.strip():
         raise ApiError(400, "EMPTY_MESSAGE", "Send some text.")
     res = await handle_message(
-        conn, ward, sender_id, text, gateway=get_gateway(), log=jobs.live_log(conn, ward.id)
-    )
+        conn, ward, sender_id, text, gateway=get_gateway(), log=jobs.live_log(conn, ward.id),
+        channel=channel,
+    )  # fmt: skip
     for rid in res.request_ids:
         await hub.broadcast(ward.id, {"type": "request_updated", "request_id": rid})
     return MessageReply(
@@ -60,6 +71,7 @@ async def post_message(
         language=res.language,
         explanation_id=res.explanation_id,
         claims=res.claims,
+        transcript=transcript,
     )
 
 

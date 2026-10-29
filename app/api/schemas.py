@@ -213,12 +213,14 @@ class MessageReply(BaseModel):
     language: str
     explanation_id: str | None = None  # a question answered by the explainer (7.5)
     claims: list[dict[str, Any]] = []
+    transcript: str | None = None  # a voice note's transcript (the message body)
 
 
 class MessageRecord(BaseModel):
     message_id: str
     nurse_id: str
     body: str
+    channel: str = "text"  # text | voice
     created_at: str
     language: str | None
     reply: str | None
@@ -493,3 +495,40 @@ class VersionsOut(BaseModel):
 
 
 ProposalOut.model_rebuild()
+
+
+class PhotoRowOut(BaseModel):
+    name: str
+    nurse_id: str | None
+    candidates: list[str]
+    cells: list[str]  # M E N G N/O D/O L:<type> or "?" (unreadable), one per period day
+    flagged: bool  # a shared or unknown name: the charge nurse checks the id
+
+
+class PhotoReadOut(BaseModel):
+    days: list[date]
+    rows: list[PhotoRowOut]
+    totals: dict[str, list[int | None]]  # the printed totals rows, as read
+    mismatches: list[dict[str, Any]]  # {day (1-based), shift, cells, printed}
+    unreadable: int
+    tiles: int  # 1, or 2 when the sheet was read in two parts (7.8 fallback)
+    sheet_days: list[int]  # day numbers the sheet shows; more than the period = another period
+    call_ids: list[str]
+    cache_hits: int
+
+
+class ImportRow(BaseModel):
+    nurse_id: str
+    cells: list[str]
+
+
+class ImportBody(BaseModel):
+    rows: list[ImportRow]
+    by: str = "charge"
+
+
+class ImportOut(BaseModel):
+    run_id: str
+    superseded: str | None
+    leave_requests: list[str]
+    warnings: list[str]  # hard rules the imported plan breaks (validator names)

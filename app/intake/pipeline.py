@@ -1,10 +1,11 @@
 """Intake pipeline (design doc 7.3 steps 1-6): a message -> ConstraintEdit -> pending requests.
 
-1. Normalise (text only until M12). 2. Prompt: `prompts/intake.md` + few-shot examples + a
-context block (sender, ward time, 35-day calendar, shifts, nurse list, open requests). 3. Call
-`Role.INTAKE` with the ConstraintEdit schema. 4. Pydantic validation; one repair call with the
-errors, then a "please rephrase" clarification. 5. Semantic validation (semantic.py). 6. Clarify,
-or store `pending_confirm` requests and reply with a confirmation rendered from a template.
+1. Normalise (a voice note arrives as its transcript, `app/intake/voice.py`). 2. Prompt:
+`prompts/intake.md` + few-shot examples + a context block (sender, ward time, 35-day calendar,
+shifts, nurse list, open requests). 3. Call `Role.INTAKE` with the ConstraintEdit schema.
+4. Pydantic validation; one repair call with the errors, then a "please rephrase" clarification.
+5. Semantic validation (semantic.py). 6. Clarify, or store `pending_confirm` requests and reply
+with a confirmation rendered from a template.
 
 The model never writes the confirmation and never sets `hard`; step 7 (confirm) lives in
 `app/planner/requests.py`.
@@ -258,6 +259,7 @@ async def handle_message(
     log: DecisionLog | None = None,
     check_roster: bool = True,
     explain: bool = True,
+    channel: str = "text",  # "voice": `text` is the voice note's transcript
 ) -> IntakeResult:
     t0 = time.perf_counter()
     now = now or ward_now(ward.tz, get_settings().demo_now)
@@ -272,10 +274,11 @@ async def handle_message(
         nurse_id=sender_id,
         body=text,
         created_at=repo.now_iso_ms(),
+        channel=channel,
     )
     log.emit(
         "message.received", actor, None, None,
-        message_id=message_id, channel="text", language_guess=guess_language(text),
+        message_id=message_id, channel=channel, language_guess=guess_language(text),
     )  # fmt: skip
 
     req = build_request(build_context(conn, ward, sender_id, now), text)

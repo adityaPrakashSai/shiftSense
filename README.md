@@ -34,6 +34,17 @@ minute and absorb a sick call with as few changes as possible.
   model) writes the confirmation in the sender's language. Only after the nurse taps Confirm does
   the request reach the solver. The first live run of the 50-case intake eval is in
   `evals/reports/`.
+- **Voice notes** (`app/intake/voice.py`): the nurse taps the mic, the browser records and converts
+  to 16 kHz WAV, and Muse Spark Open's audio input transcribes it in the language and script spoken
+  (Hindi in Devanagari). The transcript then follows the typed path unchanged, so the demo sick call
+  spoken and typed store the same request.
+- **Roster photos** (`app/intake/photo.py`, `app/planner/importer.py`): the charge nurse
+  photographs the paper roster; Muse Spark Open copies each cell (M, E, N, G, N/O, off, leave codes
+  or "?") and the printed totals rows. Code maps names to nurse ids, flags duplicate names, and
+  checks the cells against the printed totals; the charge nurse fixes the highlighted cells in an
+  editable preview, and only then is the grid imported as the published, planned run. On five
+  synthetic sheets (14 and 31 days, rendered in handwriting fonts) it copied 98.3% of 1,742 cells
+  (`evals/reports/2026-10-29-vision-baseten-live.md`).
 - **Replacements are ranked by the solver, not the model.** A confirmed sick call re-plans only the
   future from the published roster (every changed cell costs in the stability tier), and each
   candidate replacement is a real forced re-solve, ranked by tier vector. On the demo ward the
@@ -117,7 +128,7 @@ Live URL: _(added after the Railway deployment)_
 
 `/` opens `/demo`: the charge nurse view on the left (65%) and a nurse's phone on the right (35%).
 The top bar has **Reset demo** (restores the published baseline in well under a second), the
-phone's identity selector, the model banner and three suggested messages:
+phone's identity selector, the model banner and four suggested messages:
 
 1. **Sick call (Hindi), Meena**: *"Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai"*.
    Confirm in the phone; the charge view shows the alert, the ranked replacements (Arun the standby
@@ -127,6 +138,12 @@ phone's identity selector, the model banner and three suggested messages:
 2. **Day off (English), Kavya**: a soft request for Sat 7 Nov, granted or denied with a reason at
    the next solve.
 3. **Why every weekend? Priya**: a grounded answer from her fairness history, with claim chips.
+4. **Voice note (Hindi), Meena**: the same sick call as a recorded voice note (synthetic speech,
+   `web/public/samples/sick_call_hi.wav`); the bubble shows the transcript and the same
+   confirmation. The mic button in the phone records your own.
+
+**Import photo** in the charge view reads a photo of a paper roster into an editable preview
+(try `evals/vision/mini-a.jpg`, cached for replay mode).
 
 On a phone, `/demo` shows one view at a time with a switch at the top.
 `uv run python -m scripts.demo_check --base <url> --reset` runs the same script over HTTP.

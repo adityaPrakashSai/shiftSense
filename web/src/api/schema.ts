@@ -241,7 +241,8 @@ export interface paths {
         put?: never;
         /**
          * Post Message
-         * @description Intake (7.3): parse a message into a ConstraintEdit, then confirm or clarify.
+         * @description Intake (7.3): parse a message, or a voice note's transcript, into a ConstraintEdit, then
+         *     confirm or clarify.
          */
         post: operations["post_message_api_messages_post"];
         delete?: never;
@@ -637,6 +638,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/import/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Photo
+         * @description Muse Spark reads the photo into the current period's grid; nothing is stored. Cells it
+         *     could not read are "?", and days whose cells miss the printed totals are listed.
+         */
+        post: operations["photo_api_import_photo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Roster
+         * @description The corrected grid becomes the published, planned run (`kind = import`).
+         */
+        post: operations["import_roster_api_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -711,6 +753,11 @@ export interface components {
             name: string;
             /** Rules */
             rules: string[];
+        };
+        /** Body_photo_api_import_photo_post */
+        Body_photo_api_import_photo_post: {
+            /** Image */
+            image: string;
         };
         /** Body_post_message_api_messages_post */
         Body_post_message_api_messages_post: {
@@ -1119,6 +1166,34 @@ export interface components {
          * @enum {string}
          */
         HorizonPreset: "week" | "fortnight" | "half_month" | "month";
+        /** ImportBody */
+        ImportBody: {
+            /** Rows */
+            rows: components["schemas"]["ImportRow"][];
+            /**
+             * By
+             * @default charge
+             */
+            by: string;
+        };
+        /** ImportOut */
+        ImportOut: {
+            /** Run Id */
+            run_id: string;
+            /** Superseded */
+            superseded: string | null;
+            /** Leave Requests */
+            leave_requests: string[];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** ImportRow */
+        ImportRow: {
+            /** Nurse Id */
+            nurse_id: string;
+            /** Cells */
+            cells: string[];
+        };
         /** LLMUsage */
         LLMUsage: {
             /** Mode */
@@ -1168,6 +1243,11 @@ export interface components {
             nurse_id: string;
             /** Body */
             body: string;
+            /**
+             * Channel
+             * @default text
+             */
+            channel: string;
             /** Created At */
             created_at: string;
             /** Language */
@@ -1217,6 +1297,8 @@ export interface components {
             claims: {
                 [key: string]: unknown;
             }[];
+            /** Transcript */
+            transcript?: string | null;
         };
         /** NarrativeOut */
         NarrativeOut: {
@@ -1332,6 +1414,44 @@ export interface components {
             reason_code: string | null;
             /** Detail */
             detail: string | null;
+        };
+        /** PhotoReadOut */
+        PhotoReadOut: {
+            /** Days */
+            days: string[];
+            /** Rows */
+            rows: components["schemas"]["PhotoRowOut"][];
+            /** Totals */
+            totals: {
+                [key: string]: (number | null)[];
+            };
+            /** Mismatches */
+            mismatches: {
+                [key: string]: unknown;
+            }[];
+            /** Unreadable */
+            unreadable: number;
+            /** Tiles */
+            tiles: number;
+            /** Sheet Days */
+            sheet_days: number[];
+            /** Call Ids */
+            call_ids: string[];
+            /** Cache Hits */
+            cache_hits: number;
+        };
+        /** PhotoRowOut */
+        PhotoRowOut: {
+            /** Name */
+            name: string;
+            /** Nurse Id */
+            nurse_id: string | null;
+            /** Candidates */
+            candidates: string[];
+            /** Cells */
+            cells: string[];
+            /** Flagged */
+            flagged: boolean;
         };
         /** PrioritiesBody */
         PrioritiesBody: {
@@ -2829,6 +2949,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    photo_api_import_photo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_photo_api_import_photo_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoReadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_roster_api_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportOut"];
                 };
             };
             /** @description Validation Error */

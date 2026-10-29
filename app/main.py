@@ -15,6 +15,7 @@ from app.api import (
     routes_agent,
     routes_conflicts,
     routes_explain,
+    routes_import,
     routes_insight,
     routes_intake,
     routes_llm,
@@ -63,6 +64,7 @@ app.include_router(routes_explain.router)
 app.include_router(routes_conflicts.router)
 app.include_router(routes_agent.router)
 app.include_router(routes_insight.router)
+app.include_router(routes_import.router)
 app.include_router(ws.router)
 
 if (WEB_DIST / "assets").is_dir():

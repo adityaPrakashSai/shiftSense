@@ -11,6 +11,7 @@ import { useWardSocket, type SocketMode, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
 import ProviderBadge from "../components/common/ProviderBadge";
 import RunTimer, { type TierTick } from "../components/common/RunTimer";
+import PhotoImport from "../components/roster/PhotoImport";
 import RosterGrid from "../components/roster/RosterGrid";
 import AgentTab from "../components/panel/AgentTab";
 import AlertsTab from "../components/panel/AlertsTab";
@@ -207,6 +208,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
             )}
           </div>
           <div className="ml-auto flex items-center gap-4">
+            {ward.data && <PhotoImport nurses={ward.data.nurses} />}
             <RunTimer
               startedAt={timer.startedAt}
               stoppedAt={timer.stoppedAt}

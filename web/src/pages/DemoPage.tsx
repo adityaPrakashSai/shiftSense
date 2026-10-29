@@ -1,7 +1,8 @@
 // Demo view (design doc 10.3, 2.2): the charge nurse view at 65% on the left and the nurse view in
 // a phone frame at 35% on the right. The top bar has Reset demo, the phone's identity selector,
-// the model banner and three suggested messages; a chip switches the phone to its nurse and sends
-// the message from her chat. Below the lg breakpoint (a phone or tablet) one pane shows at a time.
+// the model banner and the suggested messages; a chip switches the phone to its nurse and sends
+// the message from their chat. The voice chip sends a recorded Hindi clip (synthetic speech) as a
+// voice note, so the voice path runs without a microphone and replays from the cache. Below the lg breakpoint (a phone or tablet) one pane shows at a time.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -14,8 +15,14 @@ import { NurseView } from "./NursePage";
 
 const START_NURSE = "N03"; // Meena, who sends the sick call (2.2 step 2)
 
-const CHIPS: { label: string; nurseId: string; text: string }[] = [
+const CHIPS: { label: string; nurseId: string; text: string; audioUrl?: string }[] = [
   { label: "Sick call (Hindi)", nurseId: "N03", text: "Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai" },
+  {
+    label: "Voice note (Hindi)",
+    nurseId: "N03",
+    text: "a recorded voice note: सुनीता दी, आज सुबह की ड्यूटी नहीं कर पाऊँगी, बुखार है",
+    audioUrl: "/samples/sick_call_hi.wav",
+  },
   { label: "Day off (English)", nurseId: "N04", text: "Can I get a day off on Saturday 7 Nov? It's my sister's engagement." },
   { label: "Why every weekend?", nurseId: "N02", text: "Why do I get every weekend?" },
 ];
@@ -81,7 +88,7 @@ export default function DemoPage() {
               key={c.label}
               onClick={() => {
                 setNurseId(c.nurseId);
-                setSuggestion({ nurseId: c.nurseId, text: c.text });
+                setSuggestion({ nurseId: c.nurseId, text: c.text, audioUrl: c.audioUrl });
                 setPane("nurse");
               }}
               title={`${names[c.nurseId] ?? c.nurseId}: “${c.text}”`}

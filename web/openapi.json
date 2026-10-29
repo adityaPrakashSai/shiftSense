@@ -558,7 +558,7 @@
      "intake"
     ],
     "summary": "Post Message",
-    "description": "Intake (7.3): parse a message into a ConstraintEdit, then confirm or clarify.",
+    "description": "Intake (7.3): parse a message, or a voice note's transcript, into a ConstraintEdit, then\nconfirm or clarify.",
     "operationId": "post_message_api_messages_post",
     "requestBody": {
      "required": true,
@@ -1653,6 +1653,90 @@
      }
     }
    }
+  },
+  "/api/import/photo": {
+   "post": {
+    "tags": [
+     "import"
+    ],
+    "summary": "Photo",
+    "description": "Muse Spark reads the photo into the current period's grid; nothing is stored. Cells it\ncould not read are \"?\", and days whose cells miss the printed totals are listed.",
+    "operationId": "photo_api_import_photo_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_photo_api_import_photo_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhotoReadOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/import": {
+   "post": {
+    "tags": [
+     "import"
+    ],
+    "summary": "Import Roster",
+    "description": "The corrected grid becomes the published, planned run (`kind = import`).",
+    "operationId": "import_roster_api_import_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ImportBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ImportOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -1864,6 +1948,20 @@
      "rules"
     ],
     "title": "Blocked"
+   },
+   "Body_photo_api_import_photo_post": {
+    "properties": {
+     "image": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "Image"
+     }
+    },
+    "type": "object",
+    "required": [
+     "image"
+    ],
+    "title": "Body_photo_api_import_photo_post"
    },
    "Body_post_message_api_messages_post": {
     "properties": {
@@ -3092,6 +3190,89 @@
     ],
     "title": "HorizonPreset"
    },
+   "ImportBody": {
+    "properties": {
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/ImportRow"
+      },
+      "type": "array",
+      "title": "Rows"
+     },
+     "by": {
+      "type": "string",
+      "title": "By",
+      "default": "charge"
+     }
+    },
+    "type": "object",
+    "required": [
+     "rows"
+    ],
+    "title": "ImportBody"
+   },
+   "ImportOut": {
+    "properties": {
+     "run_id": {
+      "type": "string",
+      "title": "Run Id"
+     },
+     "superseded": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Superseded"
+     },
+     "leave_requests": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Leave Requests"
+     },
+     "warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Warnings"
+     }
+    },
+    "type": "object",
+    "required": [
+     "run_id",
+     "superseded",
+     "leave_requests",
+     "warnings"
+    ],
+    "title": "ImportOut"
+   },
+   "ImportRow": {
+    "properties": {
+     "nurse_id": {
+      "type": "string",
+      "title": "Nurse Id"
+     },
+     "cells": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Cells"
+     }
+    },
+    "type": "object",
+    "required": [
+     "nurse_id",
+     "cells"
+    ],
+    "title": "ImportRow"
+   },
    "LLMUsage": {
     "properties": {
      "mode": {
@@ -3226,6 +3407,11 @@
      "body": {
       "type": "string",
       "title": "Body"
+     },
+     "channel": {
+      "type": "string",
+      "title": "Channel",
+      "default": "text"
      },
      "created_at": {
       "type": "string",
@@ -3384,6 +3570,17 @@
       "type": "array",
       "title": "Claims",
       "default": []
+     },
+     "transcript": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Transcript"
      }
     },
     "type": "object",
@@ -3732,6 +3929,135 @@
      "detail"
     ],
     "title": "Outcome"
+   },
+   "PhotoReadOut": {
+    "properties": {
+     "days": {
+      "items": {
+       "type": "string",
+       "format": "date"
+      },
+      "type": "array",
+      "title": "Days"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/PhotoRowOut"
+      },
+      "type": "array",
+      "title": "Rows"
+     },
+     "totals": {
+      "additionalProperties": {
+       "items": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Totals"
+     },
+     "mismatches": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Mismatches"
+     },
+     "unreadable": {
+      "type": "integer",
+      "title": "Unreadable"
+     },
+     "tiles": {
+      "type": "integer",
+      "title": "Tiles"
+     },
+     "sheet_days": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Sheet Days"
+     },
+     "call_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Call Ids"
+     },
+     "cache_hits": {
+      "type": "integer",
+      "title": "Cache Hits"
+     }
+    },
+    "type": "object",
+    "required": [
+     "days",
+     "rows",
+     "totals",
+     "mismatches",
+     "unreadable",
+     "tiles",
+     "sheet_days",
+     "call_ids",
+     "cache_hits"
+    ],
+    "title": "PhotoReadOut"
+   },
+   "PhotoRowOut": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "nurse_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nurse Id"
+     },
+     "candidates": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Candidates"
+     },
+     "cells": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Cells"
+     },
+     "flagged": {
+      "type": "boolean",
+      "title": "Flagged"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "nurse_id",
+     "candidates",
+     "cells",
+     "flagged"
+    ],
+    "title": "PhotoRowOut"
    },
    "PrioritiesBody": {
     "properties": {

@@ -30,6 +30,7 @@ from app.store.db import connect, open_db
 from app.store.seed import seed_db
 from evals.agent_eval import summarize_agent
 from evals.score import score_case, score_explain, summarize, summarize_explain
+from evals.vision_eval import load_vision, run_vision, summarize_vision
 
 ROOT = Path(__file__).resolve().parent.parent
 EVALS = ROOT / "evals"
@@ -40,6 +41,8 @@ FAILED = {"first_pass_ok": False, "repaired": False, "schema_failed": False, "la
 
 
 def load(suite: str, limit: int | None, ids: list[str] | None) -> list[dict[str, Any]]:
+    if suite == "vision":
+        return load_vision(limit, ids)
     path = EVALS / f"{suite}.jsonl"
     cases = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
     if ids:
@@ -280,6 +283,19 @@ async def run_agent(
     return rows
 
 
+async def run_vision_suite(
+    cases: list[dict[str, Any]], *, provider: str, mode: str, max_usd: float, workers: int, db: Path
+) -> list[dict[str, Any]]:
+    """Roster photo reading (7.8): each sheet image read into a grid and scored per cell."""
+    conn = open_db(db)
+    cache.import_jsonl(conn, CACHE_FILE)
+    conn.close()
+    s = _settings(provider, mode, db, max_usd).model_copy(update={"llm_provider_vision": None})
+    rows = await run_vision(cases, gateway=LLMGateway(s), db=db, workers=workers)
+    _export(mode, db)
+    return rows
+
+
 def markdown(suite: str, provider: str, mode: str, summary: dict[str, Any], rows: list[Any]) -> str:
     keys = [k for k in summary if k != "by_tag"]
     lines = [
@@ -315,7 +331,9 @@ def compare_table(results: dict[str, dict[str, Any]]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run a fixed eval suite.")
-    ap.add_argument("--suite", default="intake", choices=["intake", "explain", "writer", "agent"])
+    ap.add_argument(
+        "--suite", default="intake", choices=["intake", "explain", "writer", "agent", "vision"]
+    )
     ap.add_argument("--provider", default="baseten", choices=["baseten", "meta", "modal", "mock"])
     ap.add_argument("--mode", default="live", choices=["live", "replay", "mock"])
     ap.add_argument("--limit", type=int)
@@ -331,9 +349,8 @@ def main(argv: list[str] | None = None) -> int:
     errors = 0
     for prov in providers:
         mode = "mock" if prov == "mock" else a.mode
-        runner = {"explain": run_explain, "writer": run_writer, "agent": run_agent}.get(
-            a.suite, run_intake
-        )
+        runner = {"explain": run_explain, "writer": run_writer, "agent": run_agent,
+                  "vision": run_vision_suite}.get(a.suite, run_intake)  # fmt: skip
         with tempfile.TemporaryDirectory() as tmp:
             rows = asyncio.run(
                 runner(cases, provider=prov, mode=mode, max_usd=a.max_usd,
@@ -343,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
             "explain": summarize_explain,
             "writer": summarize_writer,
             "agent": summarize_agent,
+            "vision": summarize_vision,
         }.get(a.suite, summarize)(rows)
         summaries[prov] = summary
         errors += summary["errors"]

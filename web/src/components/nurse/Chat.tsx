@@ -1,10 +1,13 @@
 // Nurse chat (design doc 10.3, 7.3): messages with the assistant. Confirmation bubbles show
 // Confirm / Edit; Edit drops the parse and puts the text back in the input. Replies come from
-// server-side templates, so a confirmation always states exactly what will be stored.
+// server-side templates, so a confirmation always states exactly what will be stored. The mic
+// records a voice note (M12): Muse Spark Open transcribes it and the transcript is parsed like typed
+// text; the bubble shows the transcript with a mic mark.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, type MessageRecord } from "../../api/client";
 import ClaimChip from "../panel/ClaimChip";
+import { useRecorder } from "../../lib/voice";
 import { t, type Lang } from "./i18n";
 
 function Status({ m, lang }: { m: MessageRecord; lang: Lang }) {
@@ -26,8 +29,10 @@ function Status({ m, lang }: { m: MessageRecord; lang: Lang }) {
   );
 }
 
-/** A message the /demo bar asks the chat of `nurseId` to send once. */
-export type Suggestion = { nurseId: string; text: string };
+/** A message the /demo bar asks the chat of `nurseId` to send once: text, or a recorded clip. */
+export type Suggestion = { nurseId: string; text: string; audioUrl?: string };
+
+type Outgoing = { text: string } | { wav: Blob };
 
 export default function Chat({
   nurseId,
@@ -49,8 +54,8 @@ export default function Chat({
 
   const refresh = () => void qc.invalidateQueries({ queryKey: ["messages", nurseId] });
   const send = useMutation({
-    mutationFn: (body: string) => api.sendMessage(nurseId, body),
-    onMutate: (body) => setSent(body),
+    mutationFn: (m: Outgoing) => ("wav" in m ? api.sendVoice(nurseId, m.wav) : api.sendMessage(nurseId, m.text)),
+    onMutate: (m) => setSent("wav" in m ? `🎤 ${L.voiceSending}` : m.text),
     onSettled: () => {
       setSent(null);
       refresh();
@@ -71,7 +76,15 @@ export default function Chat({
   useEffect(() => {
     if (!suggestion || suggestion.nurseId !== nurseId || handled.current === suggestion) return;
     handled.current = suggestion;
-    send.mutate(suggestion.text);
+    if (suggestion.audioUrl) {
+      setSent(`🎤 ${L.voiceSending}`);
+      fetch(suggestion.audioUrl)
+        .then((r) => r.blob())
+        .then((wav) => send.mutate({ wav }))
+        .catch(() => setSent(null));
+    } else {
+      send.mutate({ text: suggestion.text });
+    }
     onSuggestionSent?.();
   }, [suggestion, nurseId, send, onSuggestionSent]);
 
@@ -79,8 +92,14 @@ export default function Chat({
     const body = text.trim();
     if (!body || send.isPending) return;
     setText("");
-    send.mutate(body);
+    send.mutate({ text: body });
   };
+
+  const [micError, setMicError] = useState<string | null>(null);
+  const mic = useRecorder(
+    (wav) => send.mutate({ wav }),
+    (msg) => setMicError(msg),
+  );
 
   const rows = messages.data ?? [];
   return (
@@ -92,6 +111,11 @@ export default function Chat({
           return (
             <div key={m.message_id} className="space-y-1.5">
               <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-indigo-600 px-3 py-2 text-sm text-white">
+                {m.channel === "voice" && (
+                  <span aria-label={L.voiceNote} title={L.voiceNote} className="mr-1">
+                    🎤
+                  </span>
+                )}
                 {m.body}
               </div>
               {m.reply && (
@@ -144,6 +168,7 @@ export default function Chat({
           </div>
         )}
         {send.error && <p className="text-xs text-red-600">{send.error.message}</p>}
+        {micError && <p className="text-xs text-red-600">{micError}</p>}
         <div ref={end} />
       </div>
       <form
@@ -153,8 +178,20 @@ export default function Chat({
         }}
         className="flex items-center gap-2 border-t border-slate-200 bg-white p-2"
       >
-        <button type="button" disabled title={L.mic} className="rounded-full p-2 text-slate-300">🎤</button>
-        <button type="button" disabled title={L.camera} className="rounded-full p-2 text-slate-300">📷</button>
+        <button
+          type="button"
+          onClick={() => {
+            setMicError(null);
+            if (mic.recording) mic.stop();
+            else void mic.start();
+          }}
+          disabled={send.isPending && !mic.recording}
+          aria-label={mic.recording ? L.micStop : L.mic}
+          title={mic.recording ? L.micStop : L.mic}
+          className={`shrink-0 rounded-full px-2 py-2 text-sm ${mic.recording ? "animate-pulse bg-red-600 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+        >
+          {mic.recording ? `● 0:${String(mic.seconds).padStart(2, "0")}` : "🎤"}
+        </button>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}

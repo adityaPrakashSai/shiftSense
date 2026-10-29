@@ -35,6 +35,9 @@ export type FairnessRow = S["FairnessRow"];
 export type VersionsOut = S["VersionsOut"];
 export type VersionOut = S["VersionOut"];
 export type VersionChange = S["VersionChange"];
+export type PhotoReadOut = S["PhotoReadOut"];
+export type PhotoRowOut = S["PhotoRowOut"];
+export type ImportOut = S["ImportOut"];
 
 export class ApiError extends Error {
   constructor(
@@ -92,6 +95,19 @@ export const api = {
     form.set("text", text);
     return request<MessageReply>("/api/messages", { method: "POST", body: form });
   },
+  sendVoice: (senderId: string, wav: Blob) => {
+    const form = new FormData();
+    form.set("sender_id", senderId);
+    form.set("audio", wav, "voice-note.wav");
+    return request<MessageReply>("/api/messages", { method: "POST", body: form });
+  },
+  readPhoto: (image: Blob) => {
+    const form = new FormData();
+    form.set("image", image, image instanceof File ? image.name : "roster.jpg");
+    return request<PhotoReadOut>("/api/import/photo", { method: "POST", body: form });
+  },
+  importRoster: (rows: { nurse_id: string; cells: string[] }[]) =>
+    request<ImportOut>("/api/import", { method: "POST", body: JSON.stringify({ rows }) }),
   messages: (nurseId: string) => request<MessageRecord[]>(`/api/messages${qs({ nurse_id: nurseId })}`),
   requests: (params: { nurse_id?: string; status?: string }) =>
     request<RequestOut[]>(`/api/requests${qs(params)}`),

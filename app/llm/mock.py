@@ -17,7 +17,9 @@ real models just see it as part of the prompt.
 
 from __future__ import annotations
 
+import base64
 import contextlib
+import hashlib
 import json
 import re
 from datetime import date, timedelta
@@ -386,6 +388,19 @@ def mock_message(ctx: dict[str, Any]) -> dict[str, Any]:
     return {"message": " ".join(text.split())}
 
 
+def mock_transcript(req: LLMRequest) -> str:
+    """The mock hears only the fixture clips in tests/fixtures/voice; anything else is silence."""
+    path = FIXTURES.parent / "voice" / "transcripts.json"
+    known = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    for m in req.messages:
+        content = m.get("content")
+        for part in content if isinstance(content, list) else []:
+            if part.get("type") == "input_audio":
+                raw = base64.b64decode(part["input_audio"]["data"])
+                return str(known.get(hashlib.sha256(raw).hexdigest(), ""))
+    return ""
+
+
 class MockProvider:
     name = "mock"
     model = "mock-rule-based"
@@ -432,6 +447,8 @@ class MockProvider:
             from app.agent.mock import respond as agent_respond
 
             return agent_respond(req)
+        elif req.role is Role.VOICE:
+            return ProviderResult(text=mock_transcript(req))
         else:
             body = {"text": "mock"}
         return ProviderResult(text=json.dumps(body, ensure_ascii=False))

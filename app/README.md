@@ -46,3 +46,9 @@ waiting task), `agent/writer.py` (message writer with post-checks and templates)
 and `agent/env.py`. `api/jobs.py` runs tasks in the background; `api/routes_agent.py` serves the
 Agent tab and the nurse inbox; `api/routes_insight.py` serves Fairness and Versions.
 
+Voice and photo (M12): `intake/voice.py` (audio -> transcript through `Role.VOICE`, then the typed
+path), `intake/photo.py` (photo -> preview grid through `Role.VISION`: whole-sheet read with a
+two-tile fallback, merge, name mapping, totals checksum), `planner/importer.py` (the corrected grid
+as the published `import` run, leave cells as leave requests, rule breaks as warnings) and
+`api/routes_import.py`.
+

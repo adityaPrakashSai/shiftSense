@@ -4,7 +4,8 @@
 
 An entry is live when every system message it was asked with (stored as a sha256) is one the
 app would send today: the intake prompt with its examples, the schema prompts, the explain,
-narrate, message and agent prompts, or the JSON tool-protocol prompts. Editing a prompt changes
+narrate, message and agent prompts, the vision and voice prompts, or the JSON tool-protocol
+prompts. Editing a prompt changes
 its hash, so the old answers can never be hit again (the cache key includes the prompt version);
 this keeps the committed file small.
 """
@@ -21,6 +22,7 @@ from app.explain.agent import prompt
 from app.explain.narrate import Narrative
 from app.explain.tools import SPECS
 from app.intake.pipeline import system_prompt
+from app.llm.cache import PROMPTS
 from app.llm.jsonproto import schema_prompt, tools_prompt
 
 FILE = Path(__file__).resolve().parent.parent / "data" / "llm_cache.jsonl"
@@ -41,6 +43,8 @@ def current() -> set[str]:
         sha(prompt("message")),
         sha(schema_prompt(Draft.model_json_schema())),
         sha(prompt("agent")),
+        sha((PROMPTS / "vision.md").read_text(encoding="utf-8")),
+        sha((PROMPTS / "voice.md").read_text(encoding="utf-8")),
         *(sha(tools_prompt(specs(wf))) for wf in ALLOWLIST),
     }
 

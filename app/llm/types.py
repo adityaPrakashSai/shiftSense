@@ -23,6 +23,7 @@ class LLMRequest:
     response_schema: dict[str, Any] | None = None  # JSON schema for structured output
     temperature: float = 0.0
     max_tokens: int = 4000  # Muse Spark Open reasons first: room for reasoning plus the answer
+    timeout_s: float | None = None  # per-call HTTP timeout (photo reads); not part of the cache key
 
 
 @dataclass(frozen=True)

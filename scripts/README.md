@@ -9,5 +9,7 @@
 - `demo_check.py`: runs the demo script (design doc 2.2, steps 2-9, then the other two /demo chips)
   over HTTP against a running server (`--base`, `--reset`), e.g. the deployed URL; in live mode it
   spends credits only for messages not already cached.
+- `vision_sheets.py` + `render_sheets.mjs`: the synthetic roster sheets for the photo eval
+  (`evals/vision/`): labels and printable HTML, then JPEG renders with the e2e Chromium.
 - `scenarios/`: set up a scenario on a running server (e.g. the night crunch conflict).
 - `export_openapi.py`, `stability_compare.py`, `whatif_bench.py`: OpenAPI export and benchmarks.
