@@ -19,7 +19,7 @@ export default function ConflictCard({ c }: { c: ConflictOut }) {
         <span className="rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-semibold text-red-800">Conflict</span>
         <span className="font-mono text-[11px] text-slate-500">{c.conflict_id}</span>
         {c.narrative && (
-          <span className="ml-auto text-[10px] text-slate-400">
+          <span className="ml-auto text-[10px] text-slate-500">
             {c.narrative.source === "model" ? "summary by Muse Spark" : "template text"}
           </span>
         )}
@@ -27,13 +27,13 @@ export default function ConflictCard({ c }: { c: ConflictOut }) {
       <p className="text-sm text-slate-800">
         {c.narrative?.summary ?? "The solver cannot meet every hard rule here. Pick one option."}
       </p>
-      <p className="mt-1 font-mono text-[10px] text-slate-400" title="unsat core: waivable rules that cannot all hold">
+      <p className="mt-1 font-mono text-[10px] text-slate-500" title="unsat core: waivable rules that cannot all hold">
         {c.core.join(" · ")}
       </p>
       <ul className="mt-2 space-y-1.5">
         {c.options.map((o) => (
           <li key={o.option_id} className="flex items-center gap-2 rounded border border-slate-100 px-2 py-1.5 text-sm">
-            <span className="w-6 text-xs font-semibold text-slate-400">{o.option_id}</span>
+            <span className="w-6 text-xs font-semibold text-slate-500">{o.option_id}</span>
             <span className="flex-1" title={o.waive ? `waives ${o.waive}` : "adds a temporary nurse"}>
               {labels.get(o.option_id) ?? o.label}
             </span>

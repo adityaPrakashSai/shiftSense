@@ -102,7 +102,7 @@ export default function ProposalCard({
         <ol className="mt-2 space-y-1.5">
           {p.candidates.map((c) => (
             <li key={c.nurse} className="flex items-center gap-2 rounded border border-slate-100 px-2 py-1.5">
-              <span className="w-4 text-xs font-semibold text-slate-400">{c.rank}</span>
+              <span className="w-4 text-xs font-semibold text-slate-500">{c.rank}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 text-sm">
                   <span className="font-medium">{name(c.nurse)}</span>
@@ -129,7 +129,7 @@ export default function ProposalCard({
                 onClick={() => choose.mutate(c.nurse)}
                 disabled={choose.isPending}
                 className={`rounded px-2 py-1 text-xs font-semibold disabled:opacity-60 ${
-                  c.rank === 1 ? "bg-emerald-600 text-white hover:bg-emerald-500" : "border border-slate-300 text-slate-700"
+                  c.rank === 1 ? "bg-emerald-700 text-white hover:bg-emerald-800" : "border border-slate-300 text-slate-700"
                 }`}
               >
                 {c.rank === 1 ? "Approve" : "Choose"}
@@ -143,7 +143,7 @@ export default function ProposalCard({
           <button
             onClick={() => choose.mutate(null)}
             disabled={choose.isPending}
-            className="rounded bg-emerald-600 px-2 py-1 font-semibold text-white disabled:opacity-60"
+            className="rounded bg-emerald-700 px-2 py-1 font-semibold text-white disabled:opacity-60"
           >
             Approve
           </button>

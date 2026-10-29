@@ -27,7 +27,7 @@ export default function ReplacementMessages({ nurses }: { nurses: Nurse[] }) {
             <div className="flex items-center gap-2">
               <span className="font-medium">{name(m.nurse_id)}</span>
               <span className={`rounded px-1 text-[10px] font-semibold ${TONE[m.status] ?? ""}`}>{m.status}</span>
-              <span className="ml-auto text-[10px] text-slate-400">
+              <span className="ml-auto text-[10px] text-slate-500">
                 {m.kind} · {m.source === "model" ? "written by Muse" : "template"}
               </span>
             </div>

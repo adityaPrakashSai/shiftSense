@@ -9,7 +9,7 @@ const SHIFT_STYLE: Record<string, string> = {
 
 export function cellStyle(c: CellT): string {
   if (c.shift) return SHIFT_STYLE[c.shift] ?? "bg-slate-100";
-  if (c.display === "N/O") return "text-indigo-400";
+  if (c.display === "N/O") return "text-indigo-600";
   return "text-slate-300";
 }
 

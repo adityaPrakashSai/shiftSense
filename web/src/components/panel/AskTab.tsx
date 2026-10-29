@@ -45,24 +45,27 @@ export default function AskTab({ runId, prefill }: { runId: string | null; prefi
   return (
     <div className="space-y-3">
       {turns.length === 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <p className="text-xs text-slate-500">Ask why the roster looks the way it does. Answers cite the evidence.</p>
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => send(s)}
-              className="block w-full rounded border border-slate-200 bg-white px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-50"
-            >
-              {s}
-            </button>
-          ))}
+          <p className="text-[11px] font-medium text-slate-500">Try asking:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                onClick={() => send(s)}
+                className="rounded-full bg-indigo-50 px-3 py-1 text-left text-xs text-indigo-700 hover:bg-indigo-100"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {turns.map((t) => (
         <div key={t.started} className="space-y-1.5">
           <p className="ml-auto max-w-[90%] rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white">{t.q}</p>
           {!t.a && !t.error && (
-            <p className="animate-pulse rounded-lg bg-white px-3 py-2 text-sm text-slate-400 ring-1 ring-slate-200">
+            <p className="animate-pulse rounded-lg bg-white px-3 py-2 text-sm text-slate-500 ring-1 ring-slate-200">
               Looking at the evidence…
             </p>
           )}
@@ -82,7 +85,7 @@ export default function AskTab({ runId, prefill }: { runId: string | null; prefi
                   ))}
                 </div>
               )}
-              <p className="mt-1 text-[10px] text-slate-400">
+              <p className="mt-1 text-[10px] text-slate-500">
                 {t.a.tool_calls.map((c) => c.tool).join(" → ") || "no tools"} · {((t.a.latency_ms ?? 0) / 1000).toFixed(1)} s
                 {t.a.grounded ? " · grounded" : ""}
               </p>

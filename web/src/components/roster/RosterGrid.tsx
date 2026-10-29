@@ -145,7 +145,7 @@ export default function RosterGrid({
               return (
                 <tr key={n.id} className="border-b border-slate-100 hover:bg-slate-50/60">
                   <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-3 text-slate-800">
-                    <span className="mr-2 font-mono text-xs text-slate-400">{n.id}</span>
+                    <span className="mr-2 font-mono text-xs text-slate-500">{n.id}</span>
                     {label(n)}
                   </td>
                   <Row

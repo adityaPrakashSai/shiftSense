@@ -41,7 +41,7 @@ export default function PendingApprovals({ nurses }: { nurses: Nurse[] }) {
               <button
                 onClick={() => approve.mutate(r.id)}
                 disabled={approve.isPending}
-                className="rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                className="rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
                 Approve
               </button>

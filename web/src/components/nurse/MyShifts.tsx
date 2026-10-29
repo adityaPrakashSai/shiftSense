@@ -46,7 +46,7 @@ export default function MyShifts({
           </li>
         );
       })}
-      {cells.length < 14 && <li className="px-3 py-2 text-xs text-slate-400">{L.notPublished}</li>}
+      {cells.length < 14 && <li className="px-3 py-2 text-xs text-slate-500">{L.notPublished}</li>}
     </ul>
   );
 }

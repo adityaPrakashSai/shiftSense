@@ -62,7 +62,7 @@ function Row({ e }: { e: EventOut }) {
   return (
     <li className={noisy ? "opacity-60" : ""}>
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-baseline gap-2 text-left text-[11px]">
-        <span className="w-14 shrink-0 font-mono text-slate-400">{e.ts.slice(11, 19)}</span>
+        <span className="w-14 shrink-0 font-mono text-slate-500">{e.ts.slice(11, 19)}</span>
         <span className={`shrink-0 rounded px-1 text-[10px] ${actorTone(e.actor)}`}>{e.actor}</span>
         <span className="shrink-0 font-mono font-semibold text-slate-700">{e.kind}</span>
         <span className="min-w-0 truncate text-slate-600">{headline(e)}</span>

@@ -29,7 +29,7 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
               <button
                 onClick={() => respond.mutate({ id: m.id, accept: true })}
                 disabled={respond.isPending}
-                className="flex-1 rounded-md bg-emerald-600 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+                className="flex-1 rounded-md bg-emerald-700 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
               >
                 {L.accept}
               </button>

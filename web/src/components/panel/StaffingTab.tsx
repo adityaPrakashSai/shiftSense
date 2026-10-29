@@ -44,7 +44,7 @@ function Result({ r }: { r: StaffingOut }) {
             {STAGE[s.stage] ?? s.stage} {s.value} {s.proven ? "✓ proven" : "· best found"}
           </span>
         ))}
-        <span className="text-[11px] text-slate-400">{r.secs.toFixed(1)} s</span>
+        <span className="text-[11px] text-slate-500">{r.secs.toFixed(1)} s</span>
       </div>
       {r.short_cells.length > 0 && (
         <div>

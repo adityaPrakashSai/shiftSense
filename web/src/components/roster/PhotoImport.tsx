@@ -147,7 +147,7 @@ function Preview({
                       aria-label={`${r.name} day ${d + 1}`}
                       value={c}
                       onChange={(e) => setCell(ri, d, e.target.value)}
-                      className={`w-full appearance-none rounded-none px-0.5 py-1 text-center text-[11px] ${CELL_STYLE[c] ?? (c.startsWith("L:") ? "bg-rose-100 text-rose-800" : "bg-transparent text-slate-400")}`}
+                      className={`w-full appearance-none rounded-none px-0.5 py-1 text-center text-[11px] ${CELL_STYLE[c] ?? (c.startsWith("L:") ? "bg-rose-100 text-rose-800" : "bg-transparent text-slate-500")}`}
                     >
                       {c === "?" && <option value="?">?</option>}
                       {[...BASE_CODES, ...LEAVE_CODES].map((x) => (

@@ -39,7 +39,7 @@ function Version({ v, days, nurses }: { v: VersionOut; days: string[]; nurses: N
         >
           {v.label === "current" ? "Current (published)" : "Proposal"}
         </span>
-        <span className="font-mono text-[10px] text-slate-400">{v.run.run_id}</span>
+        <span className="font-mono text-[10px] text-slate-500">{v.run.run_id}</span>
       </header>
       <Nights v={v} days={days} />
       <p className="mt-1 text-[11px] text-slate-500">
@@ -47,7 +47,7 @@ function Version({ v, days, nurses }: { v: VersionOut; days: string[]; nurses: N
       </p>
       {v.changes.length > 0 && (
         <table className="mt-1 w-full text-[11px]">
-          <thead className="text-left text-slate-400">
+          <thead className="text-left text-slate-500">
             <tr>
               <th>Day</th>
               <th>Nurse</th>
@@ -65,7 +65,7 @@ function Version({ v, days, nurses }: { v: VersionOut; days: string[]; nurses: N
                 </td>
                 <td>
                   <span className={CAUSE[c.cause ?? ""] ?? ""}>{(c.cause ?? "change").replace("_", " ")}</span>
-                  <span className="block text-[10px] text-slate-400">
+                  <span className="block text-[10px] text-slate-500">
                     {c.request_id ?? c.trigger}
                     {c.approved_by ? ` · approved by ${c.approved_by}` : ""}
                     {c.approved_at ? ` ${c.approved_at.slice(5, 16).replace("T", " ")}` : ""}

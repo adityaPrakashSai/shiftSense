@@ -250,7 +250,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
                 <button
                   onClick={() => publish.mutate(run.run_id)}
                   disabled={publish.isPending}
-                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                  className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
                 >
                   Publish
                 </button>

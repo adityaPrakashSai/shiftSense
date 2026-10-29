@@ -111,7 +111,7 @@ export default function Chat({
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
-        {rows.length === 0 && !sent && <p className="text-center text-sm text-slate-400">{L.empty}</p>}
+        {rows.length === 0 && !sent && <p className="text-center text-sm text-slate-500">{L.empty}</p>}
         {rows.map((m) => {
           const awaiting = m.reply_kind === "confirm" && m.requests.length > 0 && m.requests.every((r) => r.status === "pending_confirm");
           return (
@@ -136,7 +136,7 @@ export default function Chat({
                       <button
                         onClick={() => confirm.mutate(m.requests[0].id)}
                         disabled={confirm.isPending}
-                        className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                        className="rounded-md bg-emerald-700 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
                       >
                         {L.confirm}
                       </button>
@@ -167,8 +167,8 @@ export default function Chat({
         })}
         {sent && (
           <div className="space-y-1.5">
-            <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-indigo-400 px-3 py-2 text-sm text-white">{sent}</div>
-            <div className="max-w-[85%] animate-pulse rounded-2xl bg-white px-3 py-2 text-sm text-slate-400 ring-1 ring-slate-200">
+            <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-indigo-600 px-3 py-2 text-sm text-white opacity-80">{sent}</div>
+            <div className="max-w-[85%] animate-pulse rounded-2xl bg-white px-3 py-2 text-sm text-slate-500 ring-1 ring-slate-200">
               {L.thinking}
             </div>
           </div>

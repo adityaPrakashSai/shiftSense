@@ -83,7 +83,7 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
             fallback path
           </span>
         )}
-        <span className="ml-auto font-mono text-[10px] text-slate-400">
+        <span className="ml-auto font-mono text-[10px] text-slate-500">
           {t.id} · {t.trigger_ref}
         </span>
       </header>
@@ -108,7 +108,7 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
           ))}
         </ol>
       )}
-      <p className="mt-1 text-[10px] text-slate-400">
+      <p className="mt-1 text-[10px] text-slate-500">
         {t.counters.tool_calls ?? 0}/12 tool calls · {t.counters.messages ?? 0}/4 messages ·{" "}
         {((t.counters.model_ms ?? 0) / 1000).toFixed(1)} s model time
         {(t.counters.forbidden ?? 0) > 0 && ` · ${t.counters.forbidden} refused`}
