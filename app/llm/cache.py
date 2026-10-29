@@ -3,12 +3,14 @@
 Key: sha256 of canonical JSON of {provider, model, role, messages, tools, response_schema,
 temperature, max_tokens, prompt_version}. Image and audio parts are replaced by the sha256 of their
 bytes. `prompt_version` hashes the role's prompt files, so editing a prompt invalidates only that
-role's entries.
+role's entries. Run ids (which carry the solve's wall-clock time) are replaced by placeholders in
+the key and the stored entry, so a scripted demo replays on a fresh run with new ids.
 """
 
 import base64
 import hashlib
 import json
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -16,6 +18,32 @@ from typing import Any
 from app.llm.types import LLMRequest
 
 PROMPTS = Path(__file__).with_name("prompts")
+RUN_ID = re.compile(r"run-\d{8}-\d{6}-[0-9a-f]{4}")  # app.planner.runs.new_run_id
+RUN_REF = re.compile(r"run-ref-\d+")
+
+
+def run_refs(req: LLMRequest) -> dict[str, str]:
+    """Run ids in the request, each mapped to `run-ref-N` in order of first appearance."""
+    refs: dict[str, str] = {}
+    for m in RUN_ID.finditer(json.dumps(req.messages, ensure_ascii=False)):
+        refs.setdefault(m.group(), f"run-ref-{len(refs) + 1}")
+    return refs
+
+
+def to_refs(obj: Any, refs: dict[str, str]) -> Any:
+    if not refs:
+        return obj
+    text = json.dumps(obj, ensure_ascii=False)
+    return json.loads(RUN_ID.sub(lambda m: refs.get(m.group(), m.group()), text))
+
+
+def from_refs(obj: Any, refs: dict[str, str]) -> Any:
+    """A cached response with the placeholders put back as this request's run ids."""
+    back = {v: k for k, v in refs.items()}
+    if not back:
+        return obj
+    text = json.dumps(obj, ensure_ascii=False)
+    return json.loads(RUN_REF.sub(lambda m: back.get(m.group(), m.group()), text))
 
 
 def prompt_version(role: str, prompts_dir: Path = PROMPTS) -> str:
@@ -57,7 +85,7 @@ def cache_key(provider: str, model: str, req: LLMRequest, prompts_dir: Path = PR
         "provider": provider,
         "model": model,
         "role": req.role.value,
-        "messages": _key_messages(req.messages),
+        "messages": to_refs(_key_messages(req.messages), run_refs(req)),
         "tools": req.tools,
         "response_schema": req.response_schema,
         "temperature": req.temperature,
@@ -94,10 +122,12 @@ def put(
     response: dict[str, Any],
     created_at: str,
 ) -> None:
+    refs = run_refs(req)
+    response = to_refs(response, refs)
     request_json = json.dumps(
         {
             "role": req.role.value,
-            "messages": _stored_messages(req.messages),
+            "messages": to_refs(_stored_messages(req.messages), refs),
             "tools": req.tools,
             "temperature": req.temperature,
             "max_tokens": req.max_tokens,

@@ -1,12 +1,13 @@
 // Nurse view (design doc 10.3): mobile first (360-430 px). Name and a demo identity selector on
-// top, then My shifts and Chat. Live through the ward socket like the charge view.
+// top, then Chat, Inbox and My shifts. Live through the ward socket like the charge view.
+// `NurseView` is the same view inside the /demo phone frame, where the page owns the identity.
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useWardSocket, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
-import Chat from "../components/nurse/Chat";
+import Chat, { type Suggestion } from "../components/nurse/Chat";
 import Inbox from "../components/nurse/Inbox";
 import { t, type Lang } from "../components/nurse/i18n";
 import MyShifts from "../components/nurse/MyShifts";
@@ -14,6 +15,22 @@ import MyShifts from "../components/nurse/MyShifts";
 export default function NursePage() {
   const { nurseId = "" } = useParams();
   const navigate = useNavigate();
+  return <NurseView nurseId={nurseId} onNurse={(id) => navigate(`/nurse/${id}`)} />;
+}
+
+export function NurseView({
+  nurseId,
+  onNurse,
+  embedded = false,
+  suggestion = null,
+  onSuggestionSent,
+}: {
+  nurseId: string;
+  onNurse: (id: string) => void;
+  embedded?: boolean;
+  suggestion?: Suggestion | null;
+  onSuggestionSent?: () => void;
+}) {
   const qc = useQueryClient();
   const ward = useQuery({ queryKey: ["ward"], queryFn: api.ward });
   const health = useQuery({ queryKey: ["health"], queryFn: api.health });
@@ -26,12 +43,21 @@ export default function NursePage() {
   const asks = (inbox.data ?? []).filter((m) => m.status === "asked").length;
   const L = t(lang);
 
+  // a suggested message from the demo bar is sent from the chat
+  useEffect(() => {
+    if (suggestion) setTab("chat");
+  }, [suggestion]);
+
   const onMessage = useCallback(
     (m: WardMessage) => {
       if (m.type === "request_updated" || m.type === "run_finished")
         void qc.invalidateQueries({ queryKey: ["messages", nurseId] });
       if (m.type === "roster_published") void qc.invalidateQueries({ queryKey: ["roster"] });
       if (m.type === "message_for_nurse") void qc.invalidateQueries({ queryKey: ["inbox"] });
+      if (m.type === "demo_reset") {
+        setTab("chat");
+        setLang(null);
+      }
     },
     [qc, nurseId],
   );
@@ -40,14 +66,14 @@ export default function NursePage() {
   const shiftNames = Object.fromEntries((ward.data?.shifts ?? []).map((s) => [s.code, `${s.name} ${s.start}`]));
 
   return (
-    <div className="mx-auto flex h-screen max-w-[430px] flex-col bg-slate-50 text-slate-800">
+    <div className={`mx-auto flex max-w-[430px] flex-col bg-slate-50 text-slate-800 ${embedded ? "h-full" : "h-screen"}`}>
       <header className="border-b border-slate-200 bg-white px-3 py-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-semibold">{nurse?.name ?? nurseId}</h1>
             <p className="text-xs text-slate-500">{ward.data?.name}</p>
           </div>
-          {health.data && <ModeBadge mode={health.data.llm_mode} />}
+          {health.data && !embedded && <ModeBadge mode={health.data.llm_mode} />}
           <button
             onClick={() => setLang(lang === "en" ? "hi" : "en")}
             className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600"
@@ -56,14 +82,15 @@ export default function NursePage() {
             {lang === "en" ? "हिं" : "EN"}
           </button>
         </div>
-        <div className="mt-2 flex items-center gap-2 text-xs">
+        {/* on /demo the identity selector sits in the demo bar */}
+        <div className={`mt-2 flex items-center gap-2 text-xs ${embedded ? "hidden" : ""}`}>
           <label className="text-slate-500" htmlFor="who">
             Demo identity
           </label>
           <select
             id="who"
             value={nurseId}
-            onChange={(e) => navigate(`/nurse/${e.target.value}`)}
+            onChange={(e) => onNurse(e.target.value)}
             className="min-w-0 flex-1 rounded border border-slate-300 bg-white px-1 py-0.5"
           >
             {(ward.data?.nurses ?? []).map((n) => (
@@ -72,9 +99,11 @@ export default function NursePage() {
               </option>
             ))}
           </select>
-          <Link to="/charge" className="text-indigo-600 hover:underline">
-            Charge view
-          </Link>
+          {!embedded && (
+            <Link to="/charge" className="text-indigo-600 hover:underline">
+              Charge view
+            </Link>
+          )}
         </div>
         <nav className="mt-2 flex gap-1">
           {(["chat", "inbox", "shifts"] as const).map((k) => (
@@ -95,7 +124,7 @@ export default function NursePage() {
       </header>
       <main className="min-h-0 flex-1">
         {tab === "chat" ? (
-          <Chat key={nurseId} nurseId={nurseId} lang={lang} />
+          <Chat key={nurseId} nurseId={nurseId} lang={lang} suggestion={suggestion} onSuggestionSent={onSuggestionSent} />
         ) : tab === "inbox" ? (
           <div className="h-full overflow-y-auto">
             <Inbox nurseId={nurseId} lang={lang} />

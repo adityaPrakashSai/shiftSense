@@ -3,7 +3,8 @@
 // with the drafted message, Accept, and the agent trace and decision log showing it all.
 import { expect, test } from "@playwright/test";
 
-test("sick call to accepted replacement", async ({ browser }) => {
+test("sick call to accepted replacement", async ({ browser, request }) => {
+  await request.post("/api/demo/reset"); // the specs share one server
   const meena = await browser.newPage({ viewport: { width: 400, height: 860 } });
   const charge = await browser.newPage();
   await charge.goto("/charge");

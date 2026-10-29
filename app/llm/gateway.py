@@ -128,6 +128,7 @@ class LLMGateway:
             if self.mode != "mock":
                 hit = cache.get(conn, key)
                 if hit is not None:
+                    hit = cache.from_refs(hit, cache.run_refs(req))
                     resp = self._from_cache(hit, req, call_id, t0)
                     self._log(conn, call_id, req, resp, key, run_id, request_id)
                     return resp

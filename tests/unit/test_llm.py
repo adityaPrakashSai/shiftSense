@@ -27,6 +27,7 @@ from app.llm.types import (
     ProviderResult,
     Role,
     SpendCapReached,
+    ToolCall,
 )
 from app.store.db import connect, open_db
 
@@ -184,6 +185,33 @@ def test_media_parts_are_hashed_in_the_key() -> None:
     assert k1 == cache.cache_key("baseten", "m", image(b"photo-1"))
     assert k1 != cache.cache_key("baseten", "m", image(b"photo-2"))
     assert k1 != cache.cache_key("meta", "m", image(b"photo-1"))
+
+
+def test_run_ids_replay_on_a_new_run(tmp_path: Path) -> None:
+    """Run ids carry the wall-clock time; the key uses placeholders, so the scripted demo's answer
+    for one run is served for the next, with that run's ids put back (M11)."""
+    a, b, c = "run-20261103-060501-ab12", "run-20261103-061502-cd34", "run-20261029-053317-35a7"
+    fake = FakeProvider(
+        ProviderResult(
+            text=f"{a} replaces {c}",
+            tool_calls=[ToolCall("t1", "get_run", {"run_id": a})],
+            prompt_tokens=10,
+            completion_tokens=10,
+        )
+    )
+    gw = gateway(tmp_path / "a.db", fake)
+    first = run(gw.complete(req(f"compare {a} with {c}")))
+    second = run(gw.complete(req(f"compare {b} with {c}")))
+    assert len(fake.calls) == 1 and second.cache_hit and not first.cache_hit
+    assert second.text == f"{b} replaces {c}"
+    assert second.tool_calls[0].arguments == {"run_id": b}
+    # a different shape (the ids swapped) is a different prompt
+    assert cache.cache_key("baseten", "m", req(f"{a} {c}")) != cache.cache_key(
+        "baseten", "m", req(f"{c} {c}")
+    )
+    stored = connect(tmp_path / "a.db").execute("SELECT * FROM llm_cache").fetchone()
+    assert a not in stored["request_json"] + stored["response_json"]
+    assert "run-ref-1" in stored["response_json"]
 
 
 def test_cache_export_import_round_trip(tmp_path: Path) -> None:

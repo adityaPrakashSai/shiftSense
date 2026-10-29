@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -51,6 +52,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="ShiftSense", version="0.0.0", lifespan=lifespan)
 errors.install(app)
+app.add_middleware(GZipMiddleware, minimum_size=1000)  # the JS bundle; /demo loads cold in < 3 s
 app.include_router(routes_misc.router)
 app.include_router(routes_ward.router)
 app.include_router(routes_runs.router)

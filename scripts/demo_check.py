@@ -5,8 +5,10 @@
 Expects the mini ward (SEED=mini) with "now" on the sick-call morning
 (DEMO_NOW=2026-11-03T06:05:00+05:30). Meena sends the Hindi sick call, confirms; the roster agent
 ranks and asks for approval; the charge nurse asks "Why Arun and not Priya?" and approves; Arun's
-inbox gets the drafted message and he accepts; the agent ends done. Prints each step with its time
-and exits non-zero on the first failure. Works in any LLM mode; in live mode it spends credits.
+inbox gets the drafted message and he accepts; the agent ends done. Then the other two suggested
+chips on /demo: Kavya's day off in English, and Priya's "why do I get every weekend?". Prints each
+step with its time and exits non-zero on the first failure. Works in any LLM mode; in live mode it
+spends credits (nothing for the messages already in data/llm_cache.jsonl).
 """
 
 import argparse
@@ -17,7 +19,10 @@ from typing import Any
 
 import httpx
 
+# the suggested chips in web/src/pages/DemoPage.tsx
 SICK = "Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai"
+DAY_OFF = "Can I get a day off on Saturday 7 Nov? It's my sister's engagement."
+WEEKEND = "Why do I get every weekend?"
 HEALTH = ("fever", "bukhar", "sick", "bimar", "बुखार")
 
 
@@ -89,6 +94,13 @@ def main(argv: list[str] | None = None) -> int:
                 "message.drafted", "replacement.accepted", "agent.done"}  # fmt: skip
         assert need <= kinds, need - kinds
         step("decision log has intake, confirmation, stages, approval and acceptance")
+        r = c.post("/api/messages", data={"sender_id": "N04", "text": DAY_OFF}).json()
+        assert r["reply_kind"] == "confirm", r
+        out = c.post(f"/api/requests/{r['request_id']}/confirm").json()
+        step(f"day off (Kavya): {r['reply']} -> {out['request']['status']}")
+        r = c.post("/api/messages", data={"sender_id": "N02", "text": WEEKEND}).json()
+        assert r["reply_kind"] == "answer", r
+        step(f"why every weekend (Priya): {r['reply']}")
     except (AssertionError, httpx.HTTPError, KeyError) as exc:
         print(f"FAILED: {exc}", file=sys.stderr)
         return 1

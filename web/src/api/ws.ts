@@ -16,6 +16,7 @@ export type WardMessage =
   | { type: "conflict_created"; conflict_id: string; run_id: string }
   | { type: "agent_updated"; task_id: string }
   | { type: "ward_updated" }
+  | { type: "demo_reset"; run_id: string | null }
   | { type: "event"; seq: number };
 
 export type SocketMode = "connecting" | "live" | "polling";
@@ -35,8 +36,9 @@ function nudgeFor(e: EventOut): WardMessage | null {
     case "run.failed":
       return e.run_id ? { type: "run_finished", run_id: e.run_id, status: "infeasible" } : null;
     case "run.published":
-    case "demo.reset":
       return { type: "roster_published", run_id: e.run_id ?? null };
+    case "demo.reset":
+      return { type: "demo_reset", run_id: e.run_id ?? null };
     case "conflict.created":
     case "conflict.narrated":
     case "conflict.resolved": {
@@ -115,6 +117,7 @@ export function useWardSocket(
             for (const e of events) {
               const m = nudgeFor(e);
               if (m) handlers.current.onMessage(m);
+              if (m?.type === "demo_reset") void qc.invalidateQueries();
             }
           }
         } while (dirty);
@@ -154,6 +157,8 @@ export function useWardSocket(
         const m = JSON.parse(ev.data) as WardMessage;
         if (m.type === "event") void pull(false);
         else handlers.current.onMessage(m);
+        // everything changed: refetch every query (the page clears its own local state)
+        if (m.type === "demo_reset") void qc.invalidateQueries();
       };
       ws.onclose = () => {
         if (ping !== undefined) window.clearInterval(ping);

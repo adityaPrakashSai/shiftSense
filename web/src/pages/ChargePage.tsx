@@ -2,8 +2,9 @@
 // priority chips, roster grid with coverage footer and proposal diff highlighting, stage strip,
 // Publish for a draft, and the right panel: Alerts (approvals, proposals with the agent's summary,
 // replacement messages), Ask, Agent (live roster-agent traces), Fairness, Log and Versions.
+// `ChargeView` is the same view embedded in /demo (left 65%).
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError, type Cell, type EventOut } from "../api/client";
 import { useWardSocket, type SocketMode, type WardMessage } from "../api/ws";
@@ -14,12 +15,14 @@ import RosterGrid from "../components/roster/RosterGrid";
 import AgentTab from "../components/panel/AgentTab";
 import AlertsTab from "../components/panel/AlertsTab";
 import AskTab, { type AskPrefill } from "../components/panel/AskTab";
-import FairnessTab from "../components/panel/FairnessTab";
 import LogTab from "../components/panel/LogTab";
 import VersionsTab from "../components/panel/VersionsTab";
 import Priorities from "../components/common/Priorities";
 import CellPanel from "../components/roster/CellPanel";
 import StageStrip from "../components/roster/StageStrip";
+
+// Recharts is most of the bundle: load it when the Fairness tab first opens, not on /demo's cold load
+const FairnessTab = lazy(() => import("../components/panel/FairnessTab"));
 
 type Tab = "alerts" | "ask" | "agent" | "fairness" | "log" | "versions";
 const TABS: [Tab, string][] = [
@@ -59,6 +62,10 @@ function SocketDot({ mode }: { mode: SocketMode }) {
 }
 
 export default function ChargePage() {
+  return <ChargeView />;
+}
+
+export function ChargeView({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient();
   const health = useQuery({ queryKey: ["health"], queryFn: api.health });
   const ward = useQuery({ queryKey: ["ward"], queryFn: api.ward });
@@ -85,6 +92,14 @@ export default function ChargePage() {
 
   const onMessage = useCallback(
     (m: WardMessage) => {
+      if (m.type === "demo_reset") {
+        setViewRunId(null);
+        setSolving(null);
+        setTimer(IDLE);
+        setCell(null);
+        setPrefill(null);
+        setTab("alerts");
+      }
       if (m.type === "run_started") {
         setSolving(m.run_id);
         // a re-solve started elsewhere (a nurse confirmed): time it from the nudge
@@ -169,8 +184,8 @@ export default function ChargePage() {
   const noRoster = roster.error instanceof ApiError && roster.error.status === 404;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      <header className="border-b border-slate-200 bg-white px-6 py-3">
+    <div className={`${embedded ? "" : "min-h-screen"} bg-slate-50 text-slate-800`}>
+      <header className={`border-b border-slate-200 bg-white ${embedded ? "px-4 py-2" : "px-6 py-3"}`}>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <div>
             <h1 className="text-lg font-semibold">{ward.data?.name ?? "ShiftSense"}</h1>
@@ -183,11 +198,13 @@ export default function ChargePage() {
           </div>
           <div className="flex items-center gap-2">
             {usage.data && <ProviderBadge usage={usage.data} />}
-            {health.data && <ModeBadge mode={health.data.llm_mode} />}
+            {health.data && !embedded && <ModeBadge mode={health.data.llm_mode} />}
             <SocketDot mode={mode} />
-            <Link to="/nurse" className="text-xs text-indigo-600 hover:underline">
-              Nurse view
-            </Link>
+            {!embedded && (
+              <Link to="/nurse" className="text-xs text-indigo-600 hover:underline">
+                Nurse view
+              </Link>
+            )}
           </div>
           <div className="ml-auto flex items-center gap-4">
             <RunTimer
@@ -208,8 +225,9 @@ export default function ChargePage() {
         {ward.data && <Priorities priorities={ward.data.priorities ?? []} />}
       </header>
 
-      <div className="flex items-start gap-4 px-6 py-4">
-      <main className="min-w-0 flex-1 space-y-3">
+      {/* embedded on a phone or tablet: the panel (approvals) above the grid, full width */}
+      <div className={`flex items-start gap-4 ${embedded ? "flex-col px-3 py-3 lg:flex-row lg:px-4" : "px-6 py-4"}`}>
+      <main className={`min-w-0 flex-1 space-y-3 ${embedded ? "w-full" : ""}`}>
         {run && (
           <div className="flex flex-wrap items-center gap-3">
             <span
@@ -263,7 +281,9 @@ export default function ChargePage() {
           <span className="rounded px-1 ring-2 ring-inset ring-amber-500">M</span> other change.
         </p>
       </main>
-      <aside className="sticky top-4 w-[380px] shrink-0">
+      <aside
+        className={`shrink-0 ${embedded ? "order-first w-full lg:sticky lg:top-4 lg:order-none lg:w-[340px]" : "sticky top-4 w-[380px]"}`}
+      >
         {cell && run && ward.data && (
           <CellPanel
             cell={cell}
@@ -312,7 +332,11 @@ export default function ChargePage() {
           <AskTab runId={run?.run_id ?? null} prefill={prefill} />
         </div>
         {tab === "agent" && ward.data && <AgentTab nurses={ward.data.nurses} />}
-        {tab === "fairness" && <FairnessTab />}
+        {tab === "fairness" && (
+          <Suspense fallback={<p className="text-sm text-slate-500">Loading chart…</p>}>
+            <FairnessTab />
+          </Suspense>
+        )}
         {tab === "log" && <LogTab />}
         {tab === "versions" && ward.data && <VersionsTab nurses={ward.data.nurses} />}
       </aside>

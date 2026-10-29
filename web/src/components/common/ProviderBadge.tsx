@@ -3,7 +3,7 @@
 // the Stage One evidence that Meta models do the work.
 import type { LLMUsage } from "../../api/client";
 
-const NAMES: Record<string, string> = {
+export const NAMES: Record<string, string> = {
   baseten: "Muse Spark Open on Baseten",
   meta: "Muse Spark on Meta Model API",
   modal: "Muse Spark Open on Modal",

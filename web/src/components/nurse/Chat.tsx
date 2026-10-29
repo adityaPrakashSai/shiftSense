@@ -26,7 +26,20 @@ function Status({ m, lang }: { m: MessageRecord; lang: Lang }) {
   );
 }
 
-export default function Chat({ nurseId, lang }: { nurseId: string; lang: Lang }) {
+/** A message the /demo bar asks the chat of `nurseId` to send once. */
+export type Suggestion = { nurseId: string; text: string };
+
+export default function Chat({
+  nurseId,
+  lang,
+  suggestion = null,
+  onSuggestionSent,
+}: {
+  nurseId: string;
+  lang: Lang;
+  suggestion?: Suggestion | null;
+  onSuggestionSent?: () => void;
+}) {
   const L = t(lang);
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -46,9 +59,21 @@ export default function Chat({ nurseId, lang }: { nurseId: string; lang: Lang })
   const confirm = useMutation({ mutationFn: api.confirm, onSettled: refresh });
   const reject = useMutation({ mutationFn: api.reject, onSettled: refresh });
 
+  // scroll the message list only (scrollIntoView would also move the page around the demo phone)
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "end" });
+    const list = end.current?.parentElement;
+    if (list) list.scrollTop = list.scrollHeight;
   }, [messages.data, sent]);
+
+  // a suggestion is sent once by the chat it belongs to; the parent then clears it, and the ref
+  // covers the effect running twice before that
+  const handled = useRef<Suggestion | null>(null);
+  useEffect(() => {
+    if (!suggestion || suggestion.nurseId !== nurseId || handled.current === suggestion) return;
+    handled.current = suggestion;
+    send.mutate(suggestion.text);
+    onSuggestionSent?.();
+  }, [suggestion, nurseId, send, onSuggestionSent]);
 
   const submit = () => {
     const body = text.trim();

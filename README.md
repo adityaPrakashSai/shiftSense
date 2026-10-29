@@ -60,7 +60,7 @@ and calls Meta models over HTTPS. State lives in one SQLite file. Details: desig
 | `app/` | Python backend (FastAPI, solver, planner, LLM gateway) |
 | `web/` | React + TypeScript + Vite + Tailwind frontend |
 | `data/` | Seed wards (synthetic or pseudonymized) and the SQLite file at runtime |
-| `scripts/` | Seed loader and generator |
+| `scripts/` | Seed loader, demo baseline, cache export, demo check |
 | `tests/` | pytest suite and fixtures |
 | `evals/` | Fixed LLM eval sets, runner, scorer and reports |
 | `reference/` | Pre-build reference prototypes (specs, not app code) |
@@ -75,12 +75,13 @@ make setup     # uv sync, npm ci in web/, creates .env from .env.example
 make seed      # recreate data/shiftsense.db and publish a solved baseline (SEED=mini|real_a)
 uv run python -m app.solver.cli data/seed/ward.json   # solve a seed, print the grid
 uv run python -m app.tools.replay RUN_ID              # re-solve a stored run, compare tiers
-make dev       # API on :8000, Vite on :5173 (open /charge, and /nurse/N07 for a nurse's phone)
+make dev       # API on :8000, Vite on :5173 (open /demo; also /charge and /nurse/N03)
 make api       # regenerate web/openapi.json and the TypeScript client types
 uv run python -m app.llm.smoke --provider baseten   # live check of Muse Spark Open (needs a key)
 make test      # ruff, mypy (strict for app/solver), pytest in mock mode
 make eval      # live intake eval on Baseten (EVAL_ARGS="--mode replay" re-runs it for free)
 uv run python -m scripts.scenarios.night_crunch   # open a conflict (SEED=mini, DEMO_NOW at 22:00)
+make e2e       # build the web app, run the Playwright demo tests in mock mode
 make docker    # build the container image
 ```
 
@@ -88,9 +89,66 @@ make docker    # build the container image
 
 API keys live only in `.env` (git-ignored) and Railway variables; see `.env.example`.
 
+## Quick start
+
+No API keys needed: the scripted demo's Muse Spark answers are committed in `data/llm_cache.jsonl`,
+and replay mode serves only those.
+
+```bash
+git clone <this repo> && cd shiftsense
+make setup                  # creates .env from .env.example (SEED=mini, "now" = Tue 3 Nov 06:05)
+LLM_MODE=replay make dev    # open http://localhost:5173/demo
+```
+
+With Docker instead (the built app is served by FastAPI on one port):
+
+```bash
+make docker
+docker run --rm -p 8000:8000 -e LLM_MODE=replay -e SEED=mini \
+  -e DEMO_NOW=2026-11-03T06:05:00+05:30 shiftsense      # open http://localhost:8000/demo
+```
+
+For live Muse Spark Open calls, put `BASETEN_API_KEY` in `.env` and use `LLM_MODE=live`; answers
+already in the cache are still served from it, at no cost.
+
 ## Demo
 
-Coming in M11: a `/demo` page with the charge nurse view and the nurse's phone view side by side.
+Live URL: _(added after the Railway deployment)_
+
+`/` opens `/demo`: the charge nurse view on the left (65%) and a nurse's phone on the right (35%).
+The top bar has **Reset demo** (restores the published baseline in well under a second), the
+phone's identity selector, the model banner and three suggested messages:
+
+1. **Sick call (Hindi), Meena**: *"Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai"*.
+   Confirm in the phone; the charge view shows the alert, the ranked replacements (Arun the standby
+   nurse first) and the roster agent's claim-checked summary. Ask *"Why Arun and not Priya?"* in
+   the Ask tab, Approve, then switch the phone to Arun (S01): his Inbox has Muse's message in Hindi
+   with Accept / Decline. The Agent and Log tabs show every step.
+2. **Day off (English), Kavya**: a soft request for Sat 7 Nov, granted or denied with a reason at
+   the next solve.
+3. **Why every weekend? Priya**: a grounded answer from her fairness history, with claim chips.
+
+On a phone, `/demo` shows one view at a time with a switch at the top.
+`uv run python -m scripts.demo_check --base <url> --reset` runs the same script over HTTP.
+
+## Deploy to Railway
+
+One Docker service (`railway.toml`: Dockerfile build, health check on `/api/health`), one Uvicorn
+worker, and a volume for SQLite:
+
+```bash
+railway login && railway init        # or link an existing project: railway link
+railway volume add --mount-path /data
+railway variables --set LLM_MODE=live --set SEED=mini \
+  --set DEMO_NOW=2026-11-03T06:05:00+05:30 --set DB_PATH=/data/shiftsense.db \
+  --set LOG_DIR=/data/logs --set SOLVER_WORKERS=4 --set LLM_SPEND_CAP_USD=5.00
+railway variables --set BASETEN_API_KEY=...   # the key goes only here and in .env
+make deploy                                    # railway up
+railway domain                                 # public URL
+```
+
+The first boot loads the committed baseline and saves the reset snapshot on the volume; later boots
+keep the database as it is (use Reset demo).
 
 ## Credits
 

@@ -15,6 +15,8 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY app/ app/
 COPY data/seed/ data/seed/
+# committed Muse responses: replay mode with no keys, and instant answers for the scripted demo
+COPY data/llm_cache.jsonl data/llm_cache.jsonl
 RUN uv sync --frozen --no-dev
 COPY --from=web /web/dist web/dist
 EXPOSE 8000

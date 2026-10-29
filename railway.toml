@@ -1,0 +1,12 @@
+# Railway service (design doc 3.3, M11): one Docker service, one Uvicorn worker, a volume for the
+# SQLite file. The volume and the variables are set in the dashboard or with the CLI; README
+# "Deploy to Railway" lists them (keys never go in this file).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

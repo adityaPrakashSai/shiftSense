@@ -1,17 +1,55 @@
 """Write a seed into SQLite (design doc 4.5). Used by `scripts/seed.py` and app startup.
 
 Parsing lives in `app/domain/seeds.py`; real_a's printed plans become `import` runs here.
-Wards without a printed plan get a baseline solved by CP-SAT and published at seed time.
+Wards without a printed plan get a baseline solved by CP-SAT and published at seed time. The
+demo seed's solved state is committed (`data/seed/{seed}_baseline.json`), because CP-SAT with
+several workers and time limits does not return the same roster twice; a pinned baseline gives
+every clone, reset and deployment the same published roster, so the scripted demo's cached Muse
+answers keep matching.
 """
 
+import hashlib
+import logging
 import sqlite3
+from pathlib import Path
 
 from app.domain.models import RunKind, RunStatus
 from app.domain.seeds import SEED_DIR, SEED_FILES, Seed, load_seed, parse_seed
 from app.planner.build_input import build_input
-from app.store import repo
+from app.store import repo, snapshot
 
 __all__ = ["SEED_DIR", "SEED_FILES", "Seed", "load_seed", "parse_seed", "seed_db", "write_seed"]
+log = logging.getLogger(__name__)
+
+
+def baseline_path(name: str) -> Path:
+    return SEED_DIR / f"{name}_baseline.json"
+
+
+def seed_sha(name: str) -> str:
+    return hashlib.sha256((SEED_DIR / SEED_FILES[name]).read_bytes()).hexdigest()
+
+
+def snapshot_tag(name: str) -> str:
+    """The seed name, plus the committed baseline's hash when there is one: a deployment whose
+    volume keeps an old reset snapshot takes a new one after the baseline changes."""
+    path = baseline_path(name)
+    if not path.exists():
+        return name
+    return f"{name}-{hashlib.sha256(path.read_bytes()).hexdigest()[:8]}"
+
+
+def load_baseline(conn: sqlite3.Connection, name: str) -> bool:
+    """Load the committed seeded state, if there is one for this seed file as it is now."""
+    path = baseline_path(name)
+    if name not in SEED_FILES or not path.exists():
+        return False
+    meta = snapshot.load_json(conn, path)
+    if meta.get("seed_sha256") != seed_sha(name):
+        log.warning("%s is stale (seed file changed); solving a new baseline", path.name)
+        clear(conn)
+        return False
+    return True
 
 
 def clear(conn: sqlite3.Connection) -> None:

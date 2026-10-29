@@ -242,9 +242,19 @@ async def _run_agent(ward_id: str, task_id: str, fn: Any) -> None:
 
 
 def _spawn_agent(coro: Any) -> None:
-    task = asyncio.get_running_loop().create_task(coro)
+    task = asyncio.get_running_loop().create_task(coro, name="agent")
     tasks.add(task)
     task.add_done_callback(tasks.discard)
+
+
+async def cancel_agents() -> None:
+    """Demo reset: stop every running agent task and wait until each has unwound. Solves are not
+    cancelled; the reset waits for them on the ward lock instead."""
+    running = [t for t in tasks if t.get_name() == "agent" and not t.done()]
+    for t in running:
+        t.cancel()
+    await asyncio.gather(*running, return_exceptions=True)
+    _task_locks.clear()
 
 
 def agent_start(ward_id: str, workflow: str, *, prefetch: str | None = None,

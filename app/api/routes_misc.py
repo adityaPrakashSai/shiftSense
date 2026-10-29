@@ -13,7 +13,7 @@ from app.api.schemas import EventOut, Health, ResetOut, WsOff
 from app.api.ws import hub
 from app.config import get_settings
 from app.store import repo, snapshot
-from app.store.seed import seed_db
+from app.store.seed import load_baseline, seed_db, snapshot_tag
 
 router = APIRouter(prefix="/api", tags=["misc"])
 
@@ -59,12 +59,14 @@ def events(
 
 
 def reset_db(conn: sqlite3.Connection, seed: str) -> None:
-    """Restore the seed snapshot (fast), or seed + solve once and save the snapshot."""
-    path = snapshot.snapshot_path(get_settings().db_path, seed)
+    """Restore the seed snapshot (fast); the first time, load the committed baseline or seed +
+    solve, and save the snapshot."""
+    path = snapshot.snapshot_path(get_settings().db_path, snapshot_tag(seed))
     if path.exists():
         snapshot.restore(conn, path)
     else:
-        seed_db(conn, seed)
+        if not load_baseline(conn, seed):
+            seed_db(conn, seed)
         snapshot.save(conn, path)
 
 
@@ -73,6 +75,7 @@ async def demo_reset(conn: Conn) -> ResetOut:
     s = get_settings()
     t0 = time.perf_counter()
     old = repo.get_ward(conn)
+    await jobs.cancel_agents()  # a running task would write into the restored database
     lock = jobs.ward_lock(old.id) if old is not None else None
     if lock is not None:
         async with lock:
@@ -84,7 +87,7 @@ async def demo_reset(conn: Conn) -> ResetOut:
     published = repo.get_published_run(conn, ward.id)
     run_id = None if published is None else str(published["run_id"])
     jobs.live_log(conn, ward.id).emit("demo.reset", "system", run_id, seed=s.seed, secs=secs)
-    await hub.broadcast(ward.id, {"type": "roster_published", "run_id": run_id})
+    await hub.broadcast(ward.id, {"type": "demo_reset", "run_id": run_id})
     return ResetOut(ok=True, seed=s.seed, secs=secs, run_id=run_id)
 
 
