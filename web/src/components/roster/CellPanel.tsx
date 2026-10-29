@@ -32,7 +32,7 @@ export default function CellPanel({
   const name = nurses.find((n) => n.id === cell.nurse_id)?.name ?? cell.nurse_id;
   const e = ev.data;
   return (
-    <section className="mb-3 rounded-lg border border-indigo-200 bg-white p-3 text-xs shadow-sm">
+    <section className="max-h-[60vh] overflow-y-auto rounded-lg border border-indigo-200 bg-white p-3 text-xs shadow-lg">
       <header className="mb-1 flex items-center gap-2">
         <h3 className="flex-1 text-sm font-semibold">
           {name} · {new Date(`${cell.day}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} ·{" "}
@@ -63,7 +63,7 @@ export default function CellPanel({
               ))}
             </ul>
           ) : (
-            <p>No cost rows on this cell.</p>
+            <p>Nothing contested here: no rule or request is under pressure on this cell.</p>
           )}
           <p>
             {e.other_shifts

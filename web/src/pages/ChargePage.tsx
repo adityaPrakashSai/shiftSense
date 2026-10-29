@@ -295,7 +295,9 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
       <aside
         className={`shrink-0 ${embedded ? "order-first w-full lg:sticky lg:top-4 lg:order-none lg:w-[340px]" : "sticky top-4 w-[380px]"}`}
       >
+        <div className="relative">
         {cell && run && ward.data && (
+          <div className="absolute inset-x-0 top-0 z-20">
           <CellPanel
             cell={cell}
             runId={run.run_id}
@@ -314,6 +316,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
               }));
             }}
           />
+          </div>
         )}
         <nav className="mb-2 flex flex-wrap gap-1">
           {TABS.map(([k, label]) => (
@@ -351,6 +354,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
         {tab === "log" && <LogTab />}
         {tab === "versions" && ward.data && <VersionsTab nurses={ward.data.nurses} />}
         {tab === "staffing" && ward.data && <StaffingTab nurses={ward.data.nurses} />}
+        </div>
       </aside>
       </div>
     </div>
