@@ -358,3 +358,27 @@ def test_send_message_old_path_needs_no_cascade(conn: sqlite3.Connection) -> Non
         )
     )
     assert out["nurse_id"] == cand["ranking"]["candidates"][0]["nurse"]
+
+
+def test_cascade_progress_carries_the_plan_ref() -> None:
+    from app.api.routes_agent import cascade_progress
+
+    prog = cascade_progress(
+        {
+            "status": "waiting_reply",
+            "state": {
+                "waiting": {"nurse_id": "N05"},
+                "approved_cascade": {"run_id": "run-plan", "order": ORDER},
+                "calls": [
+                    {
+                        "tool": "wait_for_reply",
+                        "result": {"reply": "declined", "nurse_id": "S01"},
+                    }
+                ],
+            },
+        }
+    )
+    assert prog is not None
+    assert prog["ref"] == "run-plan" and prog["approved"] is True
+    assert prog["asked"] == {"S01": "declined", "N05": "waiting"}
+    assert cascade_progress({"status": "done", "state": {}}) is None

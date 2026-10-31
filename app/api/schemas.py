@@ -413,6 +413,7 @@ class CascadeProgress(BaseModel):
     approved: bool
     deadline_at: str | None = None  # the open ask's real-UTC deadline, when waiting
     since: str | None = None  # when the open ask was sent, for the countdown
+    ref: str | None = None  # the run (or swap request) the plan was requested for
 
 
 class AgentTaskOut(BaseModel):

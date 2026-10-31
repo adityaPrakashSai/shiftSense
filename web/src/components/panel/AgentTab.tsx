@@ -35,7 +35,17 @@ function clock(totalS: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-function CascadeLine({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: number }) {
+export function CascadeLine({
+  t,
+  nurses,
+  now,
+  testId = "cascade-progress",
+}: {
+  t: AgentTaskOut;
+  nurses: Nurse[];
+  now: number;
+  testId?: string;
+}) {
   const c = t.cascade;
   if (!c) return null;
   const name = (id: string) => nurses.find((n) => n.id === id)?.name ?? id;
@@ -50,7 +60,7 @@ function CascadeLine({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now
     return `asked ${name(id)} (${st})`;
   });
   return (
-    <p className="mt-1 text-xs text-slate-700" data-testid="cascade-progress">
+    <p className="mt-1 text-xs text-slate-700" data-testid={testId}>
       Plan: {c.order.map(name).join(" → ")}
       {parts.filter(Boolean).map((p) => ` · ${p}`).join("")}
       {!c.approved && " · waiting for your approval"}

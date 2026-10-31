@@ -2506,6 +2506,17 @@
        }
       ],
       "title": "Since"
+     },
+     "ref": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ref"
      }
     },
     "type": "object",

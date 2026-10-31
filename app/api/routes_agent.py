@@ -52,7 +52,8 @@ def cascade_progress(t: dict[str, Any]) -> dict[str, Any] | None:
     if t["status"] == "waiting_reply" and w.get("nurse_id"):
         asked.setdefault(str(w["nurse_id"]), "waiting")
     return {"order": [str(n) for n in order], "asked": asked, "approved": bool(ac),
-            "deadline_at": w.get("deadline_at"), "since": w.get("since")}  # fmt: skip
+            "deadline_at": w.get("deadline_at"), "since": w.get("since"),
+            "ref": ac.get("run_id") or w.get("ref")}  # fmt: skip
 
 
 def task_out(t: dict[str, Any], *, calls: bool = False) -> AgentTaskOut:
