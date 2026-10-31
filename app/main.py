@@ -44,7 +44,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     conn = open_db(s.db_path)
     try:
         if repo.get_ward(conn) is None:  # an existing DB is never overwritten
-            routes_misc.reset_db(conn, s.seed)
+            routes_misc.reset_db(conn, s.seed, s.demo_start)
         # committed responses (data/llm_cache.jsonl) let a fresh clone run in replay mode (9.1)
         llm_cache.import_jsonl(conn, LLM_CACHE_FILE)
     finally:

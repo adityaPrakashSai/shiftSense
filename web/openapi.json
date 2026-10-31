@@ -127,6 +127,23 @@
     ],
     "summary": "Demo Reset",
     "operationId": "demo_reset_api_demo_reset_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/ResetBody"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
     "responses": {
      "200": {
       "description": "Successful Response",
@@ -134,6 +151,16 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/ResetOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }
@@ -4599,6 +4626,27 @@
     ],
     "title": "RequestStatus"
    },
+   "ResetBody": {
+    "properties": {
+     "mode": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "published",
+         "empty"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mode"
+     }
+    },
+    "type": "object",
+    "title": "ResetBody"
+   },
    "ResetOut": {
     "properties": {
      "ok": {
@@ -4623,6 +4671,10 @@
        }
       ],
       "title": "Run Id"
+     },
+     "mode": {
+      "type": "string",
+      "title": "Mode"
      }
     },
     "type": "object",
@@ -4630,7 +4682,8 @@
      "ok",
      "seed",
      "secs",
-     "run_id"
+     "run_id",
+     "mode"
     ],
     "title": "ResetOut"
    },

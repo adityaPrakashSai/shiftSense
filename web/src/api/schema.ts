@@ -1615,6 +1615,11 @@ export interface components {
          * @enum {string}
          */
         RequestStatus: "pending_confirm" | "active" | "pending_approval" | "rejected" | "withdrawn" | "applied";
+        /** ResetBody */
+        ResetBody: {
+            /** Mode */
+            mode?: ("published" | "empty") | null;
+        };
         /** ResetOut */
         ResetOut: {
             /** Ok */
@@ -1625,6 +1630,8 @@ export interface components {
             secs: number;
             /** Run Id */
             run_id: string | null;
+            /** Mode */
+            mode: string;
         };
         /** ResolveBody */
         ResolveBody: {
@@ -2100,7 +2107,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResetBody"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2109,6 +2120,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

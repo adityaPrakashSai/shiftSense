@@ -128,11 +128,19 @@ class EventOut(BaseModel):
     payload: dict[str, Any]
 
 
+ResetMode = Literal["published", "empty"]
+
+
+class ResetBody(BaseModel):
+    mode: ResetMode | None = None
+
+
 class ResetOut(BaseModel):
     ok: bool
     seed: str
     secs: float
     run_id: str | None
+    mode: str
 
 
 class WsOff(BaseModel):

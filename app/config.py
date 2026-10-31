@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     llm_spend_cap_usd: float = 5.00
     db_path: str = "data/shiftsense.db"
     seed: Literal["default", "mini", "real_a"] = "default"  # seed loaded into an empty DB
+    demo_start: Literal["published", "empty"] = "published"  # demo reset/start mode
     ward_tz: str = "Asia/Kolkata"
     demo_now: str | None = None
     solver_workers: int = 8
