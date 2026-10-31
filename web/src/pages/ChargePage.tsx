@@ -46,12 +46,12 @@ type Timer = {
 };
 const IDLE: Timer = { runId: null, startedAt: null, stoppedAt: null, ticks: [], serverSecs: null };
 
-function fmtRange(start: string, days: number): string {
+function fmtRange(start: string, days: number, year = true): string {
   const s = new Date(`${start}T00:00:00`);
   const e = new Date(s);
   e.setDate(s.getDate() + days - 1);
   const f = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  return `${f(s)} – ${f(e)} ${e.getFullYear()}`;
+  return year ? `${f(s)} – ${f(e)} ${e.getFullYear()}` : `${f(s)} – ${f(e)}`;
 }
 
 /** Horizon days from the ward (the empty-period grid needs dates with no roster behind them). */
@@ -311,7 +311,8 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
                 className="max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center shadow-lg"
               >
                 <h2 className="text-lg font-semibold">
-                  No roster for {fmtRange(ward.data.horizon_start, ward.data.horizon_days ?? 14)} yet
+                  No roster for {fmtRange(ward.data.horizon_start, ward.data.horizon_days ?? 14, false)}{" "}
+                  yet
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">By hand this takes about 2 hours</p>
                 <button
