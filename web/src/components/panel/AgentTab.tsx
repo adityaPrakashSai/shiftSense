@@ -116,7 +116,9 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
     approval_kind?: string;
     ref?: string;
     cascade?: string[] | null;
+    deadline_at?: string;
   } | null;
+  const left = w?.deadline_at ? (Date.parse(w.deadline_at) - now) / 1000 : null;
   const settled = () => {
     void qc.invalidateQueries({ queryKey: ["agent"] });
     void qc.invalidateQueries({ queryKey: ["inbox"] });
@@ -164,7 +166,8 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
       </header>
       {t.status === "waiting_reply" && (
         <p className="mt-1 text-xs text-sky-800" data-testid="waiting-line">
-          Waiting for {who}'s reply, {since(w?.since ?? t.updated_at, now)}
+          Waiting for {who}'s reply
+          {left === null ? `, ${since(w?.since ?? t.updated_at, now)}` : ` · ${clock(left)} left`}
         </p>
       )}
       {t.workflow === "sick_call" && t.status === "waiting_reply" && (
@@ -261,11 +264,12 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
 export default function AgentTab({ nurses }: { nurses: Nurse[] }) {
   const tasks = useQuery({ queryKey: ["agent"], queryFn: api.agentTasks });
   const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 5000);
-    return () => window.clearInterval(id);
-  }, []);
   const rows = tasks.data ?? [];
+  const live = rows.some((t) => t.cascade?.deadline_at);
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), live ? 1000 : 5000);
+    return () => window.clearInterval(id);
+  }, [live]);
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-slate-500">
