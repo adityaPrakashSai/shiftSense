@@ -41,6 +41,9 @@ def test_sick_call_before_publish_queues_for_generate(client: TestClient) -> Non
     ).json()
     assert body["reply_kind"] == "confirm"
     assert "publish nahi hua" in body["reply"]
+    # the note leads, but the understood date and shift are still shown below it
+    assert "3 Nov" in body["reply"] and "hata diya jayega" in body["reply"]
+    assert body["reply"].index("Note ho gaya") < body["reply"].index("3 Nov")
     out = client.post(f"/api/requests/{body['request_id']}/confirm").json()
     assert out["run_id"] is None
     assert out["request"]["status"] == "active"

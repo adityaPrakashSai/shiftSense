@@ -81,9 +81,9 @@ async def post_message(
         and repo.get_published_run(conn, ward.id) is None
     ):
         lang = tpl.reply_lang(res.language)
-        res.reply = "\n".join(
-            [tpl.text(lang, "confirm", "unpublished"), tpl.text(lang, "confirm", "question")]
-        )
+        # the note goes in front: the normal confirmation below still shows the date and
+        # shift the message was understood as, and the nurse confirms that understanding
+        res.reply = "\n".join([tpl.text(lang, "confirm", "unpublished"), res.reply])
         repo.set_message_reply(
             conn,
             res.message_id,
