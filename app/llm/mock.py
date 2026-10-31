@@ -26,7 +26,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from app.llm.types import LLMRequest, ProviderCaps, ProviderResult, Role
+from app.llm.types import LLMRequest, ProviderCaps, ProviderResult, Role, ToolCall
 
 FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "mock"
 _CTX = re.compile(r"<context>(.*?)</context>", re.DOTALL)
@@ -401,6 +401,29 @@ def mock_transcript(req: LLMRequest) -> str:
     return ""
 
 
+def _pinned_args(args: dict[str, Any], req: LLMRequest | None) -> dict[str, Any]:
+    """Resolve pin placeholders against the chat: "@proposal" is the ranked proposal's run
+    (run ids are minted per world, so a committed pin cannot name one)."""
+    if req is None or "@proposal" not in set(args.values()):
+        return dict(args)
+    run: Any = None
+    for m in req.messages:
+        c = m.get("content")
+        if not isinstance(c, str):
+            continue
+        try:
+            body = (
+                json.loads(c)
+                if m.get("role") == "tool"
+                else (json.loads(c.split("\n", 1)[1]) if c.startswith("Tool result:") else None)
+            )
+        except (ValueError, IndexError):
+            continue
+        if isinstance(body, dict) and body.get("tool") == "rank_replacements":
+            run = (body.get("result") or {}).get("run_id") or run
+    return {k: (run if v == "@proposal" else v) for k, v in args.items()}
+
+
 class MockProvider:
     name = "mock"
     model = "mock-rule-based"
@@ -408,19 +431,34 @@ class MockProvider:
 
     def __init__(self, fixtures_dir: Path = FIXTURES) -> None:
         self.pinned: dict[str, dict[str, Any]] = {}
+        self.turn_pins: list[dict[str, Any]] = []
         if fixtures_dir.is_dir():
             for p in sorted(fixtures_dir.glob("*.json")):
                 fx = json.loads(p.read_text(encoding="utf-8"))
-                self.pinned[fx["cache_key"]] = fx["response"]
+                if "cache_key" in fx:
+                    self.pinned[fx["cache_key"]] = fx["response"]
+                else:  # {"match": {"role": ..., "turn": N}}: the Nth call for that role
+                    self.turn_pins.append({**fx["match"], "response": fx["response"]})
         self.calls = 0
+        self.role_calls: dict[str, int] = {}
 
-    def pinned_result(self, key: str) -> ProviderResult | None:
+    def pinned_result(self, key: str, req: LLMRequest | None = None) -> ProviderResult | None:
+        role = "" if req is None else req.role.value
+        if role:
+            self.role_calls[role] = self.role_calls.get(role, 0) + 1
         fx = self.pinned.get(key)
-        return (
-            None
-            if fx is None
-            else ProviderResult(text=fx.get("text"), reasoning=fx.get("reasoning"))
-        )
+        if fx is None and role:
+            n = self.role_calls[role]
+            fx = next((p["response"] for p in self.turn_pins
+                       if p["role"] == role and p["turn"] == n), None)  # fmt: skip
+        if fx is None:
+            return None
+        calls = [
+            ToolCall(f"pin{i + 1}", c["name"], _pinned_args(c.get("arguments", {}), req))
+            for i, c in enumerate(fx.get("tool_calls", []))
+        ]
+        return ProviderResult(text=fx.get("text"), reasoning=fx.get("reasoning"),
+                              tool_calls=calls)  # fmt: skip
 
     async def complete(self, req: LLMRequest, *, json_protocol: bool) -> ProviderResult:
         self.calls += 1

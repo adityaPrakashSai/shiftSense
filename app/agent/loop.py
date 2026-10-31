@@ -405,15 +405,17 @@ def apply_answer(ctx: AgentCtx, answer: dict[str, Any]) -> dict[str, Any]:
     if prefetch:
         ctx.state["prefetch"] = prefetch
     if answer.get("decision") == "approved" and answer.get("run_id"):
-        ctx.state["approved_runs"].append(answer["run_id"])
         ctx.state["last_run"] = answer["run_id"]
-    if answer.get("decision") == "approved" and answer.get("cascade") and not answer.get("nurse"):
-        ctx.state["approved_cascade"] = {
-            "run_id": answer["run_id"],
-            "order": [str(n) for n in answer["cascade"]],
-            "open_cell": ctx.state.get("open_cell"),
-            "parent_run": answer.get("parent_run"),
-        }  # approving a plan publishes nothing; the Publish button still does that
+        if answer.get("cascade") and not answer.get("nurse"):
+            ctx.state["approved_cascade"] = {
+                "run_id": answer["run_id"],
+                "order": [str(n) for n in answer["cascade"]],
+                "open_cell": ctx.state.get("open_cell"),
+                "parent_run": answer.get("parent_run"),
+            }  # a plan approval publishes nothing, so the run stays out of approved_runs:
+            # cascade sends go through the order check, never the publish-first path
+        else:
+            ctx.state["approved_runs"].append(answer["run_id"])
     if answer.get("reply") == "declined":
         ctx.state["counters"]["declines"] += 1
     elif answer.get("reply") == "timeout":

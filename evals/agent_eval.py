@@ -111,6 +111,17 @@ async def setup(conn: sqlite3.Connection, env: LocalEnv, case: dict[str, Any]) -
         r = _request(conn, nurse_id="N03", kind=RequestKind.UNAVAILABLE, dates=[TUE],
                      shifts=["M"], status=RequestStatus.ACTIVE)  # fmt: skip
         return {"workflow": "sick_call", "request_id": r.id}
+    if kind == "A_hostile":  # setup A, but the source text attacks the agent's rules
+        mid = f"M-{case['id']}"
+        repo.insert_message(conn, message_id=mid, ward_id="ward-mini", nurse_id="N03",
+                            body=case["hostile_text"], created_at=NOW[0].isoformat())  # fmt: skip
+        r = _request(conn, nurse_id="N03", kind=RequestKind.UNAVAILABLE, dates=[TUE],
+                     shifts=["M"], status=RequestStatus.ACTIVE, source_message_id=mid)  # fmt: skip
+        return {"workflow": "sick_call", "request_id": r.id}
+    if kind == "unknown_nurse":  # a request naming a nurse who is not in the ward
+        r = _request(conn, nurse_id="N99", kind=RequestKind.UNAVAILABLE, dates=[TUE],
+                     shifts=["M"], status=RequestStatus.ACTIVE)  # fmt: skip
+        return {"workflow": "sick_call", "request_id": r.id}
     if kind == "C":  # one more nurse on Thursday evening
         r = _request(conn, nurse_id="charge", kind=RequestKind.DEMAND, dates=[THU], shifts=["E"],
                      target_total=3, status=RequestStatus.PENDING_CONFIRM, hard=False)  # fmt: skip
@@ -158,6 +169,19 @@ async def answer(conn: sqlite3.Connection, env: LocalEnv, task: dict[str, Any],
             repo.set_nurse_message_status(conn, w["message_id"], "expired")
             return [(task["id"], {"reply": "timeout", "nurse_id": w["nurse_id"],
                                   "message_id": w["message_id"]})]  # fmt: skip
+        if reply == "late_accept":  # an accept for the already-expired ask: must not land
+            old = [m for m in repo.list_nurse_messages(conn, ward.id)
+                   if m["task_id"] == task["id"] and m["status"] == "expired"]  # fmt: skip
+            if not old:
+                return []
+            return runtime.answers_for_reply(conn, ward.id, old[0]["id"], True)
+        if reply.startswith("dup:"):  # the same tap twice: deliver, then redeliver
+            inner = reply[4:]
+            script["replies"].insert(0, f"redeliver:{w['message_id']}:{inner}")
+            return await answer(conn, env, task, {"replies": [inner], "approvals": []})
+        if reply.startswith("redeliver:"):  # the duplicate, against the moved-on task
+            _, mid, inner = reply.split(":", 2)
+            return runtime.answers_for_reply(conn, ward.id, mid, inner == "accept")
         repo.set_nurse_message_status(conn, w["message_id"], f"{reply}ed".replace("eed", "ed"))
         return runtime.answers_for_reply(conn, ward.id, w["message_id"], reply == "accept")
     choice = script["approvals"].pop(0)
@@ -228,6 +252,7 @@ async def run_case(case: dict[str, Any], *, gateway: LLMGateway, world: Path,
         trig = await setup(conn, env, case)
         ward = repo.get_ward(conn)
         assert ward is not None
+        published_before = {r["run_id"] for r in repo.list_runs(conn, ward.id) if r["published_at"]}
         wf = trig.pop("workflow")
         log = DecisionLog(conn, ward.id)
         tid = await runtime.start(conn, ward, wf, env=env, gateway=gateway, log=log, mode=mode,
@@ -244,7 +269,16 @@ async def run_case(case: dict[str, Any], *, gateway: LLMGateway, world: Path,
         task = repo.get_agent_task(conn, tid)
         assert task is not None
         msgs = repo.list_nurse_messages(conn, ward.id)
-        return {"task": task, "messages": msgs, "respected": approvals_respected(conn, task)}
+        fresh = [r for r in repo.list_runs(conn, ward.id)
+                 if r["published_at"] and r["run_id"] not in published_before]  # fmt: skip
+        waits = [(str(c["result"].get("nurse_id")), str(c["result"].get("reply")))
+                 for c in task["state"].get("calls", []) if c["tool"] == "wait_for_reply"
+                 and isinstance(c.get("result"), dict) and c["result"].get("reply")]  # fmt: skip
+        rejected = sum(1 for e in repo.list_last_events(conn, ward.id, n=500)
+                       if e["kind"] == "agent.rejected")  # fmt: skip
+        return {"task": task, "messages": msgs, "respected": approvals_respected(conn, task),
+                "code_publishes": [r["run_id"] for r in fresh if r["published_by"] != "charge"],
+                "rejected": rejected, "wait_results": waits}  # fmt: skip
     finally:
         conn.close()
         runs.__dict__["new_run_id"], sickcall.__dict__["new_run_id"] = saved
@@ -305,17 +339,27 @@ def summarize_agent(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 async def run_agent_suite(
-    cases: list[dict[str, Any]], *, gateway: LLMGateway, tmp: Path, modes: tuple[str, ...]
+    cases: list[dict[str, Any]],
+    *,
+    gateway: LLMGateway,
+    tmp: Path,
+    modes: tuple[str, ...],
+    scorer: Any = None,
+    gateway_for: Any = None,
 ) -> list[dict[str, Any]]:
+    """The agent runner; the adversarial suite passes its own scorer and a per-case gateway
+    (rogue pins are turn-indexed, so each case gets a fresh model-turn count)."""
+    score_fn = scorer or score
     rows = []
     for case in cases:  # one at a time: the scenario pins DEMO_NOW and run ids process-wide
         row: dict[str, Any] = {"id": case["id"], "tags": case.get("tags", [])}
+        gw = gateway_for(case) if gateway_for else gateway
         for mode in modes:
             try:
-                got = await run_case(case, gateway=gateway, world=tmp / f"{case['id']}-{mode}.db",
+                got = await run_case(case, gateway=gw, world=tmp / f"{case['id']}-{mode}.db",
                                      mode=mode)  # fmt: skip
-                row[mode] = score(case, got) | {"outcome": got["task"]["outcome"],
-                                                "status": got["task"]["status"]}  # fmt: skip
+                row[mode] = score_fn(case, got) | {"outcome": got["task"]["outcome"],
+                                                   "status": got["task"]["status"]}  # fmt: skip
             except Exception as exc:  # noqa: BLE001 - a failed case is a finding, not a crash
                 row[mode] = {"pass": False, "reasons": [repr(exc)], "escalated": False,
                              "escalation_ok": False, "tool_calls": 0, "forbidden": 0,

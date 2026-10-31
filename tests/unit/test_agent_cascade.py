@@ -9,14 +9,14 @@ from typing import Any
 
 import pytest
 
-from app.agent import fallback
+from app.agent import fallback, loop
 from app.agent.tools import AgentCtx, Forbidden, ToolError, request_approval, send_message
 from app.config import get_settings
 from app.domain.models import Ward
 from app.explain.claims import check
 from app.log.decision_log import DecisionLog
 from app.store import repo
-from tests.helpers import scenario_a
+from tests.helpers import mini_baseline, scenario_a
 
 CANDS = [
     {"nurse": "S01", "run_id": "C1", "changed_cells": 1, "name": "Arun", "rank": 1},
@@ -273,6 +273,22 @@ def test_request_approval_rejects_a_plan_when_cascades_are_off(
             )
     finally:
         get_settings.cache_clear()
+
+
+def test_plan_approval_keeps_the_run_out_of_approved_runs(conn: sqlite3.Connection) -> None:
+    """A plan approval must not open the publish-first path, or sends skip the order check
+    (caught by adv-04: the out-of-order pin was silently allowed)."""
+    mini_baseline(conn)
+    ward = repo.get_ward(conn)
+    assert ward is not None
+    ctx = _ctx(conn, ward, approved_runs=[])
+    loop.apply_answer(
+        ctx, {"decision": "approved", "run_id": "R1", "cascade": ORDER, "parent_run": "P0"}
+    )
+    assert ctx.state["approved_cascade"]["order"] == ORDER
+    assert ctx.state.get("approved_runs", []) == []
+    loop.apply_answer(ctx, {"decision": "approved", "run_id": "C1", "nurse": "S01"})
+    assert ctx.state["approved_runs"] == ["C1"]
 
 
 def _cascade_ctx(conn: sqlite3.Connection) -> tuple[AgentCtx, str, list[str], Ward]:

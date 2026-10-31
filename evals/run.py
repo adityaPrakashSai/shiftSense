@@ -29,6 +29,7 @@ from app.llm.gateway import LLMGateway
 from app.store import repo
 from app.store.db import connect, open_db
 from app.store.seed import seed_db
+from evals.agent_adv import gateway_for_case, score_adv, summarize_adv
 from evals.agent_eval import summarize_agent
 from evals.score import score_case, score_explain, summarize, summarize_explain
 from evals.vision_eval import load_vision, run_vision, summarize_vision
@@ -318,6 +319,34 @@ async def run_agent(
     return rows
 
 
+async def run_agent_adv(
+    cases: list[dict[str, Any]], *, provider: str, mode: str, max_usd: float, workers: int, db: Path
+) -> list[dict[str, Any]]:
+    """Adversarial agent eval, mock mode only: rogue pins are model-turn injections, and
+    replay has no model turns to inject into."""
+    from evals.agent_adv import MODES
+    from evals.agent_eval import run_agent_suite
+
+    if mode != "mock":
+        raise ValueError("the adversarial suite runs in mock mode only (--provider mock)")
+    saved = {k: os.environ.get(k) for k in ("DEMO_NOW", "DB_PATH", "AGENT_CASCADE")}
+    conn = open_db(db)
+    conn.close()
+    try:
+        s = _settings(provider, mode, db, max_usd)
+        rows = await run_agent_suite(
+            cases, gateway=LLMGateway(s), tmp=db.parent, modes=MODES, scorer=score_adv,
+            gateway_for=lambda case: gateway_for_case(case, db.parent, s))  # fmt: skip
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        get_settings.cache_clear()
+    return rows
+
+
 async def run_vision_suite(
     cases: list[dict[str, Any]], *, provider: str, mode: str, max_usd: float, workers: int, db: Path
 ) -> list[dict[str, Any]]:
@@ -367,7 +396,9 @@ def compare_table(results: dict[str, dict[str, Any]]) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run a fixed eval suite.")
     ap.add_argument(
-        "--suite", default="intake", choices=["intake", "explain", "writer", "agent", "vision"]
+        "--suite",
+        default="intake",
+        choices=["intake", "explain", "writer", "agent", "agent_adversarial", "vision"],
     )
     ap.add_argument("--provider", default="baseten", choices=["baseten", "meta", "modal", "mock"])
     ap.add_argument("--mode", default="live", choices=["live", "replay", "mock"])
@@ -392,6 +423,7 @@ def main(argv: list[str] | None = None) -> int:
     for prov in providers:
         mode = "mock" if prov == "mock" else a.mode
         runner = {"explain": run_explain, "writer": run_writer, "agent": run_agent,
+                  "agent_adversarial": run_agent_adv,
                   "vision": run_vision_suite}.get(a.suite, run_intake)  # fmt: skip
         with tempfile.TemporaryDirectory() as tmp:
             rows = asyncio.run(
@@ -403,6 +435,7 @@ def main(argv: list[str] | None = None) -> int:
             "explain": summarize_explain,
             "writer": summarize_writer,
             "agent": summarize_agent,
+            "agent_adversarial": summarize_adv,
             "vision": summarize_vision,
         }.get(a.suite, summarize)(rows)
         summary = {**summary, **calls, "fresh": FRESH}
