@@ -25,6 +25,8 @@ export type ExplainOut = S["ExplainOut"];
 export type ClaimOut = S["ClaimOut"];
 export type ToolCallOut = S["ToolCallOut"];
 export type ExplainBody = S["ExplainBody"];
+export type CommandOut = S["CommandOut"];
+export type CommandBody = S["CommandBody"];
 export type ConflictOut = S["ConflictOut"];
 export type AgentTaskOut = S["AgentTaskOut"];
 export type TraceStep = S["TraceStep"];
@@ -134,6 +136,8 @@ export const api = {
     }),
   explain: (body: ExplainBody) =>
     request<ExplainOut>("/api/explain", { method: "POST", body: JSON.stringify(body) }),
+  command: (body: CommandBody) =>
+    request<CommandOut>("/api/agent/command", { method: "POST", body: JSON.stringify(body) }),
   cellEvidence: (runId: string, nurseId: string, day: string) =>
     request<Record<string, unknown>>(
       `/api/evidence/cell${qs({ run_id: runId, nurse_id: nurseId, day })}`,

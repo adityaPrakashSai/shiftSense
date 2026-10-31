@@ -44,6 +44,8 @@ def test_registry_has_no_publish_tool() -> None:
 def test_allowlists_name_registered_tools_and_classes() -> None:
     for wf, names in ALLOWLIST.items():
         assert names <= set(REGISTRY), wf
+        if wf == "command":
+            continue  # read-only by spec: nothing to approve, nothing to hand over
         assert "escalate" in names and "request_approval" in names, wf
     assert REGISTRY["rank_replacements"].cls is ToolClass.COMPUTE
     assert REGISTRY["send_message"].cls is ToolClass.ACTION
@@ -125,8 +127,8 @@ def test_writer_replays_twenty_recorded_drafts_without_health_words() -> None:
 def test_agent_eval_in_mock_mode() -> None:
     cases = load("agent", None, None)
     assert (
-        len(cases) == 22
-    )  # ag-01..10 publish-first, ag-11..15 cascade, ag-cond-01..04, ag-sw-01..03
+        len(cases) == 25
+    )  # ag-01..10, ag-11..15 cascade, ag-cond-01..04, ag-sw-01..03, ag-cmd-01..03
     with tempfile.TemporaryDirectory() as tmp:
         rows = asyncio.run(run_agent(cases, provider="mock", mode="mock", max_usd=0.0, workers=1,
                                      db=Path(tmp) / "a.db"))  # fmt: skip

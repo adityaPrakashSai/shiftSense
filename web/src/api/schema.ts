@@ -582,6 +582,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask Command
+         * @description The read-only command agent: investigate the charge nurse's goal with read-only
+         *     tools and answer with suggestions and claim chips. It cannot publish, message,
+         *     approve or change anything; the allowlist enforces that.
+         */
+        post: operations["ask_command_api_agent_command_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/tasks": {
         parameters: {
             query?: never;
@@ -1017,6 +1039,26 @@ export interface components {
             path: string;
             /** Value */
             value?: unknown;
+        };
+        /** CommandBody */
+        CommandBody: {
+            /** Goal */
+            goal: string;
+        };
+        /** CommandOut */
+        CommandOut: {
+            /** Task Id */
+            task_id: string;
+            /** Answer */
+            answer: string;
+            /** Claims */
+            claims: components["schemas"]["ClaimOut"][];
+            /** Tool Calls */
+            tool_calls: components["schemas"]["ToolCallOut"][];
+            /** Status */
+            status: string;
+            /** Outcome */
+            outcome: string | null;
         };
         /** ConditionCheckBody */
         ConditionCheckBody: {
@@ -3150,6 +3192,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_command_api_agent_command_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandOut"];
                 };
             };
             /** @description Validation Error */

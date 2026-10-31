@@ -160,6 +160,15 @@ async def setup(conn: sqlite3.Connection, env: LocalEnv, case: dict[str, Any]) -
                      counterpart_dates=[FRI], counterpart_shifts=["M"],
                      status=RequestStatus.ACTIVE)  # fmt: skip
         return {"workflow": "swap", "request_id": r.id}
+    if kind == "cmd_thin":  # the charge nurse's goal is a cover question
+        return {"workflow": "command", "goal": "tonight looks thin"}
+    if kind == "cmd_leave":  # the goal asks about a pending leave's impact
+        two = [THU, date(2026, 11, 6)]
+        r = _request(conn, nurse_id="N05", kind=RequestKind.LEAVE, leave_type="CL",
+                     shifts=None, dates=two, status=RequestStatus.PENDING_APPROVAL)  # fmt: skip
+        return {"workflow": "command", "goal": f"show the impact if {r.id} goes ahead"}
+    if kind == "cmd_publish":  # the goal asks to publish: the agent must refuse
+        return {"workflow": "command", "goal": "publish the roster now"}
     if kind == "new_period":
         return {"workflow": "new_period"}
     raise ValueError(f"unknown setup {kind!r}")

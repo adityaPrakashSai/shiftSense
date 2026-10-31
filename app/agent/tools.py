@@ -1355,6 +1355,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
                         "staffing_check", "request_approval", "run_resolve", "escalate")),
     "new_period": frozenset((*READ_BASE, "get_request_outcome", "run_full",
                              "explain_denied_requests", "request_approval", "escalate")),
+    "command": frozenset((*[s["function"]["name"] for s in ex.SPECS], "get_open_cells",
+                          "get_nurse", "staffing_check", "what_if")),
 }  # fmt: skip
 
 

@@ -3,12 +3,13 @@
 // deterministic explanation is shown instead.
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ApiError, api, type ExplainBody, type ExplainOut } from "../../api/client";
+import { ApiError, api, type CommandOut, type ExplainBody, type ExplainOut } from "../../api/client";
 import ClaimChip from "./ClaimChip";
 
 export type AskPrefill = { question: string; context?: ExplainBody["context"]; runId?: string | null; n: number };
 
 type Turn = { q: string; a?: ExplainOut; error?: string; errorCode?: string; started: number };
+type CommandTurn = { q: string; a?: CommandOut; error?: string; errorCode?: string; started: number };
 
 const SUGGESTIONS = ["Why was Arun chosen and not Priya?", "Is this roster proven optimal?", "Why was this request denied?"];
 
@@ -48,6 +49,30 @@ export default function AskTab({ runId, prefill }: { runId: string | null; prefi
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefill]);
+
+  const [commandTurns, setCommandTurns] = useState<CommandTurn[]>([]);
+  const [goal, setGoal] = useState("");
+  const runCommand = useMutation({
+    mutationFn: (g: string) => api.command({ goal: g }),
+  });
+
+  const sendCommand = (g: string) => {
+    const q = g.trim();
+    if (!q) return;
+    const started = performance.now();
+    setCommandTurns((t) => [...t, { q, started }]);
+    runCommand.mutate(q, {
+      onSuccess: (a) => setCommandTurns((t) => t.map((x) => (x.started === started ? { ...x, a } : x))),
+      onError: (e) =>
+        setCommandTurns((t) =>
+          t.map((x) =>
+            x.started === started
+              ? { ...x, error: e.message, errorCode: e instanceof ApiError ? e.code : undefined }
+              : x,
+          ),
+        ),
+    });
+  };
 
   return (
     <div className="space-y-3">
@@ -126,6 +151,67 @@ export default function AskTab({ runId, prefill }: { runId: string | null; prefi
           Ask
         </button>
       </form>
+      <div className="space-y-1.5 border-t border-slate-200 pt-3">
+        <p className="text-xs font-medium text-slate-700">Ask the agent</p>
+        <p className="text-[11px] text-slate-500">
+          Read-only: it checks cover and request impacts. It cannot publish, message nurses or change
+          the roster.
+        </p>
+        {commandTurns.map((t) => (
+          <div key={t.started} className="space-y-1.5">
+            <p className="ml-auto max-w-[90%] rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white">{t.q}</p>
+            {!t.a && !t.error && (
+              <p className="animate-pulse rounded-lg bg-white px-3 py-2 text-sm text-slate-500 ring-1 ring-slate-200">
+                Checking the roster…
+              </p>
+            )}
+            {t.errorCode === "NO_PUBLISHED_RUN" ? (
+              <p className="text-xs text-slate-500">Generate and publish a roster first, then ask.</p>
+            ) : (
+              t.error && <p className="text-xs text-red-600">{t.error}</p>
+            )}
+            {t.a && (
+              <div className="rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200">
+                <p className="text-slate-800">{t.a.answer}</p>
+                {t.a.claims.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {t.a.claims.map((c, i) => (
+                      <ClaimChip key={i} claim={c} calls={t.a!.tool_calls} />
+                    ))}
+                  </div>
+                )}
+                <p className="mt-1 text-[10px] text-slate-500">
+                  {t.a.tool_calls.map((c) => c.tool).join(" → ") || "no tools"} · read-only
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendCommand(goal);
+            setGoal("");
+          }}
+          className="flex gap-2"
+        >
+          <input
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            placeholder="Tonight looks thin"
+            data-testid="agent-ask-input"
+            className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={runCommand.isPending || !goal.trim()}
+            data-testid="agent-ask-send"
+            className="rounded bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Ask the agent
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

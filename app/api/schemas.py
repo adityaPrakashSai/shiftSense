@@ -434,6 +434,19 @@ class AgentTaskOut(BaseModel):
     cascade: CascadeProgress | None = None
 
 
+class CommandBody(BaseModel):
+    goal: str  # the charge nurse's goal, e.g. "tonight looks thin"
+
+
+class CommandOut(BaseModel):
+    task_id: str
+    answer: str
+    claims: list[ClaimOut]
+    tool_calls: list[ToolCallOut]
+    status: str  # done | escalated
+    outcome: str | None
+
+
 class ConditionIn(BaseModel):
     kind: str  # day_off | avoid_shift
     day: date

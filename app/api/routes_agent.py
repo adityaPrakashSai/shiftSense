@@ -7,12 +7,15 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from app.agent import loop, runtime
 from app.api import jobs
 from app.api.deps import Conn, require_ward
 from app.api.errors import ApiError
 from app.api.schemas import (
     AgentTaskOut,
     ApprovalAsk,
+    CommandBody,
+    CommandOut,
     ConditionCheckBody,
     ConditionCheckOut,
     ConditionIn,
@@ -189,6 +192,50 @@ async def reject_approval(conn: Conn, task_id: str) -> AgentTaskOut:
     out = repo.get_agent_task(conn, task_id)
     assert out is not None
     return task_out(out)
+
+
+@router.post("/agent/command", response_model=CommandOut)
+async def ask_command(conn: Conn, body: CommandBody) -> CommandOut:
+    """The read-only command agent: investigate the charge nurse's goal with read-only
+    tools and answer with suggestions and claim chips. It cannot publish, message,
+    approve or change anything; the allowlist enforces that."""
+    ward = require_ward(conn)
+    if repo.get_published_run(conn, ward.id) is None:
+        raise ApiError(404, "NO_PUBLISHED_RUN", "No published roster yet; generate one.")
+    goal = body.goal.strip()
+    if not goal:
+        raise ApiError(422, "EMPTY_GOAL", "Tell the agent what to check.")
+    async with jobs.ward_lock(ward.id):
+        tid = await runtime.start(conn, ward, "command", env=jobs.env,
+                                  gateway=get_gateway(), log=jobs.live_log(conn, ward.id),
+                                  goal=goal)  # fmt: skip
+        t = repo.get_agent_task(conn, tid)
+        assert t is not None
+        if t["status"] == "running":  # the step limit paused it: one more round finishes
+            await loop.advance(runtime.make_ctx(conn, ward, t, env=jobs.env,
+                                                gateway=get_gateway(),
+                                                log=jobs.live_log(conn, ward.id)))  # fmt: skip
+            t = repo.get_agent_task(conn, tid)
+            assert t is not None
+    st = t["state"]
+    return CommandOut.model_validate(
+        {
+            "task_id": tid,
+            "answer": t["outcome"] or "The investigation is still running.",
+            "claims": st.get("answer_claims", []),
+            "tool_calls": [
+                {
+                    "call_id": c["call_id"],
+                    "tool": c["tool"],
+                    "args": c["args"],
+                    "result": c.get("result") or {},
+                }
+                for c in st.get("calls", [])
+            ],
+            "status": t["status"],
+            "outcome": t["outcome"],
+        }
+    )
 
 
 @router.get("/agent/tasks", response_model=list[AgentTaskOut])

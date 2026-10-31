@@ -1486,6 +1486,48 @@
     }
    }
   },
+  "/api/agent/command": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Ask Command",
+    "description": "The read-only command agent: investigate the charge nurse's goal with read-only\ntools and answer with suggestions and claim chips. It cannot publish, message,\napprove or change anything; the allowlist enforces that.",
+    "operationId": "ask_command_api_agent_command_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CommandBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CommandOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/agent/tasks": {
    "get": {
     "tags": [
@@ -2685,6 +2727,70 @@
      "path"
     ],
     "title": "ClaimOut"
+   },
+   "CommandBody": {
+    "properties": {
+     "goal": {
+      "type": "string",
+      "title": "Goal"
+     }
+    },
+    "type": "object",
+    "required": [
+     "goal"
+    ],
+    "title": "CommandBody"
+   },
+   "CommandOut": {
+    "properties": {
+     "task_id": {
+      "type": "string",
+      "title": "Task Id"
+     },
+     "answer": {
+      "type": "string",
+      "title": "Answer"
+     },
+     "claims": {
+      "items": {
+       "$ref": "#/components/schemas/ClaimOut"
+      },
+      "type": "array",
+      "title": "Claims"
+     },
+     "tool_calls": {
+      "items": {
+       "$ref": "#/components/schemas/ToolCallOut"
+      },
+      "type": "array",
+      "title": "Tool Calls"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "outcome": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Outcome"
+     }
+    },
+    "type": "object",
+    "required": [
+     "task_id",
+     "answer",
+     "claims",
+     "tool_calls",
+     "status",
+     "outcome"
+    ],
+    "title": "CommandOut"
    },
    "ConditionCheckBody": {
     "properties": {

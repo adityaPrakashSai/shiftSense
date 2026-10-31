@@ -64,4 +64,4 @@ def test_bad_input_is_refused(client: TestClient) -> None:
 def test_agent_tool_is_compute_and_scoped() -> None:
     assert REGISTRY["staffing_check"].cls is ToolClass.COMPUTE
     allowed = {wf for wf, tools in ALLOWLIST.items() if "staffing_check" in tools}
-    assert allowed == {"conflict", "leave"}  # the sick-call tool list (and its cache) is unchanged
+    assert allowed == {"conflict", "leave", "command"}  # sick-call list (and cache) unchanged

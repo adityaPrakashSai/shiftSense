@@ -66,8 +66,8 @@ def new_state(**trigger: Any) -> dict[str, Any]:
 
 def context(ctx: AgentCtx) -> dict[str, Any]:
     st, w = ctx.state, ctx.ward
-    trigger = {k: st[k] for k in ("request_id", "conflict_id", "run_id", "counterpart")
-               if st.get(k)}  # fmt: skip
+    trigger = {k: st[k] for k in ("request_id", "conflict_id", "run_id", "counterpart",
+                                 "goal") if st.get(k)}  # fmt: skip
     r = repo.get_request(ctx.conn, st["request_id"]) if st.get("request_id") else None
     if r is not None:
         trigger |= {
@@ -161,6 +161,12 @@ async def _finish(ctx: AgentCtx, status: str, outcome: str) -> None:
 
 def outcome_line(ctx: AgentCtx) -> str:
     calls, names = ctx.state["calls"], _names(ctx)
+    if ctx.task["workflow"] == "command":
+        # the read-only agent always answers deterministically: the model's own text is
+        # never shown, so a suggestion is only ever built from checked tool results
+        text, claims = fallback.command_answer(calls, ctx.state)
+        ctx.state["answer_claims"] = claims
+        return text
     for c in reversed(calls):
         r = c.get("result") or {}
         if c["tool"] == "wait_for_reply" and r.get("reply"):

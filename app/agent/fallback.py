@@ -12,6 +12,7 @@ with `describe()` sentences, so every claim passes the claim check.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from typing import Any
 
@@ -686,6 +687,138 @@ def _swap_exhausted(calls: list[Call], state: dict[str, Any]) -> Step:
     return "escalate", {"reason": f"nobody could swap: {', '.join(parts)}"}
 
 
+_CHANGE = (  # stems that ask to change, message or decide something
+    ("publish", "publish"),
+    ("approv", "approve"),
+    ("send", "send messages"),
+    ("message", "send messages"),
+    ("generat", "generate rosters"),
+    ("resolv", "re-solve"),
+    ("solve", "solve"),
+    ("chang", "change the roster"),
+    ("edit", "edit the roster"),
+    ("grant", "grant requests"),
+    ("reject", "decide requests"),
+)
+_STAFFING = (
+    "thin",
+    "shortfall",
+    "short",
+    "tonight",
+    "cover",
+    "standby",
+    "stand-by",
+    "hire",
+    "hiring",
+    "headcount",
+    "enough",
+    "minimum",
+    "strength",
+)
+_IMPACT = ("what if", "what chang", "impact", "would", "cost", "show", "means", "happen")
+
+
+def _refused_verb(goal: str) -> str | None:
+    low = goal.lower()
+    for stem, word in _CHANGE:
+        if stem in low:
+            return word
+    return None
+
+
+def _command_goal(state: dict[str, Any]) -> str:
+    return str(state.get("goal") or "")
+
+
+def _tried(calls: list[Call], tool: str) -> bool:
+    return any(c["tool"] == tool for c in calls)
+
+
+def _command(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    """The read-only command agent: investigate the charge nurse's goal with read-only
+    tools (one round each; a failed check ends the answer, it is never retried). The
+    answer itself is built by `command_answer`."""
+    goal = _command_goal(state)
+    low = goal.lower()
+    rid = re.search(r"R-[A-Za-z0-9-]+", goal)
+    impact = rid is not None and any(k in low for k in _IMPACT)
+    if _refused_verb(goal) is not None and not impact:
+        return None  # a change, not a question: refuse without calling anything
+    if not _tried(calls, "staffing_check") and any(k in low for k in _STAFFING):
+        return "staffing_check", {}
+    if impact and not _tried(calls, "what_if"):
+        assert rid is not None
+        return "what_if", {"request_id": rid.group(0)}
+    if not _tried(calls, "get_fairness_history") and "fair" in low:
+        return "get_fairness_history", {}
+    nid = re.search(r"\b([NS]\d\d)\b", goal)
+    if nid and not _tried(calls, "get_nurse"):
+        return "get_nurse", {"nurse": nid.group(1)}
+    if not _tried(calls, "get_run_summary") and not any(_ok(c) for c in calls):
+        return "get_run_summary", {}
+    return None
+
+
+def command_answer(calls: list[Call], state: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    """The read-only agent's answer: suggestions built only from checked tool results,
+    with claims citing them. Evidence always wins over the goal's wording."""
+    ok = [c for c in calls if _ok(c)]
+    if not ok:
+        verb = _refused_verb(_command_goal(state))
+        if verb is not None:
+            return (
+                f"I can't {verb}: this assistant only reads the roster, it never "
+                "changes it, messages nurses or decides anything. Ask about cover "
+                "('tonight looks thin') or the impact of a request id instead.",
+                [],
+            )
+        err = next(
+            (str(c["result"].get("error", "")).rstrip(".") for c in calls if not _ok(c)),
+            "",
+        )
+        return (f"I couldn't check that ({err[:160]})." if err else "I couldn't check that."), []
+    staff = _last(calls, "staffing_check")
+    if staff is not None:
+        _, r = staff
+        cid = calls[staff[0]]["call_id"]
+        short = r.get("shortfall", 0)
+        cells = [f"{c['day']} {c['shift']}" for c in r.get("short_cells", [])]
+        text = (
+            f"Minimum {r.get('headcount')} nurses for the period; "
+            f"shortfall {short} ({', '.join(cells) if cells else 'no cell short'}); "
+            f"standby covers {r.get('standby_shifts')} shifts; "
+            f"{r.get('hires_needed')} hires needed."
+        )
+        claims = [
+            describe.claim("headcount", cid, "headcount", r.get("headcount")),
+            describe.claim("shortfall", cid, "shortfall", short),
+            describe.claim("standby", cid, "standby_shifts", r.get("standby_shifts")),
+            describe.claim("hires", cid, "hires_needed", r.get("hires_needed")),
+        ]
+        wi = _last(calls, "what_if")
+        if wi is not None:  # the goal also asked about a request: join both findings
+            wtext, wclaims = _what_if_summary(wi[1], calls[wi[0]]["call_id"])
+            return f"{text} {wtext}", claims + wclaims
+        return text, claims
+    text, claims = approval_summary(calls)
+    if text != "Ready for your decision.":
+        return text, claims
+    first = ok[0]
+    return f"I checked {first['tool']}: {brief(first['tool'], first['result'], {})}.", [
+        _first_claim(first)
+    ]
+
+
+def _first_claim(c: Call) -> dict[str, Any]:
+    """A claim citing the call's most headline-like scalar, for tools with no summary."""
+    r = c["result"]
+    for path in ("status", "verdict", "shortfall", "headcount", "changed_cells", "name"):
+        if isinstance(r.get(path), (str, int, float)) and not isinstance(r.get(path), bool):
+            return describe.claim(str(path), c["call_id"], path, r[path])
+    key = next((k for k, v in r.items() if isinstance(v, (str, int, float))), "status")
+    return describe.claim(str(key), c["call_id"], key, r.get(key))
+
+
 def _new_period(calls: list[Call]) -> Step | None:
     full = _last(calls, "run_full")
     if full is None:
@@ -705,6 +838,10 @@ def _new_period(calls: list[Call]) -> Step | None:
 def next_call(workflow: str, calls: list[Call], state: dict[str, Any]) -> Step | None:
     if any(c["tool"] == "escalate" for c in calls):
         return None
+    if workflow == "command":
+        # read-only: a failed check ends the answer, it never escalates (escalate is not
+        # in this workflow's allowlist, so the failed-twice guard below must not fire)
+        return _command(calls, state)
     for tool in {c["tool"] for c in calls}:
         if _errors(calls, tool) >= 2 and _last(calls, tool) is None:
             return "escalate", {"reason": f"{tool} failed twice"}
@@ -743,6 +880,9 @@ PLAN = {
     "find_swap_partners": "Rank nurses who could take this swap.",
     "explain_denied_requests": "Find why requests were denied.",
     "get_run_summary": "Summarise the roster.",
+    "staffing_check": "Check cover for the period.",
+    "get_nurse": "Look up the nurse.",
+    "get_fairness_history": "Check the fairness balance.",
 }
 
 
@@ -780,18 +920,22 @@ def approval_summary(calls: list[Call]) -> tuple[str, list[dict[str, Any]]]:
                       for i, o in enumerate(opts)]  # fmt: skip
             return text, claims
         if tool == "what_if":
-            kind = str(r.get("kind", "")).replace("_", " ")
-            text = (
-                f"Granting {r.get('name')}'s {kind}: {r.get('verdict')} "
-                f"({r.get('reason_code')}), {r.get('changed_cells')} changed cells."
-            )
-            claims = [
-                describe.claim("verdict", cid, "verdict", r.get("verdict")),
-                describe.claim("reason", cid, "reason_code", r.get("reason_code")),
-                describe.claim("changed", cid, "changed_cells", r.get("changed_cells")),
-            ]
-            return text, claims
+            return _what_if_summary(r, cid)
     return "Ready for your decision.", []
+
+
+def _what_if_summary(r: dict[str, Any], cid: str) -> tuple[str, list[dict[str, Any]]]:
+    kind = str(r.get("kind", "")).replace("_", " ")
+    text = (
+        f"Granting {r.get('name')}'s {kind}: {r.get('verdict')} "
+        f"({r.get('reason_code')}), {r.get('changed_cells')} changed cells."
+    )
+    claims = [
+        describe.claim("verdict", cid, "verdict", r.get("verdict")),
+        describe.claim("reason", cid, "reason_code", r.get("reason_code")),
+        describe.claim("changed", cid, "changed_cells", r.get("changed_cells")),
+    ]
+    return text, claims
 
 
 def _join(sents: list[describe.Sentence]) -> tuple[str, list[dict[str, Any]]]:
@@ -845,6 +989,20 @@ def brief(tool: str, result: dict[str, Any], names: dict[str, str]) -> str:
             f"(takes {top['takes']['day']} {top['takes']['shift']}), "
             f"{len(result.get('excluded', []))} excluded"
         )
+    if tool == "staffing_check":
+        return (
+            f"shortfall {result.get('shortfall')}, "
+            f"{result.get('hires_needed')} hires needed, "
+            f"{result.get('standby_shifts')} standby shifts"
+        )
+    if tool == "get_nurse":
+        standby = ", standby" if result.get("standby") else ""
+        return (
+            f"{result.get('name')} ({result.get('grade')}, "
+            f"{result.get('shifts_this_period')} shifts this period{standby})"
+        )
+    if tool == "get_fairness_history":
+        return str(result.get("summary", "fairness history"))
     if tool == "escalate":
         return str(result.get("reason", ""))
     if tool == "evaluate_condition":
