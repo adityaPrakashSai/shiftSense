@@ -1357,6 +1357,92 @@
     }
    }
   },
+  "/api/agent/tasks/{task_id}/skip": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Skip Task",
+    "description": "Treat the task's open ask as timed out now; the cascade moves to the next nurse.",
+    "operationId": "skip_task_api_agent_tasks__task_id__skip_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agent/tasks/{task_id}/cancel": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Cancel Task",
+    "description": "End the task without publishing: withdraw its open asks, mark it cancelled.",
+    "operationId": "cancel_task_api_agent_tasks__task_id__cancel_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/agent/tasks": {
    "get": {
     "tags": [

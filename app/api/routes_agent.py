@@ -100,6 +100,60 @@ async def approve_cascade(conn: Conn, task_id: str) -> AgentTaskOut:
     return task_out(out)
 
 
+def _waiting_reply_task(conn: sqlite3.Connection, task_id: str) -> dict[str, Any]:
+    t = repo.get_agent_task(conn, task_id)
+    if t is None:
+        raise ApiError(404, "TASK_NOT_FOUND", f"No agent task {task_id}.")
+    if t["status"] != "waiting_reply":
+        raise ApiError(
+            409, "NOT_WAITING_REPLY", f"Task {task_id} is {t['status']}, not waiting on a reply."
+        )
+    return t
+
+
+@router.post("/agent/tasks/{task_id}/skip", response_model=AgentTaskOut)
+async def skip_task(conn: Conn, task_id: str) -> AgentTaskOut:
+    """Treat the task's open ask as timed out now; the cascade moves to the next nurse."""
+    ward = require_ward(conn)
+    t = _waiting_reply_task(conn, task_id)
+    hit = jobs.expire_open_ask(conn, t)
+    if hit is None:
+        raise ApiError(409, "ALREADY_ANSWERED", f"Task {task_id}'s ask is already answered.")
+    m, ans = hit
+    jobs.live_log(conn, ward.id).emit("agent.steered", "user:charge", None, None,
+                                     task_id=task_id, action="skip", message_id=m["id"],
+                                     nurse=m["nurse_id"])  # fmt: skip
+    jobs.agent_answer(ward.id, [(task_id, ans)])
+    await hub.broadcast(ward.id, {"type": "message_for_nurse", "nurse_id": m["nurse_id"]})
+    out = repo.get_agent_task(conn, task_id)
+    assert out is not None
+    return task_out(out)
+
+
+@router.post("/agent/tasks/{task_id}/cancel", response_model=AgentTaskOut)
+async def cancel_task(conn: Conn, task_id: str) -> AgentTaskOut:
+    """End the task without publishing: withdraw its open asks, mark it cancelled."""
+    from app.agent import loop
+
+    ward = require_ward(conn)
+    t = _waiting_reply_task(conn, task_id)
+    log = jobs.live_log(conn, ward.id)
+    log.emit("agent.steered", "user:charge", None, None, task_id=task_id, action="cancel")
+    for m in loop.withdraw_open_asks(conn, ward.id, log, "user:charge", task_id=task_id):
+        await hub.broadcast(ward.id, {"type": "message_for_nurse", "nurse_id": m["nurse_id"]})
+    st = t["state"]
+    st.pop("waiting", None)
+    st["trace"].append({"n": len(st["trace"]) + 1, "ts": repo.now_iso_ms(), "kind": "done",
+                        "mode": t["mode"], "brief": "cancelled"})  # fmt: skip
+    t.update(status="done", waiting_on=None, pending_call=None, outcome="cancelled")
+    repo.save_agent_task(conn, t)
+    log.emit("agent.done", "user:charge", None, None, about_run=st.get("last_run"),
+             task_id=task_id, workflow=t["workflow"], outcome="cancelled", mode=t["mode"],
+             counters=st.get("counters", {}))  # fmt: skip
+    await hub.broadcast(ward.id, {"type": "agent_updated", "task_id": task_id})
+    return task_out(t)
+
+
 @router.get("/agent/tasks", response_model=list[AgentTaskOut])
 def list_tasks(conn: Conn, status: str | None = None, limit: int = 20) -> list[AgentTaskOut]:
     """Newest first, with each task's step trace (the Agent tab)."""

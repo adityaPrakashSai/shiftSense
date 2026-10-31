@@ -141,6 +141,9 @@ export const api = {
   agentTask: (id: string) => request<AgentTaskOut>(`/api/agent/tasks/${id}`),
   approveCascade: (id: string) =>
     request<AgentTaskOut>(`/api/agent/tasks/${id}/approve-cascade`, { method: "POST" }),
+  skipTask: (id: string) => request<AgentTaskOut>(`/api/agent/tasks/${id}/skip`, { method: "POST" }),
+  cancelTask: (id: string) =>
+    request<AgentTaskOut>(`/api/agent/tasks/${id}/cancel`, { method: "POST" }),
   inbox: (nurseId?: string) => request<NurseMessageOut[]>(`/api/inbox${qs({ nurse_id: nurseId })}`),
   respond: (messageId: string, accept: boolean) =>
     request<NurseMessageOut>(`/api/inbox/${messageId}/respond`, {

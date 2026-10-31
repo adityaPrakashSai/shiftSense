@@ -297,6 +297,21 @@ def agent_answer(ward_id: str, answers: list[tuple[str, dict[str, Any]]]) -> Non
 TIMEOUT_TICK_SECONDS = 5
 
 
+def expire_open_ask(
+    conn: sqlite3.Connection, task: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """Expire the task's open ask and answer it as a timeout (None: nothing open to expire,
+    so a second call finds nothing). Shared by the timeout tick and Skip to next."""
+    w = task["state"].get("waiting") or {}
+    if task["status"] != "waiting_reply" or w.get("kind") != "reply":
+        return None
+    m = repo.get_nurse_message(conn, str(w.get("message_id") or ""))
+    if m is None or m["status"] != "asked":
+        return None
+    repo.set_nurse_message_status(conn, m["id"], "expired")
+    return m, {"reply": "timeout", "nurse_id": m["nurse_id"], "message_id": m["id"]}
+
+
 def collect_due_timeouts(
     conn: sqlite3.Connection, ward_id: str
 ) -> list[tuple[str, dict[str, Any]]]:
@@ -309,10 +324,10 @@ def collect_due_timeouts(
             continue
         if not timeouts.past(str(w["deadline_at"])):
             continue
-        m = repo.get_nurse_message(conn, str(w.get("message_id") or ""))
-        if m is None or m["status"] != "asked":
+        hit = expire_open_ask(conn, t)
+        if hit is None:
             continue
-        repo.set_nurse_message_status(conn, m["id"], "expired")
+        m, ans = hit
         live_log(conn, ward_id).emit(
             "agent.timeout",
             "system",
@@ -322,9 +337,7 @@ def collect_due_timeouts(
             message_id=m["id"],
             nurse_id=m["nurse_id"],
         )
-        out.append(
-            (t["id"], {"reply": "timeout", "nurse_id": m["nurse_id"], "message_id": m["id"]})
-        )
+        out.append((t["id"], ans))
     return out
 
 

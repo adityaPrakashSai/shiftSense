@@ -1,7 +1,7 @@
 // Agent tab (design doc 7.10): every roster-agent task as a live step list: plan line, tool
 // called, short result, and the waiting state ("Waiting for Arun's reply, 2 min"). Tasks that
 // switched to the fixed-code workflow are labelled "fallback path" with the reason.
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, type AgentTaskOut, type Nurse, type TraceStep } from "../../api/client";
 import QueryState from "../common/QueryState";
@@ -96,9 +96,16 @@ function Step({ s }: { s: TraceStep }) {
 
 function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: number }) {
   const [open, setOpen] = useState(t.status !== "done");
+  const qc = useQueryClient();
   const st = STATUS[t.status] ?? { text: t.status, tone: "bg-slate-100 text-slate-700" };
   const who = nurses.find((n) => n.id === t.waiting_on)?.name ?? t.waiting_on;
   const w = t.waiting as { kind?: string; since?: string; summary?: string } | null;
+  const settled = () => {
+    void qc.invalidateQueries({ queryKey: ["agent"] });
+    void qc.invalidateQueries({ queryKey: ["inbox"] });
+  };
+  const skip = useMutation({ mutationFn: () => api.skipTask(t.id), onSettled: settled });
+  const cancel = useMutation({ mutationFn: () => api.cancelTask(t.id), onSettled: settled });
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm" data-testid="agent-task">
       <header className="flex flex-wrap items-center gap-2">
@@ -119,6 +126,29 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
         <p className="mt-1 text-xs text-sky-800">
           Waiting for {who}'s reply, {since(w?.since ?? t.updated_at, now)}
         </p>
+      )}
+      {t.workflow === "sick_call" && t.status === "waiting_reply" && (
+        <div className="mt-1 flex gap-2">
+          <button
+            onClick={() => skip.mutate()}
+            disabled={skip.isPending || cancel.isPending}
+            title="Treat this ask as timed out and ask the next nurse in the plan"
+            className="rounded border border-slate-300 px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
+            Skip to next
+          </button>
+          <button
+            onClick={() => cancel.mutate()}
+            disabled={skip.isPending || cancel.isPending}
+            title="Withdraw the open ask and end this task without publishing"
+            className="rounded border border-slate-300 px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
+            Cancel task
+          </button>
+          {(skip.error ?? cancel.error) && (
+            <span className="text-[11px] text-red-600">{(skip.error ?? cancel.error)?.message}</span>
+          )}
+        </div>
       )}
       {t.status === "waiting_approval" && w?.summary && (
         <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">
