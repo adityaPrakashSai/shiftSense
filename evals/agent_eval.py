@@ -154,16 +154,24 @@ async def answer(conn: sqlite3.Connection, env: LocalEnv, task: dict[str, Any],
     w = task["state"].get("waiting") or {}
     if task["status"] == "waiting_reply":
         reply = script["replies"].pop(0)
+        if reply == "timeout":
+            repo.set_nurse_message_status(conn, w["message_id"], "expired")
+            return [(task["id"], {"reply": "timeout", "nurse_id": w["nurse_id"],
+                                  "message_id": w["message_id"]})]  # fmt: skip
         repo.set_nurse_message_status(conn, w["message_id"], f"{reply}ed".replace("eed", "ed"))
         return runtime.answers_for_reply(conn, ward.id, w["message_id"], reply == "accept")
     choice = script["approvals"].pop(0)
     if w["approval_kind"] == "run":
         if choice == "reject":
             return [(task["id"], {"decision": "rejected", "run_id": w["ref"]})]
+        if choice == "plan" and w.get("cascade"):
+            return [(task["id"], {"decision": "approved", "run_id": w["ref"],
+                                  "cascade": w["cascade"],
+                                  "parent_run": w.get("parent_run")})]  # fmt: skip
         prop = repo.proposal_for_run(conn, w["ref"])
         cands = [] if prop is None else prop["ranking"].get("candidates", [])
         target = w["ref"]
-        if cands:
+        if cands and choice != "ref":
             target = cands[1 if choice == "rank2" and len(cands) > 1 else 0]["run_id"]
         runs.publish(conn, target, by="charge")
         return runtime.answers_for_published(conn, ward.id, target)
@@ -188,9 +196,13 @@ async def answer(conn: sqlite3.Connection, env: LocalEnv, task: dict[str, Any],
 
 
 def approvals_respected(conn: sqlite3.Connection, task: dict[str, Any]) -> bool:
-    """Every replacement message is for a run the charge nurse published."""
+    """Every replacement message is for a run the charge nurse published, or for a nurse in
+    the approved contact plan for the ranked proposal."""
+    ac = task["state"].get("approved_cascade") or {}
     for m in repo.list_nurse_messages(conn, "ward-mini"):
         if m["kind"] != "replacement":
+            continue
+        if m["run_id"] == ac.get("run_id") and m["nurse_id"] in ac.get("order", []):
             continue
         run = repo.get_run(conn, str(m["run_id"]))
         if run is None or run["published_by"] != "charge":
@@ -204,6 +216,7 @@ async def run_case(case: dict[str, Any], *, gateway: LLMGateway, world: Path,
                    mode: str) -> dict[str, Any]:  # fmt: skip
     NOW[0] = datetime.fromisoformat(case["now"])
     os.environ["DEMO_NOW"], os.environ["DB_PATH"] = case["now"], str(world)
+    os.environ["AGENT_CASCADE"] = "1" if case.get("cascade") else "0"
     get_settings.cache_clear()
     ids = RunIds()
     saved = (runs.new_run_id, sickcall.__dict__["new_run_id"])

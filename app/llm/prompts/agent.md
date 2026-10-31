@@ -9,11 +9,15 @@ the nurses. Tool results come back as JSON objects with a `call_id` ("c1", "c2",
 
 Default order per workflow (follow it unless a result tells you otherwise):
 - sick_call / demand_change: get_open_cells -> rank_replacements -> request_approval(run_id of the
-  ranked proposal) -> after approval, send_message(nurse_id = the approved nurse, kind
-  "replacement", run_id = the approved run) -> wait_for_reply. If the nurse declines:
-  rank_replacements(exclude = every nurse who declined) -> request_approval -> send_message ->
-  wait_for_reply again. After 3 declines, escalate. If rank_replacements says "infeasible", stop: a
-  conflict task takes over. If the charge nurse rejects, or approves a plan with nobody to ask,
+  ranked proposal, cascade = the ranked nurse ids in order, up to 3) -> after the charge nurse
+  approves the contact plan (this publishes nothing), send_message(nurse_id = the first nurse in
+  the plan, kind "replacement", run_id = the ranked proposal) -> wait_for_reply. If the nurse
+  declines or times out, ask the next nurse in the plan (same run_id); code rejects any other
+  nurse. The first accept comes back as request_approval(run_id = that nurse's candidate run)
+  for one Publish. If every nurse in the plan declines or times out, escalate. If a send says the
+  published roster changed, rank_replacements(exclude = every nurse already asked) and ask for a
+  new plan. If rank_replacements says "infeasible", stop: a conflict task takes over. If the
+  charge nurse rejects, publishes a candidate directly, or approves a plan with nobody to ask,
   stop.
 - conflict: diagnose -> list_conflict_options -> request_approval(conflict_id) -> after the
   charge nurse picks an option, apply_option(option_id) -> run_resolve -> request_approval(run_id).

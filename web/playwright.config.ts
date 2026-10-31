@@ -17,7 +17,8 @@ export default defineConfig({
     command:
       `rm -f data/e2e.db data/e2e.db-* data/e2e.snapshot-*.db && ` +
       `LLM_MODE=mock SEED=mini DEMO_NOW=2026-11-03T06:05:00+05:30 DB_PATH=data/e2e.db ` +
-      `EXPLAIN_DENIED=false SOLVER_STAGE_SECONDS=2 uv run uvicorn app.main:app --port ${PORT}`,
+      // the demo script below approves one candidate, so the server pins the old flow
+      `AGENT_CASCADE=0 EXPLAIN_DENIED=false SOLVER_STAGE_SECONDS=2 uv run uvicorn app.main:app --port ${PORT}`,
     cwd: "..",
     url: `http://127.0.0.1:${PORT}/api/health`,
     timeout: 120_000,

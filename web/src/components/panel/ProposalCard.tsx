@@ -46,6 +46,13 @@ export default function ProposalCard({
       void qc.invalidateQueries({ queryKey: ["roster"] });
     },
   });
+  const approvePlan = useMutation({
+    mutationFn: () => api.approveCascade(p.agent?.task_id ?? ""),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["proposals"] });
+      void qc.invalidateQueries({ queryKey: ["agent"] });
+    },
+  });
   const cell = p.open_cell;
   const req = p.request;
   const title = cell
@@ -88,6 +95,26 @@ export default function ProposalCard({
           {p.agent.summary_source === "describe" && (
             <p className="mt-0.5 text-[10px] text-indigo-700">model summary withheld: unverified claims</p>
           )}
+        </div>
+      )}
+
+      {p.agent?.cascade && p.agent.cascade.length > 0 && (
+        <div className="mt-2 rounded bg-sky-50 px-2 py-1.5 text-xs text-sky-950" data-testid="cascade-plan">
+          <p>
+            <span className="font-semibold">Ask in order:</span>{" "}
+            {p.agent.cascade.map((id) => name(id)).join(" → ")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-sky-800">
+            Approving the plan publishes nothing; the first accept comes back for one Publish.
+          </p>
+          <button
+            onClick={() => approvePlan.mutate()}
+            disabled={approvePlan.isPending}
+            className="mt-1 rounded bg-sky-700 px-2 py-1 font-semibold text-white hover:bg-sky-800 disabled:opacity-60"
+          >
+            Approve plan
+          </button>
+          {approvePlan.error && <p className="mt-1 text-red-600">{approvePlan.error.message}</p>}
         </div>
       )}
 

@@ -43,7 +43,7 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
             </div>
           ) : (
             <p className={`mt-2 text-xs font-semibold ${m.status === "accepted" ? "text-emerald-700" : "text-slate-500"}`}>
-              {m.status === "accepted" ? L.accepted : m.status === "expired" ? L.expired : L.declined}
+              {m.status === "accepted" ? L.accepted : m.status === "expired" ? L.expired : m.status === "withdrawn" ? L.withdrawn : L.declined}
             </p>
           )}
         </li>

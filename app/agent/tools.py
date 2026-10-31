@@ -28,7 +28,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any
 
-from app.agent import timeouts
+from app.agent import fallback, timeouts
 from app.agent.env import Env
 from app.agent.writer import short_date, write
 from app.config import get_settings
@@ -254,9 +254,24 @@ async def rank_replacements(ctx: AgentCtx, exclude: Any = None) -> dict[str, Any
         raise ToolError(f"run {run_id} has no proposal: {exc}") from exc
     if prop.get("open_cell") and not ctx.state.get("open_cell"):
         ctx.state["open_cell"] = prop["open_cell"]
-    return {"status": "proposed", "run_id": run_id, "changed_cells": brief.get("changed_cells"),
-            "excluded_by_decline": excl} | {k: prop[k] for k in (
-                "open_cell", "candidates", "excluded", "coverage_worse")}  # fmt: skip
+    raw = repo.proposal_for_run(ctx.conn, run_id)
+    runs_by_nurse = (
+        {}
+        if raw is None
+        else {str(c.get("nurse")): c.get("run_id") for c in raw["ranking"].get("candidates", [])}
+    )  # the explainer hides run ids; the cascade needs each candidate's run
+    cands = [{**c, "run_id": runs_by_nurse.get(str(c.get("nurse")))}
+             for c in prop.get("candidates", [])]  # fmt: skip
+    return {
+        "status": "proposed",
+        "run_id": run_id,
+        "changed_cells": brief.get("changed_cells"),
+        "excluded_by_decline": excl,
+        "open_cell": prop.get("open_cell"),
+        "candidates": cands,
+        "excluded": prop.get("excluded"),
+        "coverage_worse": prop.get("coverage_worse"),
+    }
 
 
 async def run_resolve(ctx: AgentCtx) -> dict[str, Any]:
@@ -434,6 +449,36 @@ async def apply_option(ctx: AgentCtx, option_id: Any, conflict_id: Any = None) -
 # ---------------------------------------------------------------- action tools
 
 
+def _open_replacement_ask(ctx: AgentCtx, day: str, shift: str) -> dict[str, Any] | None:
+    """An ask for this cell still awaiting an answer, if any (at most one may be open)."""
+    for m in repo.list_nurse_messages(ctx.conn, ctx.ward.id):
+        if (m["kind"] == "replacement" and m["status"] == "asked"
+                and m["day"] == day and m["shift"] == shift):  # fmt: skip
+            return m
+    return None
+
+
+def _cascade_send(ctx: AgentCtx, nid: str, rid: str) -> None:
+    """The cascade rules, enforced in code: the approved plan's run, a fresh ranking, the
+    next uncontacted nurse in the order, and no other open ask for the cell."""
+    ac = ctx.state.get("approved_cascade") or {}
+    if not get_settings().agent_cascade or not ac or rid != ac.get("run_id"):
+        raise Forbidden(f"run {rid or '?'} is not approved by the charge nurse yet")
+    if ctx.published_id() != ac.get("parent_run"):
+        asked = fallback.contacted(ctx.state.get("calls", []))
+        raise ToolError(
+            "the published roster changed since this ranking: call "
+            f"rank_replacements(exclude={asked}) and request a new cascade approval"
+        )
+    asked = fallback.contacted(ctx.state.get("calls", []))
+    nxt = next((n for n in ac.get("order", []) if n not in asked), None)
+    if nid != nxt:
+        raise Forbidden(f"{nid} is not next in the approved cascade (next: {nxt})")
+    cell = ac.get("open_cell") or {}
+    if _open_replacement_ask(ctx, str(cell.get("day")), str(cell.get("shift"))) is not None:
+        raise Forbidden("another ask for this cell is still open: wait for its reply first")
+
+
 async def send_message(
     ctx: AgentCtx, nurse_id: Any, kind: Any = "replacement", run_id: Any = None,
     request_id: Any = None,
@@ -447,7 +492,7 @@ async def send_message(
     if kind == "replacement":
         rid = str(run_id or "")
         if rid not in ctx.state.get("approved_runs", []):
-            raise Forbidden(f"run {rid or '?'} is not approved by the charge nurse yet")
+            _cascade_send(ctx, nid, rid)
         prop = repo.proposal_for_run(ctx.conn, rid)
         if prop is None:
             raise ToolError(f"run {rid} is not a proposal")
@@ -519,9 +564,29 @@ async def wait_for_reply(
             "deadline_at": timeouts.deadline_after(secs)}  # fmt: skip
 
 
+def _checked_cascade(ctx: AgentCtx, rid: str, cascade: Any) -> list[str] | None:
+    """The contact plan, validated in code: 1-3 distinct nurses, all ranked for this run."""
+    if cascade is None:
+        return None
+    if not get_settings().agent_cascade:
+        raise ToolError("contact plans are disabled (AGENT_CASCADE=0): ask for one run")
+    prop = repo.proposal_for_run(ctx.conn, rid)
+    if prop is None:
+        raise ToolError(f"run {rid} is not a proposal: a cascade needs ranked candidates")
+    order = [str(n) for n in cascade]
+    cands = {str(c["nurse"]) for c in prop["ranking"].get("candidates", [])}
+    if not 1 <= len(order) <= fallback.MAX_CASCADE:
+        raise ToolError(f"a cascade names 1 to {fallback.MAX_CASCADE} nurses, not {len(order)}")
+    if len(set(order)) != len(order):
+        raise ToolError(f"a cascade names each nurse once: {order}")
+    if not set(order) <= cands:
+        raise ToolError(f"{sorted(set(order) - cands)} are not candidates of run {rid}")
+    return order
+
+
 async def request_approval(
     ctx: AgentCtx, summary: Any = "", claims: Any = None, run_id: Any = None,
-    conflict_id: Any = None, request_id: Any = None,
+    conflict_id: Any = None, request_id: Any = None, cascade: Any = None,
 ) -> dict[str, Any]:  # fmt: skip
     """Show the charge nurse a summary (claim-checked, 7.4) and wait for their decision."""
     cl = [c for c in (claims or []) if isinstance(c, dict)]
@@ -529,6 +594,8 @@ async def request_approval(
     problems = check(cl, results)
     if not cl and results:
         problems.append("the summary cites no tool result")
+    if cascade is not None and not run_id:
+        raise ToolError("a cascade goes with run_id, not a conflict or request")
     # the charge nurse may decide before the agent asks (Approve is on screen as soon as the
     # proposal is): an existing decision is the answer at once
     if run_id:
@@ -536,6 +603,7 @@ async def request_approval(
         run = repo.get_run(ctx.conn, rid)
         if run is None:
             raise ToolError(f"no run {rid}")
+        order = _checked_cascade(ctx, rid, cascade)
         prop = repo.proposal_for_run(ctx.conn, rid)
         runs = [rid]
         if prop is not None:
@@ -546,10 +614,16 @@ async def request_approval(
             done = rid  # published and already replaced by a later roster
         if done is not None:
             nurse = None if prop is None else prop["chosen_nurse"]
-            return {"answered": {"decision": "approved", "run_id": done, "nurse": nurse}}
+            pre: dict[str, Any] = {"decision": "approved", "run_id": done, "nurse": nurse}
+            if order is not None:
+                pre["cascade"] = order  # decided before the plan was shown: ask the nurse
+            return {"answered": pre}
         if run["status"] != RunStatus.PROPOSED.value:
             return {"answered": {"decision": "superseded", "run_id": rid}}
         on = {"kind": "run", "ref": rid, "runs": sorted(set(runs))}
+        if order is not None:
+            on["cascade"] = order
+            on["parent_run"] = run["parent_run"]
     elif conflict_id:
         c = _conflict(ctx, conflict_id)
         if c["chosen_option"] is not None:
@@ -647,8 +721,9 @@ REGISTRY: dict[str, AgentTool] = {
            "chose; returns the run started with it.", apply_option,
            {"option_id": S, "conflict_id": CON}, ("option_id",)),
         _t("send_message", ToolClass.ACTION, "Draft and send the ask to a nurse: kind "
-           "'replacement' (needs the run approved by the charge nurse) or 'swap' (to the swap "
-           "counterpart). Returns the message id.", send_message,
+           "'replacement' (needs the run approved by the charge nurse, or the nurse to be next "
+           "in the approved cascade order) or 'swap' (to the swap counterpart). Returns the "
+           "message id.", send_message,
            {"nurse_id": NURSE, "kind": {"type": "string", "enum": ["replacement", "swap"]},
             "run_id": RUN, "request_id": REQ}, ("nurse_id", "kind")),
         _t("wait_for_reply", ToolClass.ACTION, "Pause until the nurse taps Accept or Decline.",
@@ -656,9 +731,12 @@ REGISTRY: dict[str, AgentTool] = {
                             "timeout_minutes": {"type": "integer"}}, ("nurse_id",), waits=True),
         _t("request_approval", ToolClass.ACTION, "Show the charge nurse a summary (with claims "
            "citing tool results) and pause for their decision on a proposal run, a conflict, or a "
-           "pending leave or swap request.", request_approval,
+           "pending leave or swap request. With run_id, `cascade` (1-3 ranked nurse ids in "
+           "order) asks for a contact plan instead of publishing one candidate: approving it "
+           "publishes nothing.", request_approval,
            {"summary": S, "claims": CLAIMS, "run_id": RUN, "conflict_id": CON,
-            "request_id": REQ}, ("summary",), waits=True),
+            "request_id": REQ, "cascade": {"type": "array", "items": NURSE}},
+           ("summary",), waits=True),
         _t("escalate", ToolClass.ACTION, "Hand the workflow to the charge nurse with what was "
            "tried.", escalate, {"reason": S}, ("reason",)),
     ]

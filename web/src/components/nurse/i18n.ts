@@ -37,6 +37,7 @@ const L = {
     decline: "Decline",
     accepted: "You accepted. Thank you!",
     expired: "This request has expired, thank you",
+    withdrawn: "No longer needed, thank you",
     declined: "You declined.",
   },
   hi: {
@@ -73,6 +74,7 @@ const L = {
     decline: "Nahi kar paungi",
     accepted: "Aapne accept kiya. Dhanyavaad!",
     expired: "Yeh request samay par poori nahi hui, dhanyavaad",
+    withdrawn: "Ab iski zaroorat nahi hai, dhanyavaad",
     declined: "Aapne mana kiya.",
   },
 };

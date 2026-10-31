@@ -500,6 +500,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/tasks/{task_id}/approve-cascade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Cascade
+         * @description Approve the task's contact plan ("ask B, then C, then D"). This publishes nothing:
+         *     the first accept still comes back for one Publish.
+         */
+        post: operations["approve_cascade_api_agent_tasks__task_id__approve_cascade_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/tasks": {
         parameters: {
             query?: never;
@@ -745,6 +766,7 @@ export interface components {
              * @default []
              */
             calls: components["schemas"]["ToolCallOut"][];
+            cascade?: components["schemas"]["CascadeProgress"] | null;
         };
         /** ApprovalAsk */
         ApprovalAsk: {
@@ -767,6 +789,8 @@ export interface components {
             }[];
             /** Summary Source */
             summary_source: string;
+            /** Cascade */
+            cascade?: string[] | null;
         };
         /** Blocked */
         Blocked: {
@@ -830,6 +854,21 @@ export interface components {
             tie_break?: string | null;
             /** Reason Code */
             reason_code?: string | null;
+        };
+        /** CascadeProgress */
+        CascadeProgress: {
+            /** Order */
+            order: string[];
+            /** Asked */
+            asked: {
+                [key: string]: string;
+            };
+            /** Approved */
+            approved: boolean;
+            /** Deadline At */
+            deadline_at?: string | null;
+            /** Since */
+            since?: string | null;
         };
         /** Cell */
         Cell: {
@@ -2875,6 +2914,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResolveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_cascade_api_agent_tasks__task_id__approve_cascade_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskOut"];
                 };
             };
             /** @description Validation Error */

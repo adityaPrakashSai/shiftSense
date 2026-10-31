@@ -124,7 +124,7 @@ def test_writer_replays_twenty_recorded_drafts_without_health_words() -> None:
 
 def test_agent_eval_in_mock_mode() -> None:
     cases = load("agent", None, None)
-    assert len(cases) == 10
+    assert len(cases) == 15  # ag-01..ag-10 publish-first, ag-11..ag-15 cascade
     with tempfile.TemporaryDirectory() as tmp:
         rows = asyncio.run(run_agent(cases, provider="mock", mode="mock", max_usd=0.0, workers=1,
                                      db=Path(tmp) / "a.db"))  # fmt: skip

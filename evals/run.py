@@ -299,7 +299,7 @@ async def run_agent(
     """Roster agent (7.10): every scenario by the agent, then by the deterministic fallback."""
     from evals.agent_eval import run_agent_suite
 
-    saved = {k: os.environ.get(k) for k in ("DEMO_NOW", "DB_PATH")}
+    saved = {k: os.environ.get(k) for k in ("DEMO_NOW", "DB_PATH", "AGENT_CASCADE")}
     conn = open_db(db)
     _load_cache(conn)
     conn.close()

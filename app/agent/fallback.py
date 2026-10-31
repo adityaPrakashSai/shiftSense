@@ -14,11 +14,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.config import get_settings
 from app.explain import describe
 
 Call = dict[str, Any]
 Step = tuple[str, dict[str, Any]]
 MAX_DECLINES = 3
+MAX_CASCADE = 3  # a contact plan names between 1 and 3 nurses, in order
+
+
+def cascade_enabled() -> bool:
+    return get_settings().agent_cascade
 
 
 def _ok(c: Call) -> bool:
@@ -70,31 +76,72 @@ def timed_out(calls: list[Call]) -> list[str]:
     ]
 
 
+def accepted(calls: list[Call]) -> list[str]:
+    return [
+        str(c["result"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "wait_for_reply" and _ok(c) and c["result"].get("reply") == "accepted"
+    ]
+
+
 def _approve(calls: list[Call], **target: Any) -> Step:
     text, claims = approval_summary(calls)
     return "request_approval", {**target, "summary": text, "claims": claims}
 
 
-def _replacement(calls: list[Call]) -> Step | None:
-    """Sick call and demand change: rank, approval, message, reply; a decline ranks again."""
-    if _last(calls, "get_open_cells") is None:
-        return "get_open_cells", {}
-    rk = _last(calls, "rank_replacements")
-    if rk is None:
-        return "rank_replacements", {"exclude": declined(calls)}
-    i, r = rk
-    if r.get("status") != "proposed":
-        return None  # infeasible: the conflict task takes over
-    ap = _approval(calls, i, "run")
-    if ap is None:
-        return _approve(calls, run_id=r["run_id"])
-    j, a = ap
+def contacted(calls: list[Call]) -> list[str]:
+    """Nurses this task already sent a replacement ask to, in order."""
+    return [
+        str(c["result"].get("nurse_id") or c["args"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "send_message" and _ok(c) and c["args"].get("kind", "replacement") != "swap"
+    ]
+
+
+def _plain_run_approval(calls: list[Call], after: int) -> tuple[int, dict[str, Any]] | None:
+    """The answered run approval after `after` that proposed no cascade (the old path)."""
+    for i in range(len(calls) - 1, after, -1):
+        c = calls[i]
+        if c["tool"] != "request_approval" or not _ok(c) or "decision" not in c["result"]:
+            continue
+        if _approval_kind(c["args"]) == "run" and not c["args"].get("cascade"):
+            return i, c["result"]
+    return None
+
+
+def _cascade_approval(
+    calls: list[Call], after: int
+) -> tuple[int, dict[str, Any], list[str]] | None:
+    """The answered cascade approval after `after`: index, answer, and the approved order."""
+    for i in range(len(calls) - 1, after, -1):
+        c = calls[i]
+        if c["tool"] != "request_approval" or not _ok(c) or "decision" not in c["result"]:
+            continue
+        order = c["result"].get("cascade") or c["args"].get("cascade") or []
+        if _approval_kind(c["args"]) == "run" and order:
+            return i, c["result"], [str(n) for n in order]
+    return None
+
+
+def _escalate_unavailable(calls: list[Call]) -> Step:
+    no, late = declined(calls), timed_out(calls)
+    parts = [f"{n} declined" for n in no] + [f"{n} timed out" for n in late]
+    if not late:
+        return "escalate", {"reason": f"{len(no)} nurses declined the shift: {', '.join(no)}"}
+    return "escalate", {"reason": f"{len(parts)} nurses unavailable: {', '.join(parts)}"}
+
+
+def _legacy_tail(calls: list[Call], j: int, a: dict[str, Any]) -> Step | None:
+    """Publish-first: ask the approved nurse; a decline ranks again for a new approval."""
     if a.get("decision") != "approved" or not a.get("nurse"):
         return None  # rejected, superseded, or a plain re-plan with nobody to ask
     msg = _last(calls, "send_message", j)
     if msg is None:
-        return "send_message", {"nurse_id": a["nurse"], "kind": "replacement",
-                                "run_id": a["run_id"]}  # fmt: skip
+        return "send_message", {
+            "nurse_id": a["nurse"],
+            "kind": "replacement",
+            "run_id": a["run_id"],
+        }
     k, m = msg
     rep = _last(calls, "wait_for_reply", k)
     if rep is None:
@@ -104,11 +151,93 @@ def _replacement(calls: list[Call]) -> Step | None:
     no = declined(calls)
     late = timed_out(calls)
     if len(no) + len(late) >= MAX_DECLINES:
-        parts = [f"{n} declined" for n in no] + [f"{n} timed out" for n in late]
-        if not late:
-            return "escalate", {"reason": f"{len(no)} nurses declined the shift: {', '.join(no)}"}
-        return "escalate", {"reason": f"{len(parts)} nurses unavailable: {', '.join(parts)}"}
+        return _escalate_unavailable(calls)
     return "rank_replacements", {"exclude": no + late}
+
+
+def _accept_approval(calls: list[Call], rank_call: str, nurse: str) -> Step | None:
+    """After an accept: ask the charge nurse to publish that nurse's candidate run."""
+    rk = next((c for c in calls if c.get("call_id") == rank_call), None)
+    cands = [] if rk is None else (rk["result"] or {}).get("candidates", [])
+    hit = next((c for c in cands if c.get("nurse") == nurse), None)
+    if hit is None:
+        return "escalate", {"reason": f"{nurse} accepted but is no longer a candidate"}
+    n = hit.get("changed_cells", 0)
+    wid = next(
+        (c["call_id"] for c in reversed(calls) if c["tool"] == "wait_for_reply" and _ok(c)),
+        None,
+    )
+    path = f"candidates.{cands.index(hit)}.changed_cells"
+    claims = [describe.claim(f"{n} changed", rank_call, path, n)]
+    if wid is not None:
+        claims.insert(0, describe.claim(str(nurse), wid, "nurse_id", nurse))
+    text = (
+        f"{hit.get('name') or nurse} accepted; publishing changes {n} cell{'s' if n != 1 else ''}."
+    )
+    return "request_approval", {"run_id": hit["run_id"], "summary": text, "claims": claims}
+
+
+def _cascade_tail(
+    calls: list[Call], state: dict[str, Any], rk_call: str, r: dict[str, Any], j: int,
+    a: dict[str, Any], order: list[str],
+) -> Step | None:  # fmt: skip
+    """Ask the approved order in turn; an accept comes back as one publish approval."""
+    if a.get("decision") != "approved":
+        return None  # the charge nurse rejected the plan
+    if a.get("nurse"):
+        if a.get("cascade"):
+            return _legacy_tail(calls, j, a)  # published before the plan: ask the nurse
+        return None  # the charge nurse published a candidate directly instead
+    if _plain_run_approval(calls, j) is not None:
+        return None  # the publish approval after an accept is answered: done
+    msg = _last(calls, "send_message", j)
+    if msg is not None:
+        rep = _last(calls, "wait_for_reply", msg[0])
+        if rep is None:
+            m = msg[1]
+            return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
+        if rep[1].get("reply") == "accepted":
+            return _accept_approval(calls, rk_call, str(msg[1].get("nurse_id")))
+    no, late = declined(calls), timed_out(calls)
+    if len(no) + len(late) >= MAX_DECLINES:
+        return _escalate_unavailable(calls)
+    answered = set(no) | set(late) | set(accepted(calls))
+    nxt = next((n for n in order if n not in answered), None)
+    if nxt is None:
+        return _escalate_unavailable(calls)
+    ac = state.get("approved_cascade") or {}
+    pub_now = state.get("published_now")
+    if pub_now and ac.get("parent_run") and pub_now != ac["parent_run"]:
+        # the roster moved under this ranking: rank again, then ask for a new plan
+        return "rank_replacements", {"exclude": contacted(calls)}
+    return "send_message", {"nurse_id": nxt, "kind": "replacement", "run_id": r["run_id"]}
+
+
+def _replacement(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    """Sick call and demand change: rank, approval, message, reply; a decline ranks again.
+
+    With the cascade, the approval is for a contact plan (ask B, then C, then D) and the
+    first accept comes back as one publish approval; without it, each round publishes first.
+    """
+    if _last(calls, "get_open_cells") is None:
+        return "get_open_cells", {}
+    rk = _last(calls, "rank_replacements")
+    if rk is None:
+        return "rank_replacements", {"exclude": declined(calls)}
+    i, r = rk
+    if r.get("status") != "proposed":
+        return None  # infeasible: the conflict task takes over
+    cap = _cascade_approval(calls, i)
+    if cap is not None:
+        j, a, order = cap
+        return _cascade_tail(calls, state, calls[i]["call_id"], r, j, a, order)
+    pap = _plain_run_approval(calls, i)
+    if pap is None:
+        cands = [str(c["nurse"]) for c in r.get("candidates", [])][:MAX_CASCADE]
+        if cascade_enabled() and cands:
+            return _approve(calls, run_id=r["run_id"], cascade=cands)
+        return _approve(calls, run_id=r["run_id"])
+    return _legacy_tail(calls, *pap)
 
 
 def _conflict(calls: list[Call], state: dict[str, Any]) -> Step | None:
@@ -199,7 +328,7 @@ def next_call(workflow: str, calls: list[Call], state: dict[str, Any]) -> Step |
         if _errors(calls, tool) >= 2 and _last(calls, tool) is None:
             return "escalate", {"reason": f"{tool} failed twice"}
     if workflow in ("sick_call", "demand_change"):
-        return _replacement(calls)
+        return _replacement(calls, state)
     if workflow == "conflict":
         return _conflict(calls, state)
     if workflow == "leave":

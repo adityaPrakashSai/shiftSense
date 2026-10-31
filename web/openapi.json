@@ -1314,6 +1314,49 @@
     }
    }
   },
+  "/api/agent/tasks/{task_id}/approve-cascade": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Approve Cascade",
+    "description": "Approve the task's contact plan (\"ask B, then C, then D\"). This publishes nothing:\nthe first accept still comes back for one Publish.",
+    "operationId": "approve_cascade_api_agent_tasks__task_id__approve_cascade_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/agent/tasks": {
    "get": {
     "tags": [
@@ -1924,6 +1967,16 @@
       "type": "array",
       "title": "Calls",
       "default": []
+     },
+     "cascade": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CascadeProgress"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -1979,6 +2032,20 @@
      "summary_source": {
       "type": "string",
       "title": "Summary Source"
+     },
+     "cascade": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cascade"
      }
     },
     "type": "object",
@@ -2173,6 +2240,57 @@
      "proven"
     ],
     "title": "Candidate"
+   },
+   "CascadeProgress": {
+    "properties": {
+     "order": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Order"
+     },
+     "asked": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Asked"
+     },
+     "approved": {
+      "type": "boolean",
+      "title": "Approved"
+     },
+     "deadline_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deadline At"
+     },
+     "since": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Since"
+     }
+    },
+    "type": "object",
+    "required": [
+     "order",
+     "asked",
+     "approved"
+    ],
+    "title": "CascadeProgress"
    },
    "Cell": {
     "properties": {

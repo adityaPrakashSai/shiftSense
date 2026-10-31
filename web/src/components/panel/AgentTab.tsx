@@ -30,6 +30,34 @@ function since(iso: string | null | undefined, now: number): string {
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`;
 }
 
+function clock(totalS: number): string {
+  const s = Math.max(0, Math.round(totalS));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function CascadeLine({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: number }) {
+  const c = t.cascade;
+  if (!c) return null;
+  const name = (id: string) => nurses.find((n) => n.id === id)?.name ?? id;
+  const parts = c.order.map((id) => {
+    const st = c.asked[id];
+    if (!st) return null;
+    if (st === "waiting" && c.deadline_at) {
+      const left = (Date.parse(c.deadline_at) - now) / 1000;
+      const total = c.since ? (Date.parse(c.deadline_at) - Date.parse(c.since)) / 1000 : left;
+      return `asked ${name(id)} (waiting ${clock(left)} / ${clock(total)})`;
+    }
+    return `asked ${name(id)} (${st})`;
+  });
+  return (
+    <p className="mt-1 text-xs text-slate-700" data-testid="cascade-progress">
+      Plan: {c.order.map(name).join(" → ")}
+      {parts.filter(Boolean).map((p) => ` · ${p}`).join("")}
+      {!c.approved && " · waiting for your approval"}
+    </p>
+  );
+}
+
 function Step({ s }: { s: TraceStep }) {
   const icon: Record<string, string> = {
     tool: "→",
@@ -97,6 +125,7 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
           Approval needed: {w.summary}
         </p>
       )}
+      <CascadeLine t={t} nurses={nurses} now={now} />
       {t.outcome && <p className="mt-1 text-xs text-slate-600">Outcome: {t.outcome}</p>}
       {t.mode === "fallback" && t.fallback_reason && (
         <p className="mt-1 text-[11px] text-amber-800">Fallback because: {t.fallback_reason}</p>

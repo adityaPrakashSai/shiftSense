@@ -393,6 +393,7 @@ class ApprovalAsk(BaseModel):
     summary: str
     claims: list[dict[str, Any]] = []
     summary_source: str  # agent | describe (the agent's claims failed the check)
+    cascade: list[str] | None = None  # the contact plan, when the approval is for one
 
 
 class TraceStep(BaseModel):
@@ -404,6 +405,14 @@ class TraceStep(BaseModel):
     plan: str | None = None
     brief: str | None = None
     call_id: str | None = None
+
+
+class CascadeProgress(BaseModel):
+    order: list[str]  # the approved (or proposed) contact plan, in order
+    asked: dict[str, str]  # nurse id -> accepted | declined | timeout | waiting
+    approved: bool
+    deadline_at: str | None = None  # the open ask's real-UTC deadline, when waiting
+    since: str | None = None  # when the open ask was sent, for the countdown
 
 
 class AgentTaskOut(BaseModel):
@@ -422,6 +431,7 @@ class AgentTaskOut(BaseModel):
     counters: dict[str, int]
     fallback_reason: str | None
     calls: list[ToolCallOut] = []
+    cascade: CascadeProgress | None = None
 
 
 class NurseMessageOut(BaseModel):

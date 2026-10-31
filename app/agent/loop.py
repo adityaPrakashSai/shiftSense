@@ -112,7 +112,33 @@ def _names(ctx: AgentCtx) -> dict[str, str]:
     return {n.id: n.name for n in ctx.ward.nurses}
 
 
+def withdraw_open_asks(
+    conn: Any, ward_id: str, log: Any, actor: str, *, day: Any = None, shift: Any = None,
+    except_id: Any = None, task_id: Any = None,
+) -> list[dict[str, Any]]:  # fmt: skip
+    """Withdraw open replacement asks (an accept made them moot); returns what changed."""
+    out = []
+    for m in repo.list_nurse_messages(conn, ward_id):
+        if m["kind"] != "replacement" or m["status"] != "asked":
+            continue
+        if (day is not None or shift is not None) and (m["day"], m["shift"]) != (day, shift):
+            continue
+        if except_id is not None and m["id"] == except_id:
+            continue
+        if task_id is not None and m["task_id"] != task_id:
+            continue
+        repo.set_nurse_message_status(conn, m["id"], "withdrawn")
+        log.emit("replacement.withdrawn", actor, None, None, message_id=m["id"],
+                 nurse=m["nurse_id"], task_id=m["task_id"])  # fmt: skip
+        out.append(m)
+    return out
+
+
 async def _finish(ctx: AgentCtx, status: str, outcome: str) -> None:
+    for m in withdraw_open_asks(ctx.conn, ctx.ward.id, ctx.log, _actor(ctx),
+                                task_id=ctx.task["id"]):  # fmt: skip
+        await ctx.env.broadcast(ctx.ward.id, {"type": "message_for_nurse",
+                                              "nurse_id": m["nurse_id"]})  # fmt: skip
     ctx.task.update(status=status, waiting_on=None, pending_call=None, outcome=outcome)
     _trace(ctx, status, brief=outcome)
     kind = "agent.escalated" if status == "escalated" else "agent.done"
@@ -234,6 +260,7 @@ def _wait(ctx: AgentCtx, cid: str, name: str, args: dict[str, Any], w: dict[str,
         ctx.state["waiting"] = {"kind": "approval", "approval_kind": ap["kind"], "ref": ap["ref"],
                                 "runs": ap.get("runs", []), "summary": summary,
                                 "claims": claims, "summary_source": source,
+                                "cascade": ap.get("cascade"), "parent_run": ap.get("parent_run"),
                                 "problems": w["problems"], "call_id": cid}  # fmt: skip
         ctx.task.update(status="waiting_approval", waiting_on="charge")
     else:
@@ -316,6 +343,7 @@ def _over_budget(ctx: AgentCtx) -> str | None:
 async def advance(ctx: AgentCtx) -> None:
     """Run the task until it waits, finishes or escalates."""
     st = ctx.state
+    st["published_now"] = ctx.published_id()  # the fallback compares it to the ranking's parent
     for _ in range(MAX_STEPS):
         if ctx.task["status"] != "running":
             return
@@ -379,6 +407,13 @@ def apply_answer(ctx: AgentCtx, answer: dict[str, Any]) -> dict[str, Any]:
     if answer.get("decision") == "approved" and answer.get("run_id"):
         ctx.state["approved_runs"].append(answer["run_id"])
         ctx.state["last_run"] = answer["run_id"]
+    if answer.get("decision") == "approved" and answer.get("cascade") and not answer.get("nurse"):
+        ctx.state["approved_cascade"] = {
+            "run_id": answer["run_id"],
+            "order": [str(n) for n in answer["cascade"]],
+            "open_cell": ctx.state.get("open_cell"),
+            "parent_run": answer.get("parent_run"),
+        }  # approving a plan publishes nothing; the Publish button still does that
     if answer.get("reply") == "declined":
         ctx.state["counters"]["declines"] += 1
     elif answer.get("reply") == "timeout":
@@ -396,6 +431,13 @@ async def resume(ctx: AgentCtx, answer: dict[str, Any]) -> None:
         return
     call = next(c for c in ctx.state["calls"] if c["call_id"] == pc["call_id"])
     answer = apply_answer(ctx, answer)
+    cell = ctx.state.get("open_cell") or {}
+    if answer.get("reply") == "accepted" and cell.get("day") and cell.get("shift"):
+        for m in withdraw_open_asks(ctx.conn, ctx.ward.id, ctx.log, _actor(ctx),
+                                    day=cell["day"], shift=cell["shift"],
+                                    except_id=answer.get("message_id")):  # fmt: skip
+            await ctx.env.broadcast(ctx.ward.id, {"type": "message_for_nurse",
+                                                  "nurse_id": m["nurse_id"]})  # fmt: skip
     call["result"] = answer
     ctx.task.update(status="running", waiting_on=None, pending_call=None)
     ctx.state.pop("waiting", None)

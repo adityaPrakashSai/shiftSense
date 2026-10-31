@@ -139,6 +139,8 @@ export const api = {
   proposal: (runId: string) => request<ProposalOut>(`/api/proposals/${runId}`),
   agentTasks: () => request<AgentTaskOut[]>("/api/agent/tasks"),
   agentTask: (id: string) => request<AgentTaskOut>(`/api/agent/tasks/${id}`),
+  approveCascade: (id: string) =>
+    request<AgentTaskOut>(`/api/agent/tasks/${id}/approve-cascade`, { method: "POST" }),
   inbox: (nurseId?: string) => request<NurseMessageOut[]>(`/api/inbox${qs({ nurse_id: nurseId })}`),
   respond: (messageId: string, accept: boolean) =>
     request<NurseMessageOut>(`/api/inbox/${messageId}/respond`, {

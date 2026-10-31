@@ -22,6 +22,25 @@ from app.store import repo
 router = APIRouter(prefix="/api", tags=["agent"])
 
 
+def cascade_progress(t: dict[str, Any]) -> dict[str, Any] | None:
+    """The contact plan and who answered how, for the Agent tab (None: no plan involved)."""
+    st = t["state"]
+    w = st.get("waiting") or {}
+    ac = st.get("approved_cascade") or {}
+    order = ac.get("order") or w.get("cascade") or []
+    if not order:
+        return None
+    asked: dict[str, str] = {}
+    for c in st.get("calls", []):
+        r = c.get("result") or {}
+        if c["tool"] == "wait_for_reply" and r.get("reply"):
+            asked[str(r.get("nurse_id"))] = str(r["reply"])
+    if t["status"] == "waiting_reply" and w.get("nurse_id"):
+        asked.setdefault(str(w["nurse_id"]), "waiting")
+    return {"order": [str(n) for n in order], "asked": asked, "approved": bool(ac),
+            "deadline_at": w.get("deadline_at"), "since": w.get("since")}  # fmt: skip
+
+
 def task_out(t: dict[str, Any], *, calls: bool = False) -> AgentTaskOut:
     st = t["state"]
     return AgentTaskOut.model_validate(
@@ -31,6 +50,7 @@ def task_out(t: dict[str, Any], *, calls: bool = False) -> AgentTaskOut:
             "waiting": st.get("waiting"),
             "counters": st.get("counters", {}),
             "fallback_reason": st.get("fallback_reason"),
+            "cascade": cascade_progress(t),
             "calls": [
                 {**c, "result": c.get("result") or {}} for c in st.get("calls", [])
             ] if calls else [],
@@ -45,8 +65,39 @@ def approval_for_run(conn: sqlite3.Connection, ward_id: str, run_id: str) -> App
         if run_id in w.get("runs", []):
             return ApprovalAsk(task_id=t["id"], workflow=t["workflow"], kind=w["approval_kind"],
                                ref=w["ref"], summary=w["summary"], claims=w.get("claims", []),
-                               summary_source=w.get("summary_source", "agent"))  # fmt: skip
+                               summary_source=w.get("summary_source", "agent"),
+                               cascade=w.get("cascade"))  # fmt: skip
     return None
+
+
+@router.post("/agent/tasks/{task_id}/approve-cascade", response_model=AgentTaskOut)
+async def approve_cascade(conn: Conn, task_id: str) -> AgentTaskOut:
+    """Approve the task's contact plan ("ask B, then C, then D"). This publishes nothing:
+    the first accept still comes back for one Publish."""
+    ward = require_ward(conn)
+    t = repo.get_agent_task(conn, task_id)
+    if t is None:
+        raise ApiError(404, "TASK_NOT_FOUND", f"No agent task {task_id}.")
+    w = t["state"].get("waiting") or {}
+    if t["status"] != "waiting_approval" or not w.get("cascade"):
+        raise ApiError(
+            409, "CASCADE_NOT_PENDING", f"Task {task_id} is not waiting for a contact plan."
+        )
+    jobs.live_log(conn, ward.id).emit(
+        "agent.cascade_approved",
+        "user:charge",
+        None,
+        None,
+        task_id=task_id,
+        run_id=w["ref"],
+        order=w["cascade"],
+    )
+    jobs.agent_answer(ward.id, [(task_id, {"decision": "approved", "run_id": w["ref"],
+                                           "cascade": w["cascade"],
+                                           "parent_run": w.get("parent_run")})])  # fmt: skip
+    out = repo.get_agent_task(conn, task_id)
+    assert out is not None
+    return task_out(out)
 
 
 @router.get("/agent/tasks", response_model=list[AgentTaskOut])
@@ -92,8 +143,14 @@ async def answer(conn: sqlite3.Connection, ward_id: str, m: dict[str, Any],
         jobs.live_log(conn, ward_id).emit(
             f"swap.{status}", actor, None, None, message_id=m["id"], request_id=m["request_id"]
         )
-    from app.agent import runtime
+    from app.agent import loop, runtime
 
+    if accept and m["kind"] == "replacement":
+        for moot in loop.withdraw_open_asks(conn, ward_id, jobs.live_log(conn, ward_id), actor,
+                                            day=m["day"], shift=m["shift"],
+                                            except_id=m["id"]):  # fmt: skip
+            await hub.broadcast(ward_id, {"type": "message_for_nurse",
+                                          "nurse_id": moot["nurse_id"]})  # fmt: skip
     jobs.agent_answer(ward_id, runtime.answers_for_reply(conn, ward_id, m["id"], accept))
     await hub.broadcast(ward_id, {"type": "message_for_nurse", "nurse_id": m["nurse_id"]})
     out = repo.get_nurse_message(conn, m["id"])
