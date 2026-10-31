@@ -222,16 +222,21 @@ def confirmation(lang: str, conn: sqlite3.Connection, ward: Ward, items: list[Re
             "target": e.target_total,
             "request_id": e.request_id,
         }
+        op_key = e.op.value
         if e.op is EditOp.PROPOSE_SWAP:
             p["counterpart"] = names.get(it.counterpart_id or "", it.counterpart_id)
             p["mine"] = tpl.cell(lang, e.dates[0] if e.dates else None, e.shifts)
             p["theirs"] = tpl.cell(
                 lang, e.counterpart_dates[0] if e.counterpart_dates else None, e.counterpart_shifts
             )
+            if it.counterpart_id is None:
+                op_key = (
+                    "propose_swap_open" if e.counterpart_dates else "propose_swap_open_no_offer"
+                )
         if e.op is EditOp.CANCEL_REQUEST and e.request_id:
             r = repo.get_request(conn, e.request_id)
             p["summary"] = summarize(lang, r) if r else e.request_id
-        line = tpl.text(lang, "confirm", e.op.value, **p)
+        line = tpl.text(lang, "confirm", op_key, **p)
         if it.for_other and it.nurse_id and e.op is not EditOp.CHANGE_DEMAND:
             line = f"{names.get(it.nurse_id, it.nurse_id)}: {line}"
         lines.append(line)

@@ -34,6 +34,7 @@ from app.store.db import connect, open_db
 from evals.setups import BASELINE, RunIds
 
 TUE, THU = date(2026, 11, 3), date(2026, 11, 5)
+FRI, SAT = date(2026, 11, 6), date(2026, 11, 7)
 
 
 class LocalEnv:
@@ -152,6 +153,13 @@ async def setup(conn: sqlite3.Connection, env: LocalEnv, case: dict[str, Any]) -
                      counterpart_shifts=[grid[b][db]],
                      status=RequestStatus.PENDING_APPROVAL)  # fmt: skip
         return {"workflow": "swap", "request_id": r.id, "counterpart": b}
+    if kind == "open_swap":  # N07 gives Sat 7 Nov M, offers Fri 6 Nov M back
+        grid = repo.get_roster(conn, base)
+        assert grid["N07"][12] == "M"
+        r = _request(conn, nurse_id="N07", kind=RequestKind.SWAP, dates=[SAT], shifts=["M"],
+                     counterpart_dates=[FRI], counterpart_shifts=["M"],
+                     status=RequestStatus.ACTIVE)  # fmt: skip
+        return {"workflow": "swap", "request_id": r.id}
     if kind == "new_period":
         return {"workflow": "new_period"}
     raise ValueError(f"unknown setup {kind!r}")
@@ -192,13 +200,13 @@ async def answer(conn: sqlite3.Connection, env: LocalEnv, task: dict[str, Any],
         repo.set_nurse_message_status(conn, w["message_id"], f"{reply}ed".replace("eed", "ed"))
         return runtime.answers_for_reply(conn, ward.id, w["message_id"], reply == "accept")
     choice = script["approvals"].pop(0)
+    if choice == "plan" and w.get("cascade"):  # a contact plan: asking, no publish
+        return [(task["id"], {"decision": "approved", "run_id": w["ref"],
+                              "cascade": w["cascade"],
+                              "parent_run": w.get("parent_run")})]  # fmt: skip
     if w["approval_kind"] == "run":
         if choice == "reject":
             return [(task["id"], {"decision": "rejected", "run_id": w["ref"]})]
-        if choice == "plan" and w.get("cascade"):
-            return [(task["id"], {"decision": "approved", "run_id": w["ref"],
-                                  "cascade": w["cascade"],
-                                  "parent_run": w.get("parent_run")})]  # fmt: skip
         prop = repo.proposal_for_run(conn, w["ref"])
         cands = [] if prop is None else prop["ranking"].get("candidates", [])
         target = w["ref"]

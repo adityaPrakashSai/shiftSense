@@ -167,7 +167,7 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
       {rows.map((m) => (
         <li key={m.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm" data-testid="inbox-item">
           <p className="text-sm text-slate-800">{m.text}</p>
-          {m.status === "asked" ? (
+          {m.kind === "note" ? null : m.status === "asked" ? (
             condOpen === m.id ? (
               <ConditionForm m={m} lang={lang} onBack={() => setCondOpen(null)} />
             ) : (

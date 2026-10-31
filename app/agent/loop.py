@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import date
 from typing import Any
 
 from app.agent import fallback
@@ -30,9 +31,11 @@ from app.agent.tools import (
     Forbidden,
     ToolError,
     flip_condition_followup,
+    recorded_swap_pair,
     specs,
 )
 from app.config import get_settings
+from app.domain.models import RequestKind
 from app.intake.dates import ward_now
 from app.llm.cache import PROMPTS
 from app.llm.types import LLMError, LLMRequest, Role
@@ -427,8 +430,10 @@ def apply_answer(ctx: AgentCtx, answer: dict[str, Any]) -> dict[str, Any]:
     if answer.get("decision") == "approved" and answer.get("run_id"):
         ctx.state["last_run"] = answer["run_id"]
         if answer.get("cascade") and not answer.get("nurse"):
+            w = ctx.state.get("waiting") or {}
             ctx.state["approved_cascade"] = {
                 "run_id": answer["run_id"],
+                "request_id": answer["run_id"] if w.get("approval_kind") == "request" else None,
                 "order": [str(n) for n in answer["cascade"]],
                 "open_cell": ctx.state.get("open_cell"),
                 "parent_run": answer.get("parent_run"),
@@ -448,7 +453,31 @@ def apply_answer(ctx: AgentCtx, answer: dict[str, Any]) -> dict[str, Any]:
         st.setdefault("conditions", {})[answer.get("message_id")] = answer["condition"]
         rounds = st.setdefault("condition_rounds", {})
         rounds[answer.get("nurse_id")] = rounds.get(answer.get("nurse_id"), 0) + 1
+    if answer.get("reply") == "accepted" and ctx.task.get("workflow") == "swap":
+        _pair_request(ctx, answer)
     return answer
+
+
+def _pair_request(ctx: AgentCtx, answer: dict[str, Any]) -> None:
+    """An open swap's accepter becomes its counterpart: the ranked return cell is written
+    onto the request, so what_if and the re-solve treat it like a named swap."""
+    r = repo.get_request(ctx.conn, str(ctx.state.get("request_id") or ""))
+    if r is None or r.kind is not RequestKind.SWAP or r.counterpart_id is not None:
+        return
+    try:
+        pair = recorded_swap_pair(ctx, r.id, str(answer.get("nurse_id")))
+    except ToolError:
+        return  # no ranked pair (a re-rank dropped her): leave the request open
+    gives = pair["gives"]
+    repo.set_swap_counterpart(
+        ctx.conn,
+        r.id,
+        str(answer.get("nurse_id")),
+        date.fromisoformat(str(gives["day"])),
+        str(gives["shift"]),
+    )
+    ctx.log.emit("swap.paired", _actor(ctx), None, None, request_id=r.id,
+                 nurse=str(answer.get("nurse_id")), gives=dict(gives))  # fmt: skip
 
 
 async def resume(ctx: AgentCtx, answer: dict[str, Any]) -> None:

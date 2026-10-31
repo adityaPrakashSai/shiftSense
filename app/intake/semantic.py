@@ -135,19 +135,25 @@ def check_edit(
 
     counterpart_id = None
     if edit.op is EditOp.PROPOSE_SWAP:
-        cm = resolve(edit.counterpart, ward.nurses, None)
-        if cm.nurse_id is None or cm.nurse_id == nurse_id:
-            problems.append(Problem("swap_self"))
+        if edit.counterpart is None:
+            shape = _open_swap_shape(edit)
+            problems += shape
+            if not shape and check_roster and nurse_id:
+                problems += _open_swap_cells(conn, ward, edit, nurse_id, rl)
         else:
-            counterpart_id = cm.nurse_id
-        one_cell = (
-            len(edit.dates) == len(edit.counterpart_dates) == 1
-            and len(edit.shifts or []) == len(edit.counterpart_shifts or []) == 1
-        )
-        if not one_cell:
-            problems.append(Problem("swap_one_cell"))
-        elif check_roster and counterpart_id and nurse_id:
-            problems += _swap_cells(conn, ward, edit, nurse_id, counterpart_id, rl)
+            cm = resolve(edit.counterpart, ward.nurses, None)
+            if cm.nurse_id is None or cm.nurse_id == nurse_id:
+                problems.append(Problem("swap_self"))
+            else:
+                counterpart_id = cm.nurse_id
+            one_cell = (
+                len(edit.dates) == len(edit.counterpart_dates) == 1
+                and len(edit.shifts or []) == len(edit.counterpart_shifts or []) == 1
+            )
+            if not one_cell:
+                problems.append(Problem("swap_one_cell"))
+            elif check_roster and counterpart_id and nurse_id:
+                problems += _swap_cells(conn, ward, edit, nurse_id, counterpart_id, rl)
 
     if edit.op is EditOp.CANCEL_REQUEST:
         r = None if edit.request_id is None else repo.get_request(conn, edit.request_id)
@@ -173,6 +179,47 @@ def check_edit(
                 )
 
     return ResolvedEdit(edit, nurse_id, counterpart_id), problems
+
+
+def _open_swap_shape(edit: Edit) -> list[Problem]:
+    """An open swap gives exactly one cell and offers zero or one fully named cell back."""
+    if len(edit.dates) != 1 or not edit.shifts or len(edit.shifts) != 1:
+        return [Problem("swap_one_cell")]
+    if len(edit.counterpart_dates) > 1:
+        return [Problem("swap_one_cell")]
+    if edit.counterpart_dates and (
+        not edit.counterpart_shifts or len(edit.counterpart_shifts) != 1
+    ):
+        return [Problem("swap_one_cell")]
+    return []
+
+
+def _open_swap_cells(
+    conn: sqlite3.Connection, ward: Ward, edit: Edit, a: str, rl: str
+) -> list[Problem]:
+    """The sender holds the given cell in the published roster and is free on the
+    offered day, so she can take that cell back."""
+    run = repo.get_published_run(conn, ward.id)
+    if run is None:
+        return [Problem("swap_cells", {"who": "-", "cell": "-"})]
+    roster = repo.get_roster(conn, str(run["run_id"]))
+    days = [d.isoformat() for d in horizon_dates(ward)]
+    out = []
+    assert edit.shifts
+    d, s = edit.dates[0], edit.shifts[0]
+    row = roster.get(a, [])
+    if not (d.isoformat() in days and days.index(d.isoformat()) < len(row)
+            and row[days.index(d.isoformat())] == s.value):  # fmt: skip
+        out.append(Problem("swap_cells", {"who": _who(ward, a), "cell": cell(rl, d, [s])}))
+    if edit.counterpart_dates:
+        od = edit.counterpart_dates[0]
+        cur = None
+        if od.isoformat() in days and days.index(od.isoformat()) < len(row):
+            cur = row[days.index(od.isoformat())]
+        if cur not in (None, "N/O", "D/O"):
+            shifts = edit.counterpart_shifts or []
+            out.append(Problem("swap_busy", {"cell": cell(rl, od, shifts)}))
+    return out
 
 
 def _swap_cells(

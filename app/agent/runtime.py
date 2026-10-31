@@ -32,7 +32,10 @@ def workflow_for(r: Request, sender: str | None = None) -> str | None:
         return "sick_call"
     if r.kind is RequestKind.LEAVE and r.status is RequestStatus.PENDING_APPROVAL:
         return "leave"
-    if r.kind is RequestKind.SWAP and r.status is RequestStatus.PENDING_APPROVAL:
+    if r.kind is RequestKind.SWAP and (
+        r.status is RequestStatus.PENDING_APPROVAL
+        or (r.status is RequestStatus.ACTIVE and r.counterpart_id is None)
+    ):
         return "swap"
     return None
 

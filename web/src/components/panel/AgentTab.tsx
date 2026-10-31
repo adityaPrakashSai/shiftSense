@@ -127,6 +127,15 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
   });
   const runApproval =
     t.status === "waiting_approval" && w?.approval_kind === "run" && !(w?.cascade?.length ?? 0);
+  const planApproval = t.status === "waiting_approval" && (w?.cascade?.length ?? 0) > 0;
+  const approvePlan = useMutation({
+    mutationFn: () => api.approveCascade(t.id),
+    onSettled: () => {
+      settled();
+      void qc.invalidateQueries({ queryKey: ["proposals"] });
+    },
+  });
+  const planNames = (w?.cascade ?? []).map((n) => nurses.find((x) => x.id === n)?.name ?? n);
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm" data-testid="agent-task">
       <header className="flex flex-wrap items-center gap-2">
@@ -174,6 +183,22 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
       {t.status === "waiting_approval" && w?.summary && (
         <div className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">
           <p>Approval needed: {w.summary}</p>
+          {planApproval && (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="font-semibold">Ask in order: {planNames.join(" → ")}</span>
+              <button
+                onClick={() => approvePlan.mutate()}
+                disabled={approvePlan.isPending}
+                data-testid="approval-plan"
+                className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+              >
+                Approve plan
+              </button>
+              {approvePlan.error && (
+                <span className="text-[11px] text-red-600">{approvePlan.error.message}</span>
+              )}
+            </div>
+          )}
           {runApproval && (
             <div className="mt-1 flex gap-2">
               <button

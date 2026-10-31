@@ -38,14 +38,14 @@ from app.evidence.counterfactual import Question, explain_denied, what_if
 from app.explain import tools as ex
 from app.explain.claims import check
 from app.intake import templates as tpl
-from app.intake.dates import fmt_day, ward_now
+from app.intake.dates import fmt_day, shift_start, ward_now
 from app.llm.gateway import LLMGateway
 from app.log.decision_log import DecisionLog
 from app.planner import runs
 from app.planner.build_input import day_index, horizon_dates
 from app.planner.sickcall import BUDGET_S, STAGE_S
 from app.planner.staffing import run_check
-from app.solver.input import Forcing, SolveInput
+from app.solver.input import SHIFTS, Forcing, SolveInput
 from app.solver.rules import rule_check
 from app.solver.solve import solve
 from app.store import repo
@@ -332,15 +332,61 @@ async def flip_condition_followup(
     return str(m["id"])
 
 
+async def _quiet_variant(
+    ctx: AgentCtx,
+    *,
+    trigger: str,
+    affected: list[date],
+    request_id: str | None,
+    extra: list[tuple[str, int, str | None]],
+    forced: list[Forcing],
+) -> tuple[str, Any]:
+    """A re-solve that stays out of the ranked worker: no stray proposal card, no conflict
+    workflow when the deal does not work out. The agent trace narrates the wait instead.
+    Returns the run id and the SolveResult, or None when it did not solve."""
+    plan = runs.start_resolve(
+        ctx.conn,
+        ctx.ward.id,
+        trigger=trigger,
+        affected=affected,
+        request_id=request_id,
+        extra_unavailable=extra,
+        forced=forced,
+    )
+    res = await asyncio.to_thread(
+        solve,
+        plan.inp,
+        stage_seconds=STAGE_S,
+        workers=get_settings().solver_workers,
+        total_seconds=BUDGET_S,
+    )
+    log = DecisionLog(ctx.conn, ctx.ward.id)
+    if res.status != "solved":
+        status = RunStatus.INFEASIBLE if res.status == "infeasible" else RunStatus.FAILED
+        repo.update_run(ctx.conn, plan.run_id, status=status.value, total_secs=round(res.secs, 3))
+        log.emit("run.infeasible", "solver", plan.run_id, stage=res.failed_tier, core=[])
+        return plan.run_id, None
+    runs.write_solved(ctx.conn, plan.run_id, plan.ward, plan.inp, res, plan.active,
+                      added=plan.added_slots, log=log)  # fmt: skip
+    return plan.run_id, res
+
+
 async def evaluate_condition(
-    ctx: AgentCtx, run_id: Any, nurse_id: Any, condition: Any
-) -> dict[str, Any]:
+    ctx: AgentCtx, run_id: Any = None, nurse_id: Any = None, condition: Any = None,
+    request_id: Any = None,
+) -> dict[str, Any]:  # fmt: skip
     """A "yes, if...": re-solve the candidate's run with the condition as a hard constraint
     for this proposal only. Returns feasible, the tier deltas against the unconditional
     candidate run, the changed cells, and the new run's id. When the condition already holds,
     answers already_true (a plain accept); when it cannot hold, reopens the ask as a plain
-    follow-up and answers feasible False."""
-    rid, nid = str(run_id or ""), str(nurse_id or "")
+    follow-up and answers feasible False. With request_id (an open swap) instead of run_id,
+    both swap moves join the condition as hard constraints in one re-solve."""
+    nid = str(nurse_id or "")
+    if request_id and run_id:
+        raise ToolError("pass run_id or request_id, not both")
+    if request_id:
+        return await _evaluate_swap_condition(ctx, str(request_id), nid, condition)
+    rid = str(run_id or "")
     prop = repo.proposal_for_run(ctx.conn, rid)
     if prop is None:
         raise ToolError(f"run {rid} is not a proposal")
@@ -375,35 +421,18 @@ async def evaluate_condition(
     n = 1 + sum(1 for c in ctx.state.get("calls", []) if c["tool"] == "evaluate_condition")
     r = _request(ctx)
     days = sorted({str(cell["day"]), iso})
-    plan = runs.start_resolve(
-        ctx.conn,
-        ctx.ward.id,
+    new_id, res = await _quiet_variant(
+        ctx,
         trigger=f"agent:{ctx.task['id']}:cond{n}",
         affected=[date.fromisoformat(d) for d in days],
         request_id=r.id,
-        extra_unavailable=blocked,
+        extra=blocked,
         forced=[Forcing("replacement", nid, ci, str(cell["shift"]))],
     )
-    new_id = plan.run_id
-    # a quiet in-process solve, not the ranked worker: no stray proposal card, no conflict
-    # workflow when the deal does not work out. The agent trace narrates the wait instead.
-    res = await asyncio.to_thread(
-        solve,
-        plan.inp,
-        stage_seconds=STAGE_S,
-        workers=get_settings().solver_workers,
-        total_seconds=BUDGET_S,
-    )
-    log = DecisionLog(ctx.conn, ctx.ward.id)
-    if res.status != "solved":
-        status = RunStatus.INFEASIBLE if res.status == "infeasible" else RunStatus.FAILED
-        repo.update_run(ctx.conn, new_id, status=status.value, total_secs=round(res.secs, 3))
-        log.emit("run.infeasible", "solver", new_id, stage=res.failed_tier, core=[])
+    if res is None:
         mid = await flip_condition_followup(ctx, nid, {"kind": kind, "day": iso, "shift": shift})
         return {"feasible": False, "already_true": False, "run_id": new_id,
                 "candidate_run_id": cand_run, "follow_up": mid}  # fmt: skip
-    runs.write_solved(ctx.conn, new_id, plan.ward, plan.inp, res, plan.active,
-                      added=plan.added_slots, log=log)  # fmt: skip
     new_row = (repo.get_roster(ctx.conn, new_id).get(nid) or []) + [None] * ctx.ward.horizon_days
     if new_row[ci] != cell["shift"]:
         mid = await flip_condition_followup(ctx, nid, {"kind": kind, "day": iso, "shift": shift})
@@ -421,6 +450,98 @@ async def evaluate_condition(
     changed = (repo.get_run(ctx.conn, new_id) or {}).get("changed_cells", 0)
     return {"feasible": True, "already_true": False, "run_id": new_id,
             "candidate_run_id": cand_run, "changed_cells": changed,
+            "delta": delta, "coverage_worse": new_vec.get("coverage", 0) > pub_cov}  # fmt: skip
+
+
+async def _evaluate_swap_condition(
+    ctx: AgentCtx, rid: str, nid: str, condition: Any
+) -> dict[str, Any]:
+    """A swap partner's "yes, if...": the unconditional swap is solved in memory first
+    (the already_true reference, and it filters solver-infeasible pairs); then the swap
+    plus the condition as hard constraints in one written variant run."""
+    r = _request(ctx, rid)
+    if r.kind is not RequestKind.SWAP or r.counterpart_id is not None:
+        raise ToolError(f"request {rid} is not an open swap")
+    kind, iso, shift = _checked_condition_arg(condition)
+    i = day_index(ctx.ward, date.fromisoformat(iso))
+    if not 0 <= i < ctx.ward.horizon_days:
+        raise ToolError(f"{iso} is outside the roster period")
+    pair = recorded_swap_pair(ctx, r.id, nid)
+    d1 = day_index(ctx.ward, date.fromisoformat(pair["takes"]["day"]))
+    d2 = day_index(ctx.ward, date.fromisoformat(pair["gives"]["day"]))
+    s1, s2 = str(pair["takes"]["shift"]), str(pair["gives"]["shift"])
+    moves = [Forcing("swap", nid, d1, s1), Forcing("swap", r.nurse_id, d2, s2)]
+    if d1 != d2:
+        moves += [Forcing("swap", r.nurse_id, d1, None), Forcing("swap", nid, d2, None)]
+    days = sorted({pair["takes"]["day"], pair["gives"]["day"], iso})
+    _, uinp, _, _, _ = runs.resolve_input(
+        ctx.conn,
+        ctx.ward.id,
+        affected=[date.fromisoformat(d) for d in days],
+        extra_unavailable=[],
+        forced=moves,
+    )
+    ures = await asyncio.to_thread(
+        solve,
+        uinp,
+        stage_seconds=STAGE_S,
+        workers=get_settings().solver_workers,
+        total_seconds=BUDGET_S,
+    )
+    flip = {"kind": kind, "day": iso, "shift": shift}
+    if ures.status != "solved":  # the pair itself cannot solve; the condition is moot
+        plan = runs.start_resolve(
+            ctx.conn,
+            ctx.ward.id,
+            trigger=f"agent:{ctx.task['id']}:swapcond",
+            affected=[date.fromisoformat(d) for d in days],
+            request_id=r.id,
+            extra_unavailable=[(nid, i, None if kind == "day_off" else shift)],
+            forced=moves,
+        )
+        repo.update_run(ctx.conn, plan.run_id, status=RunStatus.INFEASIBLE.value)
+        DecisionLog(ctx.conn, ctx.ward.id).emit(
+            "run.infeasible", "solver", plan.run_id, stage=ures.failed_tier, core=[]
+        )
+        mid = await flip_condition_followup(ctx, nid, flip)
+        return {"feasible": False, "already_true": False, "run_id": plan.run_id,
+                "candidate_run_id": None, "follow_up": mid}  # fmt: skip
+    cur = (ures.roster or {}).get((nid, i))
+    if (kind == "day_off" and (cur is None or cur in ("N/O", "D/O"))) or (
+        kind == "avoid_shift" and cur != shift
+    ):
+        return {"feasible": True, "already_true": True, "run_id": "",
+                "candidate_run_id": None, "changed_cells": 0, "delta": {}}  # fmt: skip
+    n = 1 + sum(1 for c in ctx.state.get("calls", []) if c["tool"] == "evaluate_condition")
+    new_id, res = await _quiet_variant(
+        ctx,
+        trigger=f"agent:{ctx.task['id']}:swapcond{n}",
+        affected=[date.fromisoformat(d) for d in days],
+        request_id=r.id,
+        extra=[(nid, i, None if kind == "day_off" else shift)],
+        forced=moves,
+    )
+    if res is None:
+        mid = await flip_condition_followup(ctx, nid, flip)
+        return {"feasible": False, "already_true": False, "run_id": new_id,
+                "candidate_run_id": None, "follow_up": mid}  # fmt: skip
+    grid = repo.get_roster(ctx.conn, new_id)
+    ok = (grid.get(nid) or [None] * ctx.ward.horizon_days)[d1] == s1 and (
+        grid.get(r.nurse_id) or [None] * ctx.ward.horizon_days
+    )[d2] == s2
+    if not ok:
+        mid = await flip_condition_followup(ctx, nid, flip)
+        return {"feasible": False, "already_true": False, "run_id": new_id,
+                "candidate_run_id": None, "follow_up": mid}  # fmt: skip
+    new_vec = _tier_vector(ctx.conn, new_id)
+    base_vec = ures.tier_vector()
+    delta = {t: new_vec.get(t, 0) - base_vec.get(t, 0)
+             for t in sorted(set(new_vec) | set(base_vec))}  # fmt: skip
+    pub = ctx.published_id()
+    pub_cov = _tier_vector(ctx.conn, pub).get("coverage", 0) if pub else 0
+    changed = (repo.get_run(ctx.conn, new_id) or {}).get("changed_cells", 0)
+    return {"feasible": True, "already_true": False, "run_id": new_id,
+            "candidate_run_id": None, "changed_cells": changed,
             "delta": delta, "coverage_worse": new_vec.get("coverage", 0) > pub_cov}  # fmt: skip
 
 
@@ -442,6 +563,28 @@ async def run_full(ctx: AgentCtx) -> dict[str, Any]:
     if run_id is None:
         run_id = await ctx.env.start_full(ctx.conn, ctx.ward.id, trigger=f"agent:{ctx.task['id']}")
     return _run_brief(ctx, await _finished_run(ctx, run_id))
+
+
+def _check_swap_pair(
+    roster: Any,
+    inp: SolveInput,
+    a: str,
+    d1: int,
+    s1: str | None,
+    b: str,
+    d2: int,
+    s2: str | None,
+) -> dict[str, list[str]]:
+    """Both takes of a swap with everything else fixed: each take is checked with both
+    cells vacated (`rule_check` reports only newly broken rules, so checking after
+    applying would always pass). Keys are `{taker}:d{day}`, like `rule_check_swap`."""
+    base = dict(roster)
+    base[(a, d1)] = None
+    base[(b, d2)] = None
+    return {
+        f"{b}:d{d1}": rule_check(base, inp, b, d1, s1, nurse_only=True),
+        f"{a}:d{d2}": rule_check(base, inp, a, d2, s2, nurse_only=True),
+    }
 
 
 def _swap_forcings(ctx: AgentCtx, r: Any) -> tuple[tuple[str, int, str | None], ...]:
@@ -529,16 +672,187 @@ async def rule_check_swap(ctx: AgentCtx, request_id: Any = None) -> dict[str, An
     inp = SolveInput.from_json(run["input_json"])
     grid = repo.get_roster(ctx.conn, pub or "")
     roster = {(n, d): s for n, row in grid.items() for d, s in enumerate(row)}
-    forced = _swap_forcings(ctx, r)
-    for n, d, s in forced:  # apply the whole swap, then check each moved cell
-        roster[n, d] = s
-    broken = {
-        f"{n}:d{d}": rule_check(roster, inp, n, d, s, nurse_only=True)
-        for n, d, s in forced
-        if s is not None
-    }
+    (b, d1, s1), (a, d2, s2) = _swap_forcings(ctx, r)[:2]  # the two takes; offs follow
+    assert s1 is not None and s2 is not None
+    broken = _check_swap_pair(roster, inp, a, d1, s1, b, d2, s2)
     return {"request_id": r.id, "nurse": r.nurse_id, "counterpart": r.counterpart_id,
             "legal": not any(broken.values()), "broken": broken}  # fmt: skip
+
+
+def _swap_gives(
+    grid: dict[str, list[str | None]],
+    horizon: int,
+    nurse: str,
+    offered: tuple[int, str] | None,
+) -> list[tuple[int, str]]:
+    """Cells the nurse could give back: exactly the offered cell when one was named,
+    else every cell she works."""
+    row = (grid.get(nurse) or []) + [None] * horizon
+    if offered is not None:
+        d, s = offered
+        return [(d, s)] if 0 <= d < horizon and row[d] == s else []
+    return [(d, str(row[d])) for d in range(horizon) if row[d] not in (None, "N/O", "D/O")]
+
+
+def _takeable(
+    ward: Ward,
+    grid: dict[str, list[str | None]],
+    horizon: int,
+    sender: str,
+    now: Any,
+) -> set[int]:
+    """Days the sender could take a cell on: free days from today on, skipping a shift
+    already under way."""
+    days = horizon_dates(ward)
+    today = now.date()
+    row = (grid.get(sender) or []) + [None] * horizon
+    out = set()
+    for d in range(horizon):
+        if days[d] < today or row[d] not in (None, "N/O", "D/O"):
+            continue
+        if days[d] == today:
+            started = any(
+                s.code.value in SHIFTS and shift_start(ward, s.code, days[d]) <= now
+                for s in ward.shifts
+            )
+            if started:
+                continue  # a swap cannot start mid-shift; tomorrow's cells still count
+        out.add(d)
+    return out
+
+
+def _swap_imbalance(
+    hist: Any,
+    grid: dict[str, list[str | None]],
+    ward: Ward,
+    specs: dict[str, Any],
+    a: str,
+    d1: int,
+    s1: str,
+    b: str,
+    d2: int,
+    s2: str,
+    weekend: set[int],
+) -> int:
+    """Post-swap spread of nights + weekend shifts over regular nurses, history included
+    (the solver's fairness rank in miniature). Lower is fairer."""
+    horizon = ward.horizon_days
+    rows = {n: (list(grid.get(n, [])) + [None] * horizon)[:horizon] for n in specs}
+    rows[a][d1], rows[a][d2] = None, s2
+    rows[b][d2], rows[b][d1] = None, s1
+    regular = [n for n in specs if not specs[n].standby]
+    away = {n for n in regular if all(c in (None, "N/O", "D/O") for c in rows[n])}
+    regular = [n for n in regular if n not in away]
+    night_ok = [n for n in regular if specs[n].can_night]
+
+    def total(n: str, key: str, count: int) -> int:
+        rec = hist.nurses.get(n)
+        return (0 if rec is None else int(getattr(rec, key))) + count
+
+    nights = [
+        total(n, "nights", sum(1 for d in range(horizon) if rows[n][d] == "N")) for n in night_ok
+    ] or [0]
+    wknds = [
+        total(n, "weekends", sum(1 for d in weekend if rows[n][d] not in (None, "N/O", "D/O")))
+        for n in regular
+    ] or [0]
+    return (max(nights) - min(nights)) + (max(wknds) - min(wknds))
+
+
+async def find_swap_partners(ctx: AgentCtx, request_id: Any = None) -> dict[str, Any]:
+    """Legal takers for an open swap, ranked: each other non-standby nurse who can take
+    the sender's cell while the sender takes one of theirs, both moves rule-checked with
+    everything else fixed. Ranked by fewest other changes (a same-day swap moves no one
+    else off), then fairness, then nurse id; at most 3 pairs, plus who is excluded and
+    why. Pure code: no LLM, no publish."""
+    r = _request(ctx, request_id)
+    if r.kind is not RequestKind.SWAP or r.counterpart_id is not None:
+        raise ToolError(f"request {r.id} is not an open swap")
+    if not r.dates or not r.shifts:
+        raise ToolError(f"request {r.id} names no cell to give")
+    pub = ctx.published_id()
+    run = None if pub is None else repo.get_run(ctx.conn, pub)
+    if run is None:
+        raise ToolError("nothing is published yet")
+    inp = SolveInput.from_json(run["input_json"])
+    grid = repo.get_roster(ctx.conn, str(run["run_id"]))
+    roster = {(n, d): s for n, row in grid.items() for d, s in enumerate(row)}
+    horizon = ctx.ward.horizon_days
+    days = horizon_dates(ctx.ward)
+    a = r.nurse_id
+    d1, s1 = day_index(ctx.ward, r.dates[0]), r.shifts[0].value
+    if (grid.get(a) or [None] * (d1 + 1))[d1] != s1:
+        raise ToolError(f"{a} does not work {r.dates[0]} {s1} in the published roster")
+    offered: tuple[int, str] | None = None
+    if r.counterpart_dates:
+        if not r.counterpart_shifts:
+            raise ToolError(f"request {r.id} offers a day without a shift")
+        offered = (day_index(ctx.ward, r.counterpart_dates[0]), r.counterpart_shifts[0].value)
+    now = ward_now(ctx.ward.tz, get_settings().demo_now)
+    takeable = _takeable(ctx.ward, grid, horizon, a, now)
+    weekend = {d for d in range(horizon) if days[d].weekday() >= 5}
+    hist = repo.get_history(ctx.conn, ctx.ward.id)
+    specs = {n.id: n for n in ctx.ward.nurses}
+    pairs: list[dict[str, Any]] = []
+    excluded: list[dict[str, Any]] = []
+    for spec in sorted(ctx.ward.nurses, key=lambda n: n.id):
+        b = spec.id
+        if b == a or spec.standby:
+            continue
+        gives = _swap_gives(grid, horizon, b, offered)
+        if offered is None:
+            gives = [c for c in gives if c[0] in takeable]
+        if not gives:
+            excluded.append({"nurse": b, "name": spec.name, "rules": ["no_cell_to_give"]})
+            continue
+        legal: list[dict[str, Any]] = []
+        bad: list[dict[str, Any]] = []
+        for d2, s2 in gives:
+            broken = _check_swap_pair(roster, inp, a, d1, s1, b, d2, s2)
+            rules = sorted({rule for rs in broken.values() for rule in rs})
+            if rules:
+                bad.append({"cell": (d2, s2), "rules": rules})
+                continue
+            offs = 0 if d1 == d2 else 2  # cross-day swaps also move both nurses off
+            imb = _swap_imbalance(hist, grid, ctx.ward, specs, a, d1, s1, b, d2, s2,
+                                  weekend)  # fmt: skip
+            legal.append({"d2": d2, "s2": s2, "offs": offs, "imb": imb})
+        if not legal:
+            rules = sorted({rule for c in bad for rule in c["rules"]})
+            excluded.append({"nurse": b, "name": spec.name, "rules": rules})
+            continue
+        d2, s2, offs, imb = min(
+            ((c["d2"], c["s2"], c["offs"], c["imb"]) for c in legal),
+            key=lambda c: (c[2], c[3], c[0], c[1]),
+        )
+        pairs.append(
+            {
+                "nurse": b,
+                "name": spec.name,
+                "takes": {"day": days[d1].isoformat(), "shift": s1},
+                "gives": {"day": days[d2].isoformat(), "shift": s2},
+                "other_changes": offs,
+                "fairness": imb,
+                "reasons": [
+                    "offered_cell_match" if offered else "return_cell_match",
+                    "rules_pass",
+                ],
+            }
+        )
+    pairs.sort(key=lambda p: (p["other_changes"], p["fairness"], p["nurse"]))
+    excluded.sort(key=lambda e: e["nurse"])
+    return {
+        "request_id": r.id,
+        "requester": a,
+        "requester_name": ctx.name(a),
+        "gives": {"day": days[d1].isoformat(), "shift": s1},
+        "offered": None
+        if offered is None
+        else {"day": days[offered[0]].isoformat(), "shift": offered[1]},
+        "pairs": pairs[: fallback.MAX_CASCADE],
+        "excluded": excluded,
+        "parent_run": pub,
+    }
 
 
 async def explain_denied_requests(ctx: AgentCtx, run_id: Any = None) -> dict[str, Any]:
@@ -608,6 +922,49 @@ def _open_replacement_ask(ctx: AgentCtx, day: str, shift: str) -> dict[str, Any]
     return None
 
 
+def _open_swap_ask(ctx: AgentCtx, day: str, shift: str) -> dict[str, Any] | None:
+    """A swap ask for this cell still awaiting an answer, if any (at most one open)."""
+    for m in repo.list_nurse_messages(ctx.conn, ctx.ward.id):
+        if (m["kind"] == "swap" and m["status"] == "asked"
+                and m["day"] == day and m["shift"] == shift):  # fmt: skip
+            return m
+    return None
+
+
+def recorded_swap_pair(ctx: AgentCtx, rid: str, nid: str) -> dict[str, Any]:
+    """The ranked pair for this nurse, from the recorded find_swap_partners result: code,
+    not model args, decides the cells."""
+    for c in reversed(ctx.state.get("calls", [])):
+        res = c.get("result") or {}
+        if c["tool"] == "find_swap_partners" and res.get("request_id") == rid:
+            hit = next((p for p in res.get("pairs", []) if p.get("nurse") == nid), None)
+            if hit is None:
+                raise ToolError(f"{nid} is not a ranked partner for swap {rid}")
+            return dict(hit)
+    raise ToolError(f"no ranked partners for swap {rid}: call find_swap_partners first")
+
+
+def _swap_cascade_send(ctx: AgentCtx, nid: str, r: Any) -> None:
+    """The swap plan's rules, enforced in code: an approved plan for this request, a
+    fresh published roster, the next uncontacted nurse in the order, and no other open
+    swap ask for the cell."""
+    ac = ctx.state.get("approved_cascade") or {}
+    if not get_settings().agent_cascade or not ac or ac.get("request_id") != r.id:
+        raise Forbidden(f"no approved swap plan for request {r.id} yet")
+    if ctx.published_id() != ac.get("parent_run"):
+        asked = fallback.swap_contacted(ctx.state.get("calls", []))
+        raise ToolError(
+            "the published roster changed since these partners were ranked: call "
+            f"find_swap_partners and request a new swap plan (asked: {asked})"
+        )
+    asked = fallback.swap_contacted(ctx.state.get("calls", []))
+    nxt = next((n for n in ac.get("order", []) if n not in asked), None)
+    if nid != nxt:
+        raise Forbidden(f"{nid} is not next in the approved swap plan (next: {nxt})")
+    if _open_swap_ask(ctx, r.dates[0].isoformat(), r.shifts[0].value) is not None:
+        raise Forbidden("another swap ask for this cell is still open: wait for its reply")
+
+
 def _cascade_send(ctx: AgentCtx, nid: str, rid: str) -> None:
     """The cascade rules, enforced in code: the approved plan's run, a fresh ranking, the
     next uncontacted nurse in the order, and no other open ask for the cell."""
@@ -656,17 +1013,47 @@ async def send_message(
         day, shift, req_id = date.fromisoformat(cell["day"]), str(cell["shift"]), None
     elif kind == "swap":
         r = _request(ctx, request_id)
-        if r.kind is not RequestKind.SWAP or r.counterpart_id != nid:
-            raise ToolError(f"{nid} is not the counterpart of swap {r.id}")
+        if r.kind is not RequestKind.SWAP:
+            raise ToolError(f"request {r.id} is not a swap")
         rid = ""
-        forced = _swap_forcings(ctx, r)
-        day, shift, req_id = r.dates[0], str(forced[0][2] or "M"), r.id
-        days = horizon_dates(ctx.ward)
-        facts = {"requester": ctx.name(r.nurse_id),
-                 "theirs": f"{short_date(days[forced[0][1]])} {forced[0][2] or 'off'}",
-                 "mine": f"{short_date(days[forced[1][1]])} {forced[1][2] or 'off'}"}  # fmt: skip
+        if r.counterpart_id is not None:
+            if r.counterpart_id != nid:
+                raise ToolError(f"{nid} is not the counterpart of swap {r.id}")
+            forced = _swap_forcings(ctx, r)
+            day, shift, req_id = r.dates[0], str(forced[0][2] or "M"), r.id
+            days = horizon_dates(ctx.ward)
+            theirs = f"{short_date(days[forced[0][1]])} {forced[0][2] or 'off'}"
+            mine = f"{short_date(days[forced[1][1]])} {forced[1][2] or 'off'}"
+            facts = {"requester": ctx.name(r.nurse_id), "theirs": theirs, "mine": mine}
+        else:
+            _swap_cascade_send(ctx, nid, r)
+            pair = recorded_swap_pair(ctx, r.id, nid)
+            t, g = pair["takes"], pair["gives"]
+            theirs = f"{short_date(date.fromisoformat(t['day']))} {t['shift']}"
+            mine = f"{short_date(date.fromisoformat(g['day']))} {g['shift']}"
+            facts = {"requester": ctx.name(r.nurse_id), "theirs": theirs, "mine": mine}
+            day, shift, req_id = r.dates[0], str(t["shift"]), r.id
+    elif kind == "note":
+        r = _request(ctx, request_id)
+        if r.kind is not RequestKind.SWAP or r.nurse_id != nid:
+            raise ToolError(f"notes go to the swap requester, not {nid}")
+        lang = ctx.ward.nurse(nid).language
+        mid = repo.next_nurse_message_id(ctx.conn)
+        repo.insert_nurse_message(ctx.conn, {
+            "id": mid, "ward_id": ctx.ward.id, "nurse_id": nid, "kind": "note",
+            "run_id": None, "request_id": r.id, "task_id": ctx.task["id"], "day": None,
+            "shift": None, "text": tpl.text(lang, "message", "swap_exhausted"),
+            "language": lang, "source": "template", "status": "noted",
+        })  # fmt: skip
+        ctx.log.emit("message.noted", "planner", None, None, nurse=nid, message_id=mid,
+                     request_id=r.id)  # fmt: skip
+        await ctx.env.broadcast(ctx.ward.id, {"type": "message_for_nurse", "nurse_id": nid})
+        m = repo.get_nurse_message(ctx.conn, mid)
+        assert m is not None
+        return {"message_id": mid, "nurse_id": nid, "text": m["text"], "language": lang,
+                "source": "template"}  # fmt: skip
     else:
-        raise ToolError("kind is replacement or swap")
+        raise ToolError("kind is replacement, swap or note")
     w = await write(ctx.ward, nurse_id=nid, day=day, shift=shift, kind=kind, facts=facts,
                     gateway=ctx.gateway, run_id=rid or None)  # fmt: skip
     mid = repo.next_nurse_message_id(ctx.conn)
@@ -734,6 +1121,33 @@ def _checked_cascade(ctx: AgentCtx, rid: str, cascade: Any) -> list[str] | None:
     return order
 
 
+def _checked_swap_cascade(ctx: AgentCtx, r: Any, cascade: Any) -> list[str] | None:
+    """The swap plan, validated in code: 1-3 distinct nurses, all ranked partners of the
+    latest find_swap_partners result for this request."""
+    if cascade is None:
+        return None
+    if not get_settings().agent_cascade:
+        raise ToolError("contact plans are disabled (AGENT_CASCADE=0): ask for one run")
+    if r.kind is not RequestKind.SWAP or r.counterpart_id is not None:
+        raise ToolError("a cascade goes with run_id, not a conflict or request")
+    pairs: set[str] = set()
+    for c in reversed(ctx.state.get("calls", [])):
+        res = c.get("result") or {}
+        if c["tool"] == "find_swap_partners" and res.get("request_id") == r.id:
+            pairs = {str(p.get("nurse")) for p in res.get("pairs", [])}
+            break
+    if not pairs:
+        raise ToolError(f"no ranked partners for swap {r.id}: call find_swap_partners first")
+    order = [str(n) for n in cascade]
+    if not 1 <= len(order) <= fallback.MAX_CASCADE:
+        raise ToolError(f"a swap plan names 1 to {fallback.MAX_CASCADE} nurses, not {len(order)}")
+    if len(set(order)) != len(order):
+        raise ToolError(f"a swap plan names each nurse once: {order}")
+    if not set(order) <= pairs:
+        raise ToolError(f"{sorted(set(order) - pairs)} are not ranked partners of swap {r.id}")
+    return order
+
+
 async def request_approval(
     ctx: AgentCtx, summary: Any = "", claims: Any = None, run_id: Any = None,
     conflict_id: Any = None, request_id: Any = None, cascade: Any = None,
@@ -744,8 +1158,8 @@ async def request_approval(
     problems = check(cl, results)
     if not cl and results:
         problems.append("the summary cites no tool result")
-    if cascade is not None and not run_id:
-        raise ToolError("a cascade goes with run_id, not a conflict or request")
+    if cascade is not None and not run_id and not request_id:
+        raise ToolError("a cascade goes with a run or an open swap request, not a conflict")
     # the charge nurse may decide before the agent asks (Approve is on screen as soon as the
     # proposal is): an existing decision is the answer at once
     if run_id:
@@ -770,7 +1184,7 @@ async def request_approval(
             return {"answered": pre}
         if run["status"] != RunStatus.PROPOSED.value:
             return {"answered": {"decision": "superseded", "run_id": rid}}
-        on = {"kind": "run", "ref": rid, "runs": sorted(set(runs))}
+        on: dict[str, Any] = {"kind": "run", "ref": rid, "runs": sorted(set(runs))}
         if order is not None:
             on["cascade"] = order
             on["parent_run"] = run["parent_run"]
@@ -783,6 +1197,15 @@ async def request_approval(
         on = {"kind": "conflict", "ref": c["conflict_id"]}
     elif request_id:
         r = _request(ctx, request_id)
+        if cascade is not None:  # an open swap's contact plan, not the request itself
+            order = _checked_swap_cascade(ctx, r, cascade)
+            assert order is not None
+            on = {"kind": "request", "ref": r.id}
+            on["cascade"] = order
+            on["parent_run"] = ctx.published_id()
+            return {"wait": "approval", "on": "charge", "approval": on,
+                    "summary": str(summary or ""), "claims": cl,
+                    "problems": problems}  # fmt: skip
         if r.status in (RequestStatus.ACTIVE, RequestStatus.REJECTED):
             ok = r.status is RequestStatus.ACTIVE
             started = [x for x in repo.list_runs(ctx.conn, ctx.ward.id)
@@ -849,10 +1272,12 @@ REGISTRY: dict[str, AgentTool] = {
            "candidate's run with the condition (day_off or avoid_shift with a day) as a hard "
            "constraint for this proposal only. Returns feasible, tier deltas against the "
            "unconditional candidate run, changed cells and the new run's id; already_true when "
-           "the roster already grants the condition (treat as a plain accept).",
+           "the roster already grants the condition (treat as a plain accept). For a swap, "
+           "pass request_id instead of run_id: both swap moves join the condition as hard "
+           "constraints in one re-solve.",
            evaluate_condition, {"run_id": RUN, "nurse_id": NURSE,
-                                "condition": {"type": "object"}},
-           ("run_id", "nurse_id", "condition")),
+                                "condition": {"type": "object"}, "request_id": REQ},
+           ("nurse_id", "condition")),
         _t("run_resolve", ToolClass.COMPUTE, "Minimal-change re-solve from the published roster "
            "(after an approved leave or swap, or a conflict option); returns the proposal "
            "summary or the conflict.", run_resolve),
@@ -869,6 +1294,9 @@ REGISTRY: dict[str, AgentTool] = {
             "standby": {"type": "boolean"}}),
         _t("rule_check_swap", ToolClass.COMPUTE, "Hard rules each nurse in a swap would break.",
            rule_check_swap, {"request_id": REQ}),
+        _t("find_swap_partners", ToolClass.COMPUTE, "Legal takers for an open swap, ranked "
+           "by fewest other changes, then fairness: at most 3 pairs with cells, plus who is "
+           "excluded and why.", find_swap_partners, {"request_id": REQ}),
         _t("explain_denied_requests", ToolClass.COMPUTE, "Fill and list the reason code of each "
            "denied request in a run.", explain_denied_requests, {"run_id": RUN}),
         _t("diagnose", ToolClass.COMPUTE, "The conflict's unsat core and why other nurses cannot "
@@ -880,18 +1308,20 @@ REGISTRY: dict[str, AgentTool] = {
            {"option_id": S, "conflict_id": CON}, ("option_id",)),
         _t("send_message", ToolClass.ACTION, "Draft and send the ask to a nurse: kind "
            "'replacement' (needs the run approved by the charge nurse, or the nurse to be next "
-           "in the approved cascade order) or 'swap' (to the swap counterpart). Returns the "
-           "message id.", send_message,
-           {"nurse_id": NURSE, "kind": {"type": "string", "enum": ["replacement", "swap"]},
+           "in the approved cascade order), 'swap' (to the swap counterpart, or the nurse next "
+           "in the approved swap plan) or 'note' (a template note to the requester, no reply "
+           "needed). Returns the message id.", send_message,
+           {"nurse_id": NURSE, "kind": {"type": "string",
+                                        "enum": ["replacement", "swap", "note"]},
             "run_id": RUN, "request_id": REQ}, ("nurse_id", "kind")),
         _t("wait_for_reply", ToolClass.ACTION, "Pause until the nurse taps Accept or Decline.",
            wait_for_reply, {"nurse_id": NURSE, "message_id": S,
                             "timeout_minutes": {"type": "integer"}}, ("nurse_id",), waits=True),
         _t("request_approval", ToolClass.ACTION, "Show the charge nurse a summary (with claims "
            "citing tool results) and pause for their decision on a proposal run, a conflict, or a "
-           "pending leave or swap request. With run_id, `cascade` (1-3 ranked nurse ids in "
-           "order) asks for a contact plan instead of publishing one candidate: approving it "
-           "publishes nothing.", request_approval,
+           "pending leave or swap request. With run_id (or an open swap's request_id), `cascade` "
+           "(1-3 ranked nurse ids in order) asks for a contact plan instead of publishing one "
+           "candidate: approving it publishes nothing.", request_approval,
            {"summary": S, "claims": CLAIMS, "run_id": RUN, "conflict_id": CON,
             "request_id": REQ, "cascade": {"type": "array", "items": NURSE}},
            ("summary",), waits=True),
@@ -919,8 +1349,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     "conflict": frozenset((*READ_BASE, "diagnose", "list_conflict_options", "apply_option",
                            "staffing_check", "run_resolve", "request_approval", "escalate")),
     "swap": frozenset((*READ_BASE, "get_pending_requests", "rule_check_swap", "what_if",
-                       "send_message", "wait_for_reply", "request_approval", "run_resolve",
-                       "escalate")),
+                       "find_swap_partners", "evaluate_condition", "send_message",
+                       "wait_for_reply", "request_approval", "run_resolve", "escalate")),
     "leave": frozenset((*READ_BASE, "get_pending_requests", "get_request_outcome", "what_if",
                         "staffing_check", "request_approval", "run_resolve", "escalate")),
     "new_period": frozenset((*READ_BASE, "get_request_outcome", "run_full",

@@ -22,7 +22,7 @@ from app.api.schemas import (
 )
 from app.api.ws import hub
 from app.config import get_settings
-from app.domain.models import Ward
+from app.domain.models import RequestKind, Ward
 from app.intake import templates as tpl
 from app.intake.dates import fmt_day, ward_now
 from app.intake.pipeline import build_context, build_request, clarification, parse
@@ -215,6 +215,24 @@ def inbox(conn: Conn, nurse_id: str | None = None) -> list[NurseMessageOut]:
     return _enriched(conn, rows)
 
 
+def _swap_open(conn: sqlite3.Connection, t: dict[str, Any] | None) -> bool:
+    """Whether the task negotiates an open swap (named swaps do not take conditions)."""
+    rid = (t or {}).get("state", {}).get("request_id") if t else None
+    r = repo.get_request(conn, str(rid)) if rid else None
+    return r is not None and r.kind is RequestKind.SWAP and r.counterpart_id is None
+
+
+def _swap_requester_name(
+    conn: sqlite3.Connection, ward: Ward, t: dict[str, Any] | None
+) -> str | None:
+    """The first name of the nurse whose swap is being negotiated, if any."""
+    rid = (t or {}).get("state", {}).get("request_id") if t else None
+    r = repo.get_request(conn, str(rid)) if rid else None
+    if r is None:
+        return None
+    return ward.nurse(r.nurse_id).name.split()[0]
+
+
 def _enriched(conn: sqlite3.Connection, rows: list[dict[str, Any]]) -> list[NurseMessageOut]:
     """Inbox rows with their counter-offer state: the condition, if any, and whether a fresh
     ask still takes "yes, if..." (a follow-up does not: one condition round per nurse)."""
@@ -227,14 +245,13 @@ def _enriched(conn: sqlite3.Connection, rows: list[dict[str, Any]]) -> list[Nurs
         t = tasks.get(r["task_id"]) if r["task_id"] else None
         st = {} if t is None else t["state"]
         rounds = (st.get("condition_rounds") or {}).get(r["nurse_id"], 0)
+        conditionable = r["kind"] == "replacement" or (r["kind"] == "swap" and _swap_open(conn, t))
         out.append(
             NurseMessageOut.model_validate(
                 {
                     **r,
                     "condition": (st.get("conditions") or {}).get(r["id"]),
-                    "can_condition": r["kind"] == "replacement"
-                    and r["status"] == "asked"
-                    and rounds < 1,
+                    "can_condition": conditionable and r["status"] == "asked" and rounds < 1,
                 }
             )
         )
@@ -324,7 +341,9 @@ async def check_condition(
     if m["status"] != "asked":
         raise ApiError(409, "ALREADY_ANSWERED", f"Message {m['id']} is {m['status']}.")
     lang = ward.nurse(m["nurse_id"]).language
-    if m["kind"] != "replacement" or not m["task_id"] or _condition_rounds(conn, m) >= 1:
+    t = repo.get_agent_task(conn, m["task_id"]) if m["task_id"] else None
+    conditionable = m["kind"] == "replacement" or (m["kind"] == "swap" and _swap_open(conn, t))
+    if not conditionable or not m["task_id"] or _condition_rounds(conn, m) >= 1:
         raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "condition_scope"))
     now = ward_now(ward.tz, get_settings().demo_now)
     out = await parse(get_gateway(), build_request(build_context(conn, ward, m["nurse_id"], now),
@@ -337,6 +356,11 @@ async def check_condition(
         raise ApiError(422, "CONDITION_UNCLEAR", clarification(lang, out.edit, probs))
     key = resolved.key()
     if key["op"] not in ("request_day_off", "avoid_shift") or key["nurse"] != m["nurse_id"]:
+        if key["op"] == "propose_swap" and m["kind"] == "swap":
+            name = _swap_requester_name(conn, ward, t)
+            if name is not None:
+                raise ApiError(422, "CONDITION_UNCLEAR",
+                               tpl.text(lang, "clarify", "bigger_swap", name=name))  # fmt: skip
         raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "condition_scope"))
     if len(key["dates"]) != 1:
         raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "condition_scope"))
@@ -360,7 +384,9 @@ async def answer_conditional(
         raise ApiError(409, "ASK_EXPIRED", f"Message {m['id']} expired without an answer.")
     if m["status"] != "asked":
         raise ApiError(409, "ALREADY_ANSWERED", f"Message {m['id']} is {m['status']}.")
-    if m["kind"] != "replacement" or not m["task_id"]:
+    t = repo.get_agent_task(conn, m["task_id"]) if m["task_id"] else None
+    conditionable = m["kind"] == "replacement" or (m["kind"] == "swap" and _swap_open(conn, t))
+    if not conditionable or not m["task_id"]:
         raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(
             ward.nurse(m["nurse_id"]).language, "clarify", "condition_scope"))  # fmt: skip
     if _condition_rounds(conn, m) >= 1:

@@ -259,6 +259,41 @@ def _swap(text: str, low: str, today: date, ctx: dict[str, Any]) -> dict[str, An
     )
 
 
+_SOMEONE = ["someone", "anyone", "anybody", "koi"]
+_OFFER = [r"\bi['’]?ll do\b", r"\bi will do\b", r"\bi['’]?ll take\b", r"badle mein", "main kar lun"]
+
+
+def _open_swap(text: str, low: str, today: date) -> dict[str, Any] | None:
+    """\"can someone take my Saturday night? I'll do Sunday morning\": the sender gives
+    one cell and offers zero or one back, with nobody named (counterpart stays null)."""
+    if not _has(low, _SOMEONE):
+        return None
+    parts = re.split("|".join(_OFFER), low)
+    if len(parts) == 1:
+        d1, s1 = _dates(low, today), _shifts(low)
+        if len(d1) == 1 and s1:
+            return _edit("propose_swap", text.strip(), dates=[d1[0].isoformat()],
+                         shifts=s1)  # fmt: skip
+        # Hindi puts the offered date before its verb ("main Sunday morning kar lungi"):
+        # split before "main" instead
+        m = re.search(r"\bmain\b", low)
+        if not m:
+            return None
+        parts = [low[: m.start()], low[m.start() :]]
+    d1, s1 = _dates(f" {parts[0]} ", today), _shifts(f" {parts[0]} ")
+    if len(d1) != 1 or not s1:
+        return None
+    kw: dict[str, Any] = {"dates": [d1[0].isoformat()], "shifts": s1}
+    tail = f" {' '.join(parts[1:])} "
+    d2, s2 = _dates(tail, today), _shifts(tail)
+    if d2 or s2:
+        if len(d2) != 1:
+            return None  # an unclear offer falls through to clarification
+        kw["counterpart_dates"] = [d2[0].isoformat()]
+        kw["counterpart_shifts"] = s2 or None  # no shift: semantic asks for it
+    return _edit("propose_swap", text.strip(), **kw)
+
+
 def _demand(text: str, low: str, today: date, ctx: dict[str, Any]) -> dict[str, Any] | None:
     """Charge nurse: "we need one more on Saturday night", "Thursday night needs 5"."""
     dates, shifts = _dates(low, today), _shifts(low)
@@ -307,8 +342,10 @@ def mock_intake(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
     if _has(low, OUT_OF_SCOPE):
         return {**base, "intent": "out_of_scope", "confidence": 0.9}
 
-    if "swap" in low and (swap := _swap(text, low, today, ctx)) is not None:
+    if (swap := _swap(text, low, today, ctx)) is not None:
         return {**base, "intent": "edit", "edits": [swap], "confidence": 0.8}
+    if (open_swap := _open_swap(text, low, today)) is not None:
+        return {**base, "intent": "edit", "edits": [open_swap], "confidence": 0.75}
     if "cancel" in low and (rid := re.search(r"\br-\d{4}\b", low)):
         edit = _edit("cancel_request", text.strip(), request_id=rid.group(0).upper())
         return {**base, "intent": "edit", "edits": [edit], "confidence": 0.85}

@@ -98,7 +98,18 @@ def contacted(calls: list[Call]) -> list[str]:
     return [
         str(c["result"].get("nurse_id") or c["args"].get("nurse_id"))
         for c in calls
-        if c["tool"] == "send_message" and _ok(c) and c["args"].get("kind", "replacement") != "swap"
+        if c["tool"] == "send_message"
+        and _ok(c)
+        and c["args"].get("kind", "replacement") == "replacement"
+    ]
+
+
+def swap_contacted(calls: list[Call]) -> list[str]:
+    """Nurses this task already sent a swap ask to, in order (notes excluded)."""
+    return [
+        str(c["result"].get("nurse_id") or c["args"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "send_message" and _ok(c) and c["args"].get("kind") == "swap"
     ]
 
 
@@ -114,7 +125,7 @@ def _plain_run_approval(calls: list[Call], after: int) -> tuple[int, dict[str, A
 
 
 def _cascade_approval(
-    calls: list[Call], after: int
+    calls: list[Call], after: int, kind: str = "run"
 ) -> tuple[int, dict[str, Any], list[str]] | None:
     """The answered cascade approval after `after`: index, answer, and the approved order."""
     for i in range(len(calls) - 1, after, -1):
@@ -122,7 +133,7 @@ def _cascade_approval(
         if c["tool"] != "request_approval" or not _ok(c) or "decision" not in c["result"]:
             continue
         order = c["result"].get("cascade") or c["args"].get("cascade") or []
-        if _approval_kind(c["args"]) == "run" and order:
+        if _approval_kind(c["args"]) == kind and order:
             return i, c["result"], [str(n) for n in order]
     return None
 
@@ -476,6 +487,12 @@ def _leave(calls: list[Call], state: dict[str, Any]) -> Step | None:
 
 
 def _swap(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    if state.get("counterpart"):
+        return _swap_named(calls, state)
+    return _swap_open(calls, state)
+
+
+def _swap_named(calls: list[Call], state: dict[str, Any]) -> Step | None:
     rid = state.get("request_id")
     if _last(calls, "rule_check_swap") is None:
         return "rule_check_swap", {"request_id": rid}
@@ -497,6 +514,176 @@ def _swap(calls: list[Call], state: dict[str, Any]) -> Step | None:
     if ap[1].get("decision") != "approved":
         return None
     return _resolve_then_approve(calls, ap[0])
+
+
+def _swap_open(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    """An open swap: rank partners, approve the plan once, ask in order. The first accept
+    (or already-granted condition) comes back as one publish approval; an exhausted plan
+    notes the requester and escalates."""
+    rid = str(state.get("request_id") or "")
+    fp = _last(calls, "find_swap_partners")
+    if fp is None:
+        return "find_swap_partners", {"request_id": rid}
+    fi, fr = fp
+    pairs = fr.get("pairs", []) if isinstance(fr, dict) else []
+    if not pairs:
+        return _swap_exhausted(calls, state)
+    cap = _cascade_approval(calls, fi, kind="request")
+    if cap is None:
+        if not cascade_enabled():
+            return "escalate", {"reason": "open swaps need a contact plan (AGENT_CASCADE=0)"}
+        cands = [str(p["nurse"]) for p in pairs if p["nurse"] not in swap_contacted(calls)]
+        if not cands:
+            return _swap_exhausted(calls, state)
+        return _swap_plan_approval(calls, fi, rid, cands[:MAX_CASCADE])
+    j, a, order = cap
+    if a.get("decision") != "approved":
+        return None  # the plan was rejected: done
+    post = _plain_run_approval(calls, j)
+    if post is not None:
+        cp = _conditional_post(calls, post[1])
+        if cp is _HANDLED:
+            pass  # the deal was rejected but the follow-up ran: handle the reply below
+        elif cp is not _PLAIN:
+            return cp  # type: ignore[return-value]
+        else:
+            return None  # a publish approval answered: done
+    msg = _last_send(calls, j)
+    if msg is not None:
+        rep = _last(calls, "wait_for_reply", msg[0])
+        if rep is None:
+            m = msg[1]
+            return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
+        nurse = str(rep[1].get("nurse_id"))
+        if rep[1].get("reply") == "accepted":
+            return _swap_accepted(calls, rid, rep[0])
+        if rep[1].get("reply") == "conditional":
+            st = _swap_conditional_round(calls, fi, rid, rep[0], nurse,
+                                         str(rep[1].get("message_id")),
+                                         dict(rep[1].get("condition") or {}))  # fmt: skip
+            if st is not None:
+                return st
+    no, late = declined(calls), timed_out(calls)
+    spent = _spent_conditionals(calls)
+    if len(no) + len(late) + len(spent) >= MAX_DECLINES:
+        return _swap_exhausted(calls, state)
+    answered = set(no) | set(late) | set(accepted(calls)) | set(spent)
+    nxt = next((n for n in order if n not in answered), None)
+    if nxt is None:
+        return _swap_exhausted(calls, state)
+    ac = state.get("approved_cascade") or {}
+    if state.get("published_now") and ac.get("parent_run") != state.get("published_now"):
+        return "find_swap_partners", {"request_id": rid}  # re-rank, then a new plan
+    return "send_message", {"nurse_id": nxt, "kind": "swap", "request_id": rid}
+
+
+def _last_send(calls: list[Call], after: int) -> tuple[int, dict[str, Any]] | None:
+    """The latest swap ask (notes to the requester are not asks)."""
+    for i in range(len(calls) - 1, after, -1):
+        c = calls[i]
+        if c["tool"] == "send_message" and _ok(c) and c["args"].get("kind") == "swap":
+            return i, c["result"]
+    return None
+
+
+def _swap_plan_approval(calls: list[Call], fi: int, rid: str, cands: list[str]) -> Step:
+    fr = calls[fi]["result"] or {}
+    pairs = fr.get("pairs", [])
+    names = {p["nurse"]: p.get("name") or p["nurse"] for p in pairs}
+    order = " → ".join(names.get(n, n) for n in cands)
+    gives = fr.get("gives", {})
+    req = fr.get("requester_name") or fr.get("requester") or "the nurse"
+    text = (
+        f"Ask {order} about {req}'s swap ({gives.get('day')} {gives.get('shift')}) in turn; "
+        "the first accept comes back for one Publish."
+    )
+    idx = {str(p["nurse"]): k for k, p in enumerate(pairs)}
+    claims = [
+        describe.claim(names.get(n, n), calls[fi]["call_id"], f"pairs.{idx[n]}.nurse", n)
+        for n in cands
+    ]
+    return "request_approval", {"request_id": rid, "cascade": cands, "summary": text,
+                                "claims": claims}  # fmt: skip
+
+
+def _swap_accepted(calls: list[Call], rid: str, after: int) -> Step | None:
+    wi = _last(calls, "what_if", after)
+    if wi is None:
+        return "what_if", {"request_id": rid}
+    return _resolve_then_approve(calls, wi[0])
+
+
+def _swap_conditional_round(
+    calls: list[Call],
+    fi: int,
+    rid: str,
+    after: int,
+    nurse: str,
+    message_id: str,
+    condition: dict[str, Any],
+) -> Step | None:
+    """After a swap partner's "yes, if...": evaluate once on top of the swap moves, then
+    follow the verdict; a second "yes, if..." counts as a decline."""
+    ev = _latest_evaluate(calls, nurse)
+    if ev is None:
+        return "evaluate_condition", {"request_id": rid, "nurse_id": nurse,
+                                      "condition": condition}  # fmt: skip
+    waits = _conditional_waits(calls, nurse)
+    pos = {id(c): i for i, c in enumerate(calls)}
+    if waits and pos[id(waits[-1])] > pos[id(ev)]:
+        return None
+    res = ev["result"]
+    if res.get("already_true"):
+        return _swap_accepted(calls, rid, after)
+    if res.get("feasible"):
+        return _swap_conditional_approval(calls, fi, ev, rid, nurse, condition)
+    return "wait_for_reply", {"nurse_id": nurse, "message_id": message_id}
+
+
+def _swap_conditional_approval(
+    calls: list[Call], fi: int, ev: Call, rid: str, nurse: str, condition: dict[str, Any]
+) -> Step:
+    fr = calls[fi]["result"] or {}
+    pairs = fr.get("pairs", [])
+    hit: dict[str, Any] = next((p for p in pairs if p["nurse"] == nurse), {})
+    name = hit.get("name") or nurse
+    req = fr.get("requester_name") or fr.get("requester") or "the nurse"
+    e = ev["result"] or {}
+    n = e.get("changed_cells", 0)
+    cells = f"{n} cells change" if n != 1 else "1 cell changes"
+    cov = (e.get("delta") or {}).get("coverage", 0)
+    cover = (
+        "coverage unchanged"
+        if cov == 0
+        else (f"coverage {abs(cov)} {'worse' if cov > 0 else 'better'}")
+    )
+    text = f"{name} swaps with {req} if {name} gets {_condition_text(condition)}: {cells}, {cover}."
+    day = str(condition.get("day"))
+    wid = _conditional_waits(calls, nurse)[-1]["call_id"]
+    claims = [
+        describe.claim(name, wid, "nurse_id", nurse),
+        describe.claim(day, wid, "condition.day", day),
+        describe.claim(f"{n} changed", ev["call_id"], "changed_cells", n),
+        describe.claim("coverage", ev["call_id"], "delta.coverage", cov),
+    ]
+    return "request_approval", {"run_id": e["run_id"], "summary": text, "claims": claims}
+
+
+def _swap_exhausted(calls: list[Call], state: dict[str, Any]) -> Step:
+    rid = state.get("request_id")
+    fp = _last(calls, "find_swap_partners")
+    requester = fp[1].get("requester") if fp else None
+    noted = any(
+        c["tool"] == "send_message" and _ok(c) and c["args"].get("kind") == "note" for c in calls
+    )
+    if requester and not noted:
+        return "send_message", {"nurse_id": requester, "kind": "note", "request_id": rid}
+    no = declined(calls) + _spent_conditionals(calls)
+    late = timed_out(calls)
+    if not no and not late:
+        return "escalate", {"reason": "no legal partner for this swap"}
+    parts = [f"{n} declined" for n in no] + [f"{n} timed out" for n in late]
+    return "escalate", {"reason": f"nobody could swap: {', '.join(parts)}"}
 
 
 def _new_period(calls: list[Call]) -> Step | None:
@@ -553,6 +740,7 @@ PLAN = {
     "run_full": "Build the roster for the period.",
     "what_if": "Check what granting it would change.",
     "rule_check_swap": "Check the swap against the hard rules.",
+    "find_swap_partners": "Rank nurses who could take this swap.",
     "explain_denied_requests": "Find why requests were denied.",
     "get_run_summary": "Summarise the roster.",
 }
@@ -647,6 +835,16 @@ def brief(tool: str, result: dict[str, Any], names: dict[str, str]) -> str:
         return f"{len(result.get('denied', []))} denied requests explained"
     if tool == "rule_check_swap":
         return "legal" if result.get("legal") else f"breaks {result.get('broken')}"
+    if tool == "find_swap_partners":
+        pairs = result.get("pairs", [])
+        if not pairs:
+            return "no legal partner"
+        top = pairs[0]
+        return (
+            f"{len(pairs)} partners; top {nm(top['nurse'])} "
+            f"(takes {top['takes']['day']} {top['takes']['shift']}), "
+            f"{len(result.get('excluded', []))} excluded"
+        )
     if tool == "escalate":
         return str(result.get("reason", ""))
     if tool == "evaluate_condition":

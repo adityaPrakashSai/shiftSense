@@ -23,7 +23,10 @@ Rules:
     "the week of the 16th" means each day of that Monday-to-Sunday week that is in the calendar.
   - Two nurses exchanging duties -> `propose_swap`: `nurse` is the sender's side (dates and
     shifts the sender gives away), `counterpart` the other nurse as written, with
-    `counterpart_dates` and `counterpart_shifts` (what the sender takes over).
+    `counterpart_dates` and `counterpart_shifts` (what the sender takes over). When nobody is
+    named ("can someone take my Saturday night", "koi ..."), `counterpart` is null (an open
+    swap) and the offered cell, if any ("I'll do Sunday morning"), goes in `counterpart_dates`
+    and `counterpart_shifts`, which otherwise stay empty.
   - Withdrawing an earlier request -> `cancel_request` with its id from `active_requests`.
   - Only when the sender's role is "charge": changing how many nurses a shift needs ->
     `change_demand` with `target_total` (use the `demand` list for "one more" / "one less").

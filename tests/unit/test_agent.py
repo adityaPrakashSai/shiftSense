@@ -124,7 +124,9 @@ def test_writer_replays_twenty_recorded_drafts_without_health_words() -> None:
 
 def test_agent_eval_in_mock_mode() -> None:
     cases = load("agent", None, None)
-    assert len(cases) == 19  # ag-01..10 publish-first, ag-11..15 cascade, ag-cond-01..04
+    assert (
+        len(cases) == 22
+    )  # ag-01..10 publish-first, ag-11..15 cascade, ag-cond-01..04, ag-sw-01..03
     with tempfile.TemporaryDirectory() as tmp:
         rows = asyncio.run(run_agent(cases, provider="mock", mode="mock", max_usd=0.0, workers=1,
                                      db=Path(tmp) / "a.db"))  # fmt: skip
