@@ -11,7 +11,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api import jobs
+from app.domain.models import RequestStatus
+from app.domain.seeds import load_seed
 from app.main import app
+from app.store import repo
 from app.store import seed as seed_mod
 from app.store.db import open_db
 from tests.helpers import EXPECTED
@@ -64,6 +67,77 @@ def test_reset_tells_every_view(client: TestClient) -> None:
                 break
         else:
             raise AssertionError("no demo_reset message")
+
+
+@pytest.fixture
+def default_client(db_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    monkeypatch.setenv("SEED", "default")
+    monkeypatch.setenv("DEMO_NOW", "2026-11-03T06:05:00+05:30")
+    monkeypatch.setenv("AGENT_ENABLED", "false")
+    with TestClient(app) as c:
+        yield c
+
+
+def test_reset_empty_keeps_nurses_history_and_requests(
+    default_client: TestClient, db_path: Path
+) -> None:
+    r = default_client.post("/api/demo/reset", json={"mode": "empty"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["mode"] == "empty" and body["run_id"] is None
+    missing = default_client.get("/api/roster")
+    assert missing.status_code == 404
+    assert missing.json()["error"]["code"] == "NO_PUBLISHED_RUN"
+    ward = default_client.get("/api/ward").json()
+    assert len(ward["nurses"]) == 24
+    conn = open_db(db_path)
+    try:
+        assert repo.get_history(conn, ward["id"]).periods == 2
+        active = repo.list_requests(conn, ward["id"], status=RequestStatus.ACTIVE)
+    finally:
+        conn.close()
+    seed_active = [x for x in load_seed("default").requests if x.status is RequestStatus.ACTIVE]
+    assert len(active) == len(seed_active)
+
+
+def test_reset_published_after_empty_restores_the_baseline(default_client: TestClient) -> None:
+    assert default_client.post("/api/demo/reset", json={"mode": "empty"}).status_code == 200
+    assert default_client.get("/api/roster").status_code == 404
+    r = default_client.post("/api/demo/reset", json={"mode": "published"})
+    assert r.status_code == 200
+    assert r.json()["mode"] == "published" and r.json()["run_id"] is not None
+    assert default_client.get("/api/roster").status_code == 200
+
+
+def test_repeat_resets_are_fast(default_client: TestClient) -> None:
+    default_client.post("/api/demo/reset", json={"mode": "empty"})
+    again = default_client.post("/api/demo/reset", json={"mode": "empty"}).json()
+    assert again["secs"] < 1
+    default_client.post("/api/demo/reset", json={"mode": "published"})
+    again = default_client.post("/api/demo/reset", json={"mode": "published"}).json()
+    assert again["secs"] < 1
+
+
+def test_reset_empty_unsupported_for_printed_plan_seeds(
+    db_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SEED", "real_a")
+    monkeypatch.setenv("AGENT_ENABLED", "false")
+    with TestClient(app) as c:
+        r = c.post("/api/demo/reset", json={"mode": "empty"})
+        assert r.status_code == 409
+        assert r.json()["error"]["code"] == "EMPTY_NOT_SUPPORTED"
+
+
+def test_startup_respects_demo_start_empty(db_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SEED", "mini")
+    monkeypatch.setenv("DEMO_START", "empty")
+    monkeypatch.setenv("AGENT_ENABLED", "false")
+    with TestClient(app) as c:
+        missing = c.get("/api/roster")
+        assert missing.status_code == 404
+        assert missing.json()["error"]["code"] == "NO_PUBLISHED_RUN"
+        assert len(c.get("/api/ward").json()["nurses"]) == 9
 
 
 def test_cancel_agents_stops_running_tasks() -> None:

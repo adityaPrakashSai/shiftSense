@@ -82,7 +82,7 @@ export default function RosterGrid({
   selected,
   onCell,
 }: {
-  roster: RosterOut;
+  roster: Pick<RosterOut, "days" | "today" | "grid" | "totals">;
   nurses: Nurse[];
   selected?: string | null; // "N05|2026-11-03"
   onCell?: CellClick;

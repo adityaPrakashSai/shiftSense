@@ -5,7 +5,7 @@
 // voice note, so the voice path runs without a microphone and replays from the cache. Below the lg breakpoint (a phone or tablet) one pane shows at a time.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../api/client";
+import { ApiError, api, type ResetMode } from "../api/client";
 import ModeBadge from "../components/common/ModeBadge";
 import { NAMES } from "../components/common/ProviderBadge";
 import type { Suggestion } from "../components/nurse/Chat";
@@ -15,16 +15,22 @@ import { NurseView } from "./NursePage";
 
 const START_NURSE = "N03"; // Meena, who sends the sick call (2.2 step 2)
 
-const CHIPS: { label: string; nurseId: string; text: string; audioUrl?: string }[] = [
-  { label: "Sick call (Hindi)", nurseId: "N03", text: "Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai" },
+const CHIPS: { label: string; nurseId: string; text: string; audioUrl?: string; needsRoster?: boolean }[] = [
+  {
+    label: "Sick call (Hindi)",
+    nurseId: "N03",
+    text: "Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai",
+    needsRoster: true,
+  },
   {
     label: "Voice note (Hindi)",
     nurseId: "N03",
     text: "a recorded voice note: सुनीता दी, आज सुबह की ड्यूटी नहीं कर पाऊँगी, बुखार है",
     audioUrl: "/samples/sick_call_hi.wav",
+    needsRoster: true,
   },
   { label: "Day off (English)", nurseId: "N04", text: "Can I get a day off on Saturday 7 Nov? It's my sister's engagement." },
-  { label: "Why every weekend?", nurseId: "N02", text: "Why do I get every weekend?" },
+  { label: "Why every weekend?", nurseId: "N02", text: "Why do I get every weekend?", needsRoster: true },
 ];
 
 const SPLIT_KEY = "shiftsense.demoSplit";
@@ -39,6 +45,18 @@ function loadSplit(): number {
     return Number.isFinite(v) ? clampSplit(v) : SPLIT_DEFAULT;
   } catch {
     return SPLIT_DEFAULT;
+  }
+}
+
+const START_KEY = "shiftsense.demoStart";
+const START_DEFAULT: ResetMode = "published";
+
+function loadStart(): ResetMode {
+  try {
+    const raw = window.localStorage.getItem(START_KEY);
+    return raw === "empty" || raw === "published" ? raw : START_DEFAULT;
+  } catch {
+    return START_DEFAULT;
   }
 }
 
@@ -60,6 +78,19 @@ export default function DemoPage() {
   const qc = useQueryClient();
   const health = useQuery({ queryKey: ["health"], queryFn: api.health });
   const ward = useQuery({ queryKey: ["ward"], queryFn: api.ward });
+  // shared with the charge view's roster query; chips that need a roster disable on empty
+  const rosterState = useQuery({ queryKey: ["roster", null], queryFn: () => api.roster(null) });
+  const hasPublished = !(
+    rosterState.error instanceof ApiError && rosterState.error.code === "NO_PUBLISHED_RUN"
+  );
+  const [startMode, setStartMode] = useState<ResetMode>(loadStart);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(START_KEY, startMode);
+    } catch {
+      // private mode: the toggle just won't survive a reload
+    }
+  }, [startMode]);
   const [nurseId, setNurseId] = useState(START_NURSE);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [pane, setPane] = useState<"charge" | "nurse">("charge");
@@ -123,22 +154,26 @@ export default function DemoPage() {
         </span>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-slate-500">Try:</span>
-          {CHIPS.map((c) => (
-            <button
-              key={c.label}
-              onClick={() => {
-                setNurseId(c.nurseId);
-                setSuggestion({ nurseId: c.nurseId, text: c.text, audioUrl: c.audioUrl });
-                setPane("nurse");
-              }}
-              title={`${names[c.nurseId] ?? c.nurseId}: “${c.text}”`}
-              className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-xs text-indigo-800 hover:bg-indigo-50"
-            >
-              {c.label} · {names[c.nurseId] ?? c.nurseId}
-            </button>
-          ))}
+          {CHIPS.map((c) => {
+            const gated = !!c.needsRoster && !hasPublished;
+            return (
+              <button
+                key={c.label}
+                onClick={() => {
+                  setNurseId(c.nurseId);
+                  setSuggestion({ nurseId: c.nurseId, text: c.text, audioUrl: c.audioUrl });
+                  setPane("nurse");
+                }}
+                disabled={gated}
+                title={gated ? "Publish a roster first" : `${names[c.nurseId] ?? c.nurseId}: “${c.text}”`}
+                className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-xs text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+              >
+                {c.label} · {names[c.nurseId] ?? c.nurseId}
+              </button>
+            );
+          })}
         </div>
-        <div className="ml-auto flex items-center gap-2 text-xs">
+        <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
           <label htmlFor="phone-who" className="text-slate-500">
             Phone
           </label>
@@ -154,11 +189,32 @@ export default function DemoPage() {
               </option>
             ))}
           </select>
+          <span className="flex items-center gap-1.5">
+            <span className="text-slate-500">Start:</span>
+            <span
+              className="flex overflow-hidden rounded-md border border-slate-300"
+              role="group"
+              aria-label="Reset start mode"
+            >
+              {(["empty", "published"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setStartMode(m)}
+                  aria-pressed={startMode === m}
+                  className={`px-2 py-1 text-xs font-medium capitalize ${
+                    startMode === m ? "bg-slate-800 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </span>
+          </span>
           {confirmingReset && !reset.isPending ? (
             <span className="flex items-center gap-1.5">
               <span className="font-semibold text-slate-700">Reset the demo?</span>
               <button
-                onClick={() => reset.mutate()}
+                onClick={() => reset.mutate(startMode)}
                 className="rounded-md bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-500"
               >
                 Yes, reset

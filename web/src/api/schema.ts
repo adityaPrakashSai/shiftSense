@@ -280,7 +280,8 @@ export interface paths {
         /**
          * Confirm Request
          * @description The sender confirms (7.3 step 7); a re-solve starts when the roster inputs changed, and
-         *     the roster agent takes over the workflow.
+         *     the roster agent takes over the workflow. With nothing published yet the request just queues
+         *     for the next Generate.
          */
         post: operations["confirm_request_api_requests__request_id__confirm_post"];
         delete?: never;
@@ -1615,6 +1616,11 @@ export interface components {
          * @enum {string}
          */
         RequestStatus: "pending_confirm" | "active" | "pending_approval" | "rejected" | "withdrawn" | "applied";
+        /** ResetBody */
+        ResetBody: {
+            /** Mode */
+            mode?: ("published" | "empty") | null;
+        };
         /** ResetOut */
         ResetOut: {
             /** Ok */
@@ -1625,6 +1631,8 @@ export interface components {
             secs: number;
             /** Run Id */
             run_id: string | null;
+            /** Mode */
+            mode: string;
         };
         /** ResolveBody */
         ResolveBody: {
@@ -2100,7 +2108,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResetBody"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2109,6 +2121,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

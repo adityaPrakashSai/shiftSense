@@ -40,6 +40,7 @@ export type PhotoRowOut = S["PhotoRowOut"];
 export type ImportOut = S["ImportOut"];
 export type StaffingOut = S["StaffingOut"];
 export type StaffingBody = S["StaffingBody"];
+export type ResetMode = "published" | "empty";
 
 export class ApiError extends Error {
   constructor(
@@ -89,7 +90,11 @@ export const api = {
   events: (afterSeq: number, runId?: string) =>
     request<EventOut[]>(`/api/events${qs({ after_seq: afterSeq, run_id: runId })}`),
   lastEvents: (n: number) => request<EventOut[]>(`/api/events${qs({ last: n })}`),
-  reset: () => request<ResetOut>("/api/demo/reset", { method: "POST" }),
+  reset: (mode?: ResetMode) =>
+    request<ResetOut>(
+      "/api/demo/reset",
+      mode === undefined ? { method: "POST" } : { method: "POST", body: JSON.stringify({ mode }) },
+    ),
   llmUsage: () => request<LLMUsage>("/api/llm/usage"),
   sendMessage: (senderId: string, text: string) => {
     const form = new FormData();

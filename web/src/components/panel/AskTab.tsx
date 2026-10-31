@@ -3,12 +3,12 @@
 // deterministic explanation is shown instead.
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { api, type ExplainBody, type ExplainOut } from "../../api/client";
+import { ApiError, api, type ExplainBody, type ExplainOut } from "../../api/client";
 import ClaimChip from "./ClaimChip";
 
 export type AskPrefill = { question: string; context?: ExplainBody["context"]; runId?: string | null; n: number };
 
-type Turn = { q: string; a?: ExplainOut; error?: string; started: number };
+type Turn = { q: string; a?: ExplainOut; error?: string; errorCode?: string; started: number };
 
 const SUGGESTIONS = ["Why was Arun chosen and not Priya?", "Is this roster proven optimal?", "Why was this request denied?"];
 
@@ -29,7 +29,14 @@ export default function AskTab({ runId, prefill }: { runId: string | null; prefi
       { question: q, asker_id: "charge", run_id: run ?? runId, context: context ?? null },
       {
         onSuccess: (a) => setTurns((t) => t.map((x) => (x.started === started ? { ...x, a } : x))),
-        onError: (e) => setTurns((t) => t.map((x) => (x.started === started ? { ...x, error: e.message } : x))),
+        onError: (e) =>
+          setTurns((t) =>
+            t.map((x) =>
+              x.started === started
+                ? { ...x, error: e.message, errorCode: e instanceof ApiError ? e.code : undefined }
+                : x,
+            ),
+          ),
       },
     );
   };
@@ -69,7 +76,11 @@ export default function AskTab({ runId, prefill }: { runId: string | null; prefi
               Looking at the evidence…
             </p>
           )}
-          {t.error && <p className="text-xs text-red-600">{t.error}</p>}
+          {t.errorCode === "NO_RUN" ? (
+            <p className="text-xs text-slate-500">Generate and publish a roster first, then ask why.</p>
+          ) : (
+            t.error && <p className="text-xs text-red-600">{t.error}</p>
+          )}
           {t.a && (
             <div className="rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200">
               {t.a.fallback_used && (

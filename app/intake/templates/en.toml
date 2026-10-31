@@ -10,6 +10,7 @@ avoid_shift = "Request: no {shifts} on {days}, if possible."
 propose_swap = "Swap: {counterpart} takes your {mine} and you take their {theirs}. This needs the charge nurse's approval."
 cancel_request = "Request {request_id} ({summary}) will be cancelled."
 change_demand = "The target for {shifts} on {days} becomes {target} nurses."
+unpublished = "Noted. The roster for this period isn't published yet, so your request will be included when the in-charge generates it."
 question = "Confirm?"
 
 [duty]
