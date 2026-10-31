@@ -18,6 +18,7 @@ export default function AlertsTab({
   viewing,
   onView,
   emptyPeriod = false,
+  solvingKind = "resolve",
 }: {
   nurses: Nurse[];
   solving: boolean;
@@ -25,6 +26,7 @@ export default function AlertsTab({
   viewing: string | null;
   onView: (runId: string) => void;
   emptyPeriod?: boolean;
+  solvingKind?: "generate" | "resolve";
 }) {
   const proposals = useQuery({ queryKey: ["proposals"], queryFn: api.proposals });
   const conflicts = useQuery({ queryKey: ["conflicts"], queryFn: api.conflicts });
@@ -42,7 +44,9 @@ export default function AlertsTab({
               ))}
               {solving && (
                 <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
-                  <p className="mb-1 text-sm font-semibold text-indigo-900">Re-solving and ranking replacements…</p>
+                  <p className="mb-1 text-sm font-semibold text-indigo-900">
+                    {solvingKind === "generate" ? "Generating the roster…" : "Re-solving and ranking replacements…"}
+                  </p>
                   <RunTimer {...timer} />
                 </div>
               )}

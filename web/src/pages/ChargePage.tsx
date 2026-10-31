@@ -4,7 +4,7 @@
 // replacement messages), Ask, Agent (live roster-agent traces), Fairness, Log, Versions and Staffing (6.7).
 // `ChargeView` is the same view embedded in /demo (left 65%).
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError, type Cell, type EventOut, type Ward } from "../api/client";
 import { useWardSocket, type SocketMode, type WardMessage } from "../api/ws";
@@ -87,6 +87,9 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
   const usage = useQuery({ queryKey: ["llm-usage"], queryFn: api.llmUsage, refetchInterval: 15_000 });
   const [viewRunId, setViewRunId] = useState<string | null>(null); // null = published
   const [solving, setSolving] = useState<string | null>(null);
+  const [generateRunId, setGenerateRunId] = useState<string | null>(null);
+  // the run_started message can beat the POST response; while set, it belongs to this Generate
+  const generatePendingRef = useRef(false);
   const [timer, setTimer] = useState<Timer>(IDLE);
   const [tab, setTab] = useState<Tab>("alerts");
   const [cell, setCell] = useState<Cell | null>(null);
@@ -110,12 +113,18 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
       if (m.type === "demo_reset") {
         setViewRunId(null);
         setSolving(null);
+        setGenerateRunId(null);
+        generatePendingRef.current = false;
         setTimer(IDLE);
         setCell(null);
         setPrefill(null);
         setTab("alerts");
       }
       if (m.type === "run_started") {
+        if (generatePendingRef.current) {
+          setGenerateRunId(m.run_id);
+          generatePendingRef.current = false;
+        }
         setSolving(m.run_id);
         // a re-solve started elsewhere (a nurse confirmed): time it from the nudge
         setTimer((t) =>
@@ -179,12 +188,20 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
 
   const generate = useMutation({
     mutationFn: api.generate,
-    onMutate: () => setTimer({ ...IDLE, startedAt: performance.now() }),
+    onMutate: () => {
+      setTimer({ ...IDLE, startedAt: performance.now() });
+      generatePendingRef.current = true;
+    },
     onSuccess: ({ run_id }) => {
       setSolving(run_id);
+      setGenerateRunId(run_id);
+      generatePendingRef.current = false;
       setTimer((t) => ({ ...t, runId: run_id }));
     },
-    onError: () => setTimer(IDLE),
+    onError: () => {
+      setTimer(IDLE);
+      generatePendingRef.current = false;
+    },
   });
   const publish = useMutation({
     mutationFn: (id: string) => api.publish(id),
@@ -305,10 +322,10 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
               roster={{ days: emptyDays, today: null, grid: emptyGrid, totals: [] }}
               nurses={ward.data.nurses}
             />
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-50/70 p-4">
+            <div className="absolute inset-0 flex items-start justify-center bg-slate-50/70 p-4 pt-24">
               <div
                 data-testid="empty-roster"
-                className="max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center shadow-lg"
+                className="sticky top-24 max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center shadow-lg"
               >
                 <h2 className="text-lg font-semibold">
                   No roster for {fmtRange(ward.data.horizon_start, ward.data.horizon_days ?? 14, false)}{" "}
@@ -398,6 +415,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
               viewing={viewRunId}
               onView={setViewRunId}
               emptyPeriod={emptyPeriod}
+              solvingKind={solving !== null && solving === generateRunId ? "generate" : "resolve"}
             />
           )}
         </div>
