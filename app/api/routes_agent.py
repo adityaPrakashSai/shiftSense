@@ -2,6 +2,7 @@
 the replacement inbox, and the nurse's Accept / Decline that resumes the waiting task."""
 
 import sqlite3
+from datetime import date, timedelta
 from typing import Any
 
 from fastapi import APIRouter
@@ -12,11 +13,21 @@ from app.api.errors import ApiError
 from app.api.schemas import (
     AgentTaskOut,
     ApprovalAsk,
+    ConditionCheckBody,
+    ConditionCheckOut,
+    ConditionIn,
     NurseMessageOut,
     ProposalRespondBody,
     RespondBody,
 )
 from app.api.ws import hub
+from app.config import get_settings
+from app.domain.models import Ward
+from app.intake import templates as tpl
+from app.intake.dates import fmt_day, ward_now
+from app.intake.pipeline import build_context, build_request, clarification, parse
+from app.intake.semantic import check_edit
+from app.llm.gateway import get_gateway
 from app.store import repo
 
 router = APIRouter(prefix="/api", tags=["agent"])
@@ -154,6 +165,32 @@ async def cancel_task(conn: Conn, task_id: str) -> AgentTaskOut:
     return task_out(t)
 
 
+@router.post("/agent/tasks/{task_id}/reject", response_model=AgentTaskOut)
+async def reject_approval(conn: Conn, task_id: str) -> AgentTaskOut:
+    """Turn down the run the task proposed: a conditional deal reopens the nurse's ask
+    as a plain follow-up, a plain accept ends the task. Publishes nothing."""
+    ward = require_ward(conn)
+    t = repo.get_agent_task(conn, task_id)
+    if t is None:
+        raise ApiError(404, "TASK_NOT_FOUND", f"No agent task {task_id}.")
+    w = t["state"].get("waiting") or {}
+    if t["status"] != "waiting_approval" or w.get("approval_kind") != "run" or w.get("cascade"):
+        raise ApiError(409, "NO_RUN_APPROVAL", f"Task {task_id} is not waiting on a run approval.")
+    jobs.live_log(conn, ward.id).emit(
+        "agent.steered",
+        "user:charge",
+        None,
+        None,
+        task_id=task_id,
+        action="reject",
+        run_id=w.get("ref"),
+    )
+    jobs.agent_answer(ward.id, [(task_id, {"decision": "rejected", "run_id": w.get("ref")})])
+    out = repo.get_agent_task(conn, task_id)
+    assert out is not None
+    return task_out(out)
+
+
 @router.get("/agent/tasks", response_model=list[AgentTaskOut])
 def list_tasks(conn: Conn, status: str | None = None, limit: int = 20) -> list[AgentTaskOut]:
     """Newest first, with each task's step trace (the Agent tab)."""
@@ -175,7 +212,33 @@ def inbox(conn: Conn, nurse_id: str | None = None) -> list[NurseMessageOut]:
     """Messages to nurses (replacement and swap asks), newest first; all nurses when no id."""
     ward = require_ward(conn)
     rows = repo.list_nurse_messages(conn, ward.id, nurse_id=nurse_id)
-    return [NurseMessageOut.model_validate(r) for r in rows]
+    return _enriched(conn, rows)
+
+
+def _enriched(conn: sqlite3.Connection, rows: list[dict[str, Any]]) -> list[NurseMessageOut]:
+    """Inbox rows with their counter-offer state: the condition, if any, and whether a fresh
+    ask still takes "yes, if..." (a follow-up does not: one condition round per nurse)."""
+    tasks: dict[str, Any] = {}
+    out = []
+    for r in rows:
+        t = None
+        if r["task_id"] and r["task_id"] not in tasks:
+            tasks[r["task_id"]] = repo.get_agent_task(conn, r["task_id"])
+        t = tasks.get(r["task_id"]) if r["task_id"] else None
+        st = {} if t is None else t["state"]
+        rounds = (st.get("condition_rounds") or {}).get(r["nurse_id"], 0)
+        out.append(
+            NurseMessageOut.model_validate(
+                {
+                    **r,
+                    "condition": (st.get("conditions") or {}).get(r["id"]),
+                    "can_condition": r["kind"] == "replacement"
+                    and r["status"] == "asked"
+                    and rounds < 1,
+                }
+            )
+        )
+    return out
 
 
 async def answer(conn: sqlite3.Connection, ward_id: str, m: dict[str, Any],
@@ -209,16 +272,128 @@ async def answer(conn: sqlite3.Connection, ward_id: str, m: dict[str, Any],
     await hub.broadcast(ward_id, {"type": "message_for_nurse", "nurse_id": m["nurse_id"]})
     out = repo.get_nurse_message(conn, m["id"])
     assert out is not None
-    return NurseMessageOut.model_validate(out)
+    return _enriched(conn, [out])[0]
 
 
-@router.post("/inbox/{message_id}/respond", response_model=NurseMessageOut)
-async def respond(conn: Conn, message_id: str, body: RespondBody) -> NurseMessageOut:
-    """The nurse taps Accept or Decline; the waiting agent task continues (6.5)."""
+def _condition_rounds(conn: sqlite3.Connection, m: dict[str, Any]) -> int:
+    if not m["task_id"]:
+        return 0
+    t = repo.get_agent_task(conn, m["task_id"])
+    if t is None:
+        return 0
+    return int(t["state"].get("condition_rounds", {}).get(m["nurse_id"], 0))
+
+
+def _condition_phrase(lang: str, kind: str, day: str, shift: str | None) -> str:
+    if kind == "day_off":
+        return tpl.text(lang, "message", "condition_day_off", date=day)
+    return tpl.text(lang, "message", "condition_avoid", date=day,
+                    shift=tpl.text(lang, "shift", shift or "M"))  # fmt: skip
+
+
+def _checked_condition(ward: Ward, lang: str, kind: str, day: Any, shift: Any) -> dict[str, Any]:
+    """One condition, validated: a day off or one shift to avoid, inside the horizon."""
+    if kind not in ("day_off", "avoid_shift"):
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "condition_scope"))
+    if kind == "avoid_shift" and shift not in ("M", "E", "N"):
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "missing_shifts"))
+    days = [(ward.horizon_start + timedelta(days=i)).isoformat()
+            for i in range(ward.horizon_days)]  # fmt: skip
+    iso = day.isoformat() if hasattr(day, "isoformat") else str(day)
+    if iso not in days:
+        raise ApiError(
+            422,
+            "CONDITION_UNCLEAR",
+            tpl.text(lang, "clarify", "outside_period", day=iso, first=days[0], last=days[-1]),
+        )
+    return {"kind": kind, "day": iso, "shift": shift if kind == "avoid_shift" else None}
+
+
+@router.post("/inbox/{message_id}/condition/check", response_model=ConditionCheckOut)
+async def check_condition(
+    conn: Conn, message_id: str, body: ConditionCheckBody
+) -> ConditionCheckOut:
+    """Parse a "yes, if..." text through intake, restricted to one day off or one
+    shift to avoid for this nurse; answers the confirm chip, or a clarification."""
     ward = require_ward(conn)
     m = repo.get_nurse_message(conn, message_id)
     if m is None:
         raise ApiError(404, "MESSAGE_NOT_FOUND", f"No message {message_id}.")
+    if m["status"] == "expired":
+        raise ApiError(409, "ASK_EXPIRED", f"Message {m['id']} expired without an answer.")
+    if m["status"] != "asked":
+        raise ApiError(409, "ALREADY_ANSWERED", f"Message {m['id']} is {m['status']}.")
+    lang = ward.nurse(m["nurse_id"]).language
+    if m["kind"] != "replacement" or not m["task_id"] or _condition_rounds(conn, m) >= 1:
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "condition_scope"))
+    now = ward_now(ward.tz, get_settings().demo_now)
+    out = await parse(get_gateway(), build_request(build_context(conn, ward, m["nurse_id"], now),
+                                                   body.text))  # fmt: skip
+    if out.edit is None or out.edit.intent != "edit" or len(out.edit.edits) != 1:
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "rephrase"))
+    resolved, probs = check_edit(conn, ward, out.edit.edits[0], sender_id=m["nurse_id"],
+                                 message=body.text, now=now, lang=lang)  # fmt: skip
+    if probs or resolved is None:
+        raise ApiError(422, "CONDITION_UNCLEAR", clarification(lang, out.edit, probs))
+    key = resolved.key()
+    if key["op"] not in ("request_day_off", "avoid_shift") or key["nurse"] != m["nurse_id"]:
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "condition_scope"))
+    if len(key["dates"]) != 1:
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "condition_scope"))
+    kind = "day_off" if key["op"] == "request_day_off" else "avoid_shift"
+    shifts = key.get("shifts") or []
+    if kind == "avoid_shift" and len(shifts) != 1:
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(lang, "clarify", "missing_shifts"))
+    cond = _checked_condition(ward, lang, kind, key["dates"][0],
+                              shifts[0] if shifts else None)  # fmt: skip
+    chip = tpl.text(lang, "message", f"chip_{kind}",
+                    date=fmt_day(date.fromisoformat(cond["day"]), lang),
+                    shift=tpl.text(lang, "shift", cond["shift"] or "M"))  # fmt: skip
+    return ConditionCheckOut(condition=ConditionIn.model_validate(cond), chip=chip)
+
+
+async def answer_conditional(
+    conn: sqlite3.Connection, ward: Ward, m: dict[str, Any], cond: ConditionIn
+) -> NurseMessageOut:
+    """Yes, if...: the ask becomes conditional and the task evaluates the condition."""
+    if m["status"] == "expired":
+        raise ApiError(409, "ASK_EXPIRED", f"Message {m['id']} expired without an answer.")
+    if m["status"] != "asked":
+        raise ApiError(409, "ALREADY_ANSWERED", f"Message {m['id']} is {m['status']}.")
+    if m["kind"] != "replacement" or not m["task_id"]:
+        raise ApiError(422, "CONDITION_UNCLEAR", tpl.text(
+            ward.nurse(m["nurse_id"]).language, "clarify", "condition_scope"))  # fmt: skip
+    if _condition_rounds(conn, m) >= 1:
+        return await answer(conn, ward.id, m, False)  # a second condition is a decline
+    condition = _checked_condition(ward, ward.nurse(m["nurse_id"]).language, cond.kind, cond.day,
+                                   cond.shift)  # fmt: skip
+    repo.set_nurse_message_status(conn, m["id"], "conditional")
+    actor = f"user:{m['nurse_id']}"
+    if m["run_id"]:
+        prop = repo.proposal_for_run(conn, m["run_id"])
+        if prop is not None:
+            repo.set_replacement_status(conn, prop["run_id"], "conditional")
+    jobs.live_log(conn, ward.id).emit("replacement.conditional", actor, m["run_id"], None,
+                                      message_id=m["id"], nurse=m["nurse_id"],
+                                      condition=condition)  # fmt: skip
+    from app.agent import runtime
+
+    jobs.agent_answer(ward.id, runtime.answers_for_conditional(conn, ward.id, m["id"], condition))
+    await hub.broadcast(ward.id, {"type": "message_for_nurse", "nurse_id": m["nurse_id"]})
+    out = repo.get_nurse_message(conn, m["id"])
+    assert out is not None
+    return _enriched(conn, [out])[0]
+
+
+@router.post("/inbox/{message_id}/respond", response_model=NurseMessageOut)
+async def respond(conn: Conn, message_id: str, body: RespondBody) -> NurseMessageOut:
+    """The nurse taps Accept or Decline (or "yes, if..."); the waiting agent task continues."""
+    ward = require_ward(conn)
+    m = repo.get_nurse_message(conn, message_id)
+    if m is None:
+        raise ApiError(404, "MESSAGE_NOT_FOUND", f"No message {message_id}.")
+    if body.condition is not None:
+        return await answer_conditional(conn, ward, m, body.condition)
     return await answer(conn, ward.id, m, body.accept)
 
 

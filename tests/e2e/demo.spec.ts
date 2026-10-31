@@ -41,7 +41,7 @@ test("sick call to accepted replacement", async ({ browser, request }) => {
   const item = arun.getByTestId("inbox-item");
   await expect(item).toContainText("3 Nov");
   await expect(item).not.toContainText(/bukhar|fever/i);
-  await arun.getByRole("button", { name: /Haan|Accept/ }).click();
+  await arun.getByRole("button", { name: "Haan, kar lungi", exact: true }).click();
   await expect(item).toContainText(/accept/i);
 
   // 9. the agent trace ends done; the log has the approval and the acceptance

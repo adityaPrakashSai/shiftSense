@@ -1,6 +1,7 @@
 """Enforced reply timeouts: fake-clock unit tests for the tick core, the wait clamp,
 and timeout counting in the loop and the fallback."""
 
+import itertools
 import json
 import sqlite3
 from datetime import UTC, datetime
@@ -161,8 +162,12 @@ def test_wait_for_reply_clamps_to_the_setting(
 
 
 def test_fallback_counts_timeout_like_a_decline_but_names_it() -> None:
+    ids = itertools.count(1)
+
     def done(tool: str, result: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"tool": tool, "args": {"run_id": "r"}, "ok": True, "result": result or {}}
+        # the loop stamps every recorded call with a call id; the fixture mirrors it
+        return {"tool": tool, "args": {"run_id": "r"}, "ok": True,
+                "call_id": f"c{next(ids)}", "result": result or {}}  # fmt: skip
 
     def round(nurse: str, reply: str, run: str) -> list[dict[str, Any]]:
         return [

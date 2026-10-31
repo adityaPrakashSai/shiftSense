@@ -4,8 +4,9 @@ may call, in three classes.
 - read: no side effects (the explainer tools of 7.4, `get_open_cells`, `get_nurse`,
   `get_pending_requests`);
 - compute: create runs that are never published by themselves (`rank_replacements`,
-  `run_resolve`, `run_full`, `what_if`, `rule_check_swap`, `explain_denied_requests`, `diagnose`,
-  `list_conflict_options`, `apply_option`) or compute a read-only what-if (`staffing_check`);
+  `evaluate_condition`, `run_resolve`, `run_full`, `what_if`, `rule_check_swap`,
+  `explain_denied_requests`, `diagnose`, `list_conflict_options`, `apply_option`) or compute a
+  read-only what-if (`staffing_check`);
 - action: side effects, all logged (`send_message`, `wait_for_reply`, `request_approval`,
   `escalate`). `wait_for_reply` and `request_approval` pause the task until a person answers.
 
@@ -36,13 +37,17 @@ from app.domain.models import RequestKind, RequestStatus, RunStatus, Ward
 from app.evidence.counterfactual import Question, explain_denied, what_if
 from app.explain import tools as ex
 from app.explain.claims import check
-from app.intake.dates import ward_now
+from app.intake import templates as tpl
+from app.intake.dates import fmt_day, ward_now
 from app.llm.gateway import LLMGateway
 from app.log.decision_log import DecisionLog
+from app.planner import runs
 from app.planner.build_input import day_index, horizon_dates
+from app.planner.sickcall import BUDGET_S, STAGE_S
 from app.planner.staffing import run_check
-from app.solver.input import SolveInput
+from app.solver.input import Forcing, SolveInput
 from app.solver.rules import rule_check
+from app.solver.solve import solve
 from app.store import repo
 from app.store.db import connect
 
@@ -272,6 +277,151 @@ async def rank_replacements(ctx: AgentCtx, exclude: Any = None) -> dict[str, Any
         "excluded": prop.get("excluded"),
         "coverage_worse": prop.get("coverage_worse"),
     }
+
+
+def _checked_condition_arg(condition: Any) -> tuple[str, str, str | None]:
+    """A counter-offer as (kind, day ISO, shift or None); anything else is a bad argument."""
+    cond = dict(condition or {})
+    kind, day, shift = str(cond.get("kind") or ""), cond.get("day"), cond.get("shift")
+    if kind not in ("day_off", "avoid_shift"):
+        raise ToolError(f"a condition is day_off or avoid_shift, not {kind!r}")
+    try:
+        iso = day.isoformat() if isinstance(day, date) else str(date.fromisoformat(str(day)))
+    except (ValueError, TypeError, AttributeError):
+        raise ToolError(f"a condition needs a real day, not {day!r}") from None
+    if kind == "avoid_shift" and shift not in ("M", "E", "N"):
+        raise ToolError(f"avoid_shift needs one of M, E, N, not {shift!r}")
+    return kind, iso, str(shift) if kind == "avoid_shift" else None
+
+
+def _tier_vector(conn: sqlite3.Connection, run_id: str) -> dict[str, int]:
+    return {str(s["tier"]): int(s["best"]) for s in repo.get_stages(conn, run_id)}
+
+
+async def flip_condition_followup(
+    ctx: AgentCtx, nurse_id: str, condition: dict[str, Any]
+) -> str | None:
+    """Reopen the nurse's conditional ask as a plain follow-up ("...isn't possible this time.
+    Can you still take it?"). The same message row is reused, so the conditional round still
+    counts as one message."""
+    msgs = [m for m in repo.list_nurse_messages(ctx.conn, ctx.ward.id)
+            if m["task_id"] == ctx.task["id"] and m["nurse_id"] == nurse_id
+            and m["status"] == "conditional"]  # fmt: skip
+    if not msgs:
+        return None
+    m = msgs[0]
+    lang = ctx.ward.nurse(nurse_id).language
+    cond = _checked_condition_arg(condition)
+    day = fmt_day(date.fromisoformat(cond[1]), lang)
+    phrase = tpl.text(lang, "message", f"condition_{cond[0]}", date=day,
+                      shift=tpl.text(lang, "shift", cond[2] or "M"))  # fmt: skip
+    cell_day = fmt_day(date.fromisoformat(str(m["day"])), lang) if m["day"] else ""
+    cell_shift = tpl.text(lang, "shift", str(m["shift"] or "M"))
+    text = tpl.text(
+        lang, "message", "condition_followup", condition=phrase, shift=cell_shift, date=cell_day
+    )
+    repo.redraft_nurse_message(ctx.conn, m["id"], text)
+    if m["run_id"]:
+        prop = repo.proposal_for_run(ctx.conn, m["run_id"])
+        if prop is not None:
+            repo.set_replacement_status(ctx.conn, prop["run_id"], "asked")
+    actor = "llm:agent" if ctx.task.get("mode", "agent") == "agent" else "planner"
+    ctx.log.emit("replacement.followup", actor, m["run_id"], None, message_id=m["id"],
+                 nurse=nurse_id, condition=dict(condition))  # fmt: skip
+    await ctx.env.broadcast(ctx.ward.id, {"type": "message_for_nurse", "nurse_id": nurse_id})
+    return str(m["id"])
+
+
+async def evaluate_condition(
+    ctx: AgentCtx, run_id: Any, nurse_id: Any, condition: Any
+) -> dict[str, Any]:
+    """A "yes, if...": re-solve the candidate's run with the condition as a hard constraint
+    for this proposal only. Returns feasible, the tier deltas against the unconditional
+    candidate run, the changed cells, and the new run's id. When the condition already holds,
+    answers already_true (a plain accept); when it cannot hold, reopens the ask as a plain
+    follow-up and answers feasible False."""
+    rid, nid = str(run_id or ""), str(nurse_id or "")
+    prop = repo.proposal_for_run(ctx.conn, rid)
+    if prop is None:
+        raise ToolError(f"run {rid} is not a proposal")
+    rk = prop["ranking"]
+    hit = next((c for c in rk.get("candidates", []) if str(c.get("nurse")) == nid), None)
+    if hit is None:
+        raise ToolError(f"{nid} is not a candidate of run {rid}")
+    kind, iso, shift = _checked_condition_arg(condition)
+    i = day_index(ctx.ward, date.fromisoformat(iso))
+    if not 0 <= i < ctx.ward.horizon_days:
+        raise ToolError(f"{iso} is outside the roster period")
+    cell = rk.get("open_cell") or ctx.state.get("open_cell") or {}
+    if not cell.get("day") or not cell.get("shift"):
+        raise ToolError("no open cell: rank the cell before evaluating a condition")
+    cand_run = str(hit["run_id"])
+    cand_changed = (repo.get_run(ctx.conn, cand_run) or {}).get("changed_cells", 0)
+    row = (repo.get_roster(ctx.conn, cand_run).get(nid) or []) + [None] * ctx.ward.horizon_days
+    cur = row[i]
+    if (kind == "day_off" and (cur is None or cur in ("N/O", "D/O"))) or (
+        kind == "avoid_shift" and cur != shift
+    ):
+        return {
+            "feasible": True,
+            "already_true": True,
+            "run_id": cand_run,
+            "candidate_run_id": cand_run,
+            "changed_cells": cand_changed,
+            "delta": {},
+        }
+    ci = day_index(ctx.ward, date.fromisoformat(str(cell["day"])))
+    blocked = [(nid, i, None if kind == "day_off" else shift)]
+    n = 1 + sum(1 for c in ctx.state.get("calls", []) if c["tool"] == "evaluate_condition")
+    r = _request(ctx)
+    days = sorted({str(cell["day"]), iso})
+    plan = runs.start_resolve(
+        ctx.conn,
+        ctx.ward.id,
+        trigger=f"agent:{ctx.task['id']}:cond{n}",
+        affected=[date.fromisoformat(d) for d in days],
+        request_id=r.id,
+        extra_unavailable=blocked,
+        forced=[Forcing("replacement", nid, ci, str(cell["shift"]))],
+    )
+    new_id = plan.run_id
+    # a quiet in-process solve, not the ranked worker: no stray proposal card, no conflict
+    # workflow when the deal does not work out. The agent trace narrates the wait instead.
+    res = await asyncio.to_thread(
+        solve,
+        plan.inp,
+        stage_seconds=STAGE_S,
+        workers=get_settings().solver_workers,
+        total_seconds=BUDGET_S,
+    )
+    log = DecisionLog(ctx.conn, ctx.ward.id)
+    if res.status != "solved":
+        status = RunStatus.INFEASIBLE if res.status == "infeasible" else RunStatus.FAILED
+        repo.update_run(ctx.conn, new_id, status=status.value, total_secs=round(res.secs, 3))
+        log.emit("run.infeasible", "solver", new_id, stage=res.failed_tier, core=[])
+        mid = await flip_condition_followup(ctx, nid, {"kind": kind, "day": iso, "shift": shift})
+        return {"feasible": False, "already_true": False, "run_id": new_id,
+                "candidate_run_id": cand_run, "follow_up": mid}  # fmt: skip
+    runs.write_solved(ctx.conn, new_id, plan.ward, plan.inp, res, plan.active,
+                      added=plan.added_slots, log=log)  # fmt: skip
+    new_row = (repo.get_roster(ctx.conn, new_id).get(nid) or []) + [None] * ctx.ward.horizon_days
+    if new_row[ci] != cell["shift"]:
+        mid = await flip_condition_followup(ctx, nid, {"kind": kind, "day": iso, "shift": shift})
+        return {"feasible": False, "already_true": False, "run_id": new_id,
+                "candidate_run_id": cand_run, "follow_up": mid}  # fmt: skip
+    new_vec = _tier_vector(ctx.conn, new_id)
+    cand_vec = _tier_vector(ctx.conn, cand_run)
+    delta = {
+        t: new_vec.get(t, 0) - cand_vec.get(t, 0) for t in sorted(set(new_vec) | set(cand_vec))
+    }
+    pub = ctx.published_id()
+    pub_cov = _tier_vector(ctx.conn, pub).get("coverage", 0) if pub else 0
+    # the variant is a plain proposed run: the charge nurse sees it only through the
+    # approval the agent requests next, never as its own proposal card
+    changed = (repo.get_run(ctx.conn, new_id) or {}).get("changed_cells", 0)
+    return {"feasible": True, "already_true": False, "run_id": new_id,
+            "candidate_run_id": cand_run, "changed_cells": changed,
+            "delta": delta, "coverage_worse": new_vec.get("coverage", 0) > pub_cov}  # fmt: skip
 
 
 async def run_resolve(ctx: AgentCtx) -> dict[str, Any]:
@@ -695,6 +845,14 @@ REGISTRY: dict[str, AgentTool] = {
            "stability and rank up to 3 replacements for the open cell (tier vectors, changed "
            "cells, excluded nurses with rules). `exclude`: nurses who declined this cell.",
            rank_replacements, {"exclude": {"type": "array", "items": NURSE}}),
+        _t("evaluate_condition", ToolClass.COMPUTE, "A nurse's 'yes, if...': re-solve their "
+           "candidate's run with the condition (day_off or avoid_shift with a day) as a hard "
+           "constraint for this proposal only. Returns feasible, tier deltas against the "
+           "unconditional candidate run, changed cells and the new run's id; already_true when "
+           "the roster already grants the condition (treat as a plain accept).",
+           evaluate_condition, {"run_id": RUN, "nurse_id": NURSE,
+                                "condition": {"type": "object"}},
+           ("run_id", "nurse_id", "condition")),
         _t("run_resolve", ToolClass.COMPUTE, "Minimal-change re-solve from the published roster "
            "(after an approved leave or swap, or a conflict option); returns the proposal "
            "summary or the conflict.", run_resolve),
@@ -749,6 +907,7 @@ SICK = (
     "compare_candidates",
     "get_assignment_evidence",
     "rank_replacements",
+    "evaluate_condition",
     "send_message",
     "wait_for_reply",
     "request_approval",

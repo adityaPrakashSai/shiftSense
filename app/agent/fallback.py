@@ -12,15 +12,19 @@ with `describe()` sentences, so every claim passes the claim check.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from app.config import get_settings
 from app.explain import describe
+from app.intake.dates import fmt_day
 
 Call = dict[str, Any]
 Step = tuple[str, dict[str, Any]]
 MAX_DECLINES = 3
 MAX_CASCADE = 3  # a contact plan names between 1 and 3 nurses, in order
+_PLAIN = object()  # _conditional_post: this approval is not about a conditional run
+_HANDLED = object()  # _conditional_post: the rejection's follow-up already ran its course
 
 
 def cascade_enabled() -> bool:
@@ -124,17 +128,187 @@ def _cascade_approval(
 
 
 def _escalate_unavailable(calls: list[Call]) -> Step:
-    no, late = declined(calls), timed_out(calls)
+    no = declined(calls) + _spent_conditionals(calls)
+    late = timed_out(calls)
     parts = [f"{n} declined" for n in no] + [f"{n} timed out" for n in late]
     if not late:
         return "escalate", {"reason": f"{len(no)} nurses declined the shift: {', '.join(no)}"}
     return "escalate", {"reason": f"{len(parts)} nurses unavailable: {', '.join(parts)}"}
 
 
-def _legacy_tail(calls: list[Call], j: int, a: dict[str, Any]) -> Step | None:
+def _conditional_waits(calls: list[Call], nurse: str | None = None) -> list[Call]:
+    out = [
+        c
+        for c in calls
+        if c["tool"] == "wait_for_reply" and _ok(c) and c["result"].get("reply") == "conditional"
+    ]
+    if nurse is not None:
+        out = [c for c in out if str(c["result"].get("nurse_id")) == nurse]
+    return out
+
+
+def _latest_evaluate(calls: list[Call], nurse: str) -> Call | None:
+    for c in reversed(calls):
+        if c["tool"] == "evaluate_condition" and _ok(c) and str(c["args"].get("nurse_id")) == nurse:
+            return c
+    return None
+
+
+def _evaluated_nurses(calls: list[Call]) -> set[str]:
+    return {
+        str(c["args"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "evaluate_condition" and _ok(c)
+    }
+
+
+def _spent_conditionals(calls: list[Call]) -> list[str]:
+    """Nurses whose condition round is over without an answer: a second conditional counts
+    as a decline, so they move the cascade on exactly like one."""
+    cond = {str(c["result"].get("nurse_id")) for c in _conditional_waits(calls)}
+    done = set(declined(calls)) | set(timed_out(calls)) | set(accepted(calls))
+    return sorted(n for n in (cond & _evaluated_nurses(calls)) if n not in done)
+
+
+def _conditional_runs(calls: list[Call]) -> dict[str, tuple[str, str | None]]:
+    """New run id -> (nurse, evaluate call id), for conditions that solved and matter."""
+    out = {}
+    for c in calls:
+        r = c.get("result") or {}
+        if (
+            c["tool"] == "evaluate_condition"
+            and _ok(c)
+            and r.get("feasible")
+            and not r.get("already_true")
+        ):
+            out[str(r.get("run_id"))] = (str(c["args"].get("nurse_id")), c.get("call_id"))
+    return out
+
+
+def _conditional_post(calls: list[Call], a: dict[str, Any]) -> Step | None | object:
+    """An answered plain approval for a conditional run: approved or superseded ends the
+    task; rejected reopens the ask as a plain follow-up and waits for it."""
+    runs = _conditional_runs(calls)
+    if str(a.get("run_id")) not in runs:
+        return _PLAIN
+    if a.get("decision") != "approved":
+        if a.get("decision") != "rejected":
+            return None
+        nurse, _ = runs[str(a["run_id"])]
+        rej = max(
+            (
+                i
+                for i, c in enumerate(calls)
+                if c["tool"] == "request_approval"
+                and (c.get("result") or {}).get("decision") == "rejected"
+                and str((c.get("result") or {}).get("run_id")) == str(a["run_id"])
+            ),
+            default=-1,
+        )
+        if any(
+            i > rej
+            and c["tool"] == "wait_for_reply"
+            and str((c.get("args") or {}).get("nurse_id")) == nurse
+            for i, c in enumerate(calls)
+        ):
+            return _HANDLED
+        waits = _conditional_waits(calls, nurse)
+        if not waits:
+            return None
+        last = waits[-1]["result"]
+        return "wait_for_reply", {"nurse_id": nurse, "message_id": last["message_id"]}
+    return None
+
+
+def _condition_text(condition: dict[str, Any]) -> str:
+    day = fmt_day(date.fromisoformat(str(condition.get("day"))), "en")
+    if condition.get("kind") == "day_off":
+        return f"{day} off"
+    shift = describe.SHIFT.get(str(condition.get("shift")), str(condition.get("shift")))
+    return f"no {shift} on {day}"
+
+
+def _conditional_approval(
+    calls: list[Call], rk_call: str, eval_call: str, nurse: str, condition: dict[str, Any]
+) -> Step:
+    """The condition holds: ask the charge nurse to publish the conditional variant."""
+    e = next(c for c in calls if c.get("call_id") == eval_call)["result"]
+    rk = next(c for c in calls if c.get("call_id") == rk_call)
+    cands = (rk["result"] or {}).get("candidates", [])
+    hit = next(c for c in cands if c.get("nurse") == nurse)
+    d = int(e.get("changed_cells", 0)) - int(hit.get("changed_cells", 0))
+    if d == 0:
+        cells = "no more cells change"
+    else:
+        word = "more" if d > 0 else "fewer"
+        cells = f"{abs(d)} {word} cell changes" if abs(d) == 1 else f"{abs(d)} {word} cells change"
+    cov = int((e.get("delta") or {}).get("coverage", 0))
+    cover = (
+        "coverage unchanged"
+        if cov == 0
+        else (f"coverage {abs(cov)} {'worse' if cov > 0 else 'better'}")
+    )
+    text = (
+        f"{hit.get('name') or nurse} accepts with {_condition_text(condition)}: {cells}, {cover}."
+    )
+    wid = _conditional_waits(calls, nurse)[-1]["call_id"]
+    claims = [
+        describe.claim(str(nurse), wid, "nurse_id", nurse),
+        describe.claim(str(condition.get("day")), wid, "condition.day", condition.get("day")),
+        describe.claim(
+            f"{e.get('changed_cells')} changed", eval_call, "changed_cells", e.get("changed_cells")
+        ),
+        describe.claim(
+            f"{hit.get('changed_cells')} changed",
+            rk_call,
+            f"candidates.{cands.index(hit)}.changed_cells",
+            hit.get("changed_cells"),
+        ),
+        describe.claim("coverage", eval_call, "delta.coverage", cov),
+    ]
+    return "request_approval", {"run_id": e["run_id"], "summary": text, "claims": claims}
+
+
+def _conditional_round(
+    calls: list[Call],
+    rk_call: str,
+    run_id: str,
+    nurse: str,
+    message_id: str,
+    condition: dict[str, Any],
+    *,
+    need_publish: bool,
+) -> Step | None:
+    """After a "yes, if...": evaluate once, then follow the verdict; a second "yes, if..."
+    after the verdict counts as declined (None: the caller falls through to its normal
+    decline path)."""
+    ev = _latest_evaluate(calls, nurse)
+    if ev is None:
+        return "evaluate_condition", {"run_id": run_id, "nurse_id": nurse, "condition": condition}
+    waits = _conditional_waits(calls, nurse)
+    pos = {id(c): i for i, c in enumerate(calls)}
+    if waits and pos[id(waits[-1])] > pos[id(ev)]:
+        return None
+    res = ev["result"]
+    if res.get("already_true"):
+        return _accept_approval(calls, rk_call, nurse) if need_publish else None
+    if res.get("feasible"):
+        return _conditional_approval(calls, rk_call, str(ev.get("call_id")), nurse, condition)
+    return "wait_for_reply", {"nurse_id": nurse, "message_id": message_id}
+
+
+def _legacy_tail(
+    calls: list[Call], rk_call: str, r: dict[str, Any], j: int, a: dict[str, Any]
+) -> Step | None:
     """Publish-first: ask the approved nurse; a decline ranks again for a new approval."""
-    if a.get("decision") != "approved" or not a.get("nurse"):
-        return None  # rejected, superseded, or a plain re-plan with nobody to ask
+    post = _conditional_post(calls, a)
+    if post is _HANDLED:
+        pass  # the deal was rejected but the follow-up ran: handle the reply below
+    else:
+        if post is not _PLAIN:
+            return post  # type: ignore[return-value]
+        if a.get("decision") != "approved" or not a.get("nurse"):
+            return None  # rejected, superseded, or a plain re-plan with nobody to ask
     msg = _last(calls, "send_message", j)
     if msg is None:
         return "send_message", {
@@ -148,7 +322,13 @@ def _legacy_tail(calls: list[Call], j: int, a: dict[str, Any]) -> Step | None:
         return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
     if rep[1].get("reply") == "accepted":
         return None
-    no = declined(calls)
+    if rep[1].get("reply") == "conditional":
+        st = _conditional_round(calls, rk_call, r["run_id"], str(m["nurse_id"]),
+                                str(m["message_id"]), rep[1].get("condition") or {},
+                                need_publish=False)  # fmt: skip
+        if st is not None:
+            return st
+    no = declined(calls) + _spent_conditionals(calls)
     late = timed_out(calls)
     if len(no) + len(late) >= MAX_DECLINES:
         return _escalate_unavailable(calls)
@@ -186,10 +366,17 @@ def _cascade_tail(
         return None  # the charge nurse rejected the plan
     if a.get("nurse"):
         if a.get("cascade"):
-            return _legacy_tail(calls, j, a)  # published before the plan: ask the nurse
+            return _legacy_tail(calls, rk_call, r, j, a)  # published before the plan: ask
         return None  # the charge nurse published a candidate directly instead
-    if _plain_run_approval(calls, j) is not None:
-        return None  # the publish approval after an accept is answered: done
+    post = _plain_run_approval(calls, j)
+    if post is not None:
+        cp = _conditional_post(calls, post[1])
+        if cp is _HANDLED:
+            pass  # the deal was rejected but the follow-up ran: handle the reply below
+        elif cp is not _PLAIN:
+            return cp  # type: ignore[return-value]
+        else:
+            return None  # a publish approval answered: done
     msg = _last(calls, "send_message", j)
     if msg is not None:
         rep = _last(calls, "wait_for_reply", msg[0])
@@ -198,10 +385,17 @@ def _cascade_tail(
             return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
         if rep[1].get("reply") == "accepted":
             return _accept_approval(calls, rk_call, str(msg[1].get("nurse_id")))
+        if rep[1].get("reply") == "conditional":
+            st = _conditional_round(calls, rk_call, r["run_id"], str(msg[1].get("nurse_id")),
+                                    str(msg[1].get("message_id")), rep[1].get("condition") or {},
+                                    need_publish=True)  # fmt: skip
+            if st is not None:
+                return st
     no, late = declined(calls), timed_out(calls)
-    if len(no) + len(late) >= MAX_DECLINES:
+    spent = _spent_conditionals(calls)
+    if len(no) + len(late) + len(spent) >= MAX_DECLINES:
         return _escalate_unavailable(calls)
-    answered = set(no) | set(late) | set(accepted(calls))
+    answered = set(no) | set(late) | set(accepted(calls)) | set(spent)
     nxt = next((n for n in order if n not in answered), None)
     if nxt is None:
         return _escalate_unavailable(calls)
@@ -237,7 +431,7 @@ def _replacement(calls: list[Call], state: dict[str, Any]) -> Step | None:
         if cascade_enabled() and cands:
             return _approve(calls, run_id=r["run_id"], cascade=cands)
         return _approve(calls, run_id=r["run_id"])
-    return _legacy_tail(calls, *pap)
+    return _legacy_tail(calls, calls[i]["call_id"], r, *pap)
 
 
 def _conflict(calls: list[Call], state: dict[str, Any]) -> Step | None:
@@ -347,6 +541,7 @@ def finished(workflow: str, calls: list[Call], state: dict[str, Any]) -> bool:
 PLAN = {
     "get_open_cells": "Find the shifts this request opens.",
     "rank_replacements": "Re-solve and rank replacements.",
+    "evaluate_condition": "Check whether the roster can grant the condition.",
     "request_approval": "Ask the charge nurse to approve.",
     "send_message": "Ask the chosen nurse to cover.",
     "wait_for_reply": "Wait for the nurse's answer.",
@@ -454,4 +649,10 @@ def brief(tool: str, result: dict[str, Any], names: dict[str, str]) -> str:
         return "legal" if result.get("legal") else f"breaks {result.get('broken')}"
     if tool == "escalate":
         return str(result.get("reason", ""))
+    if tool == "evaluate_condition":
+        if result.get("already_true"):
+            return "already granted: a plain accept"
+        if not result.get("feasible"):
+            return "not possible: plain follow-up sent"
+        return f"holds in {result.get('run_id')} ({result.get('changed_cells')} changed cells)"
     return ", ".join(f"{k}" for k in list(result)[:4])

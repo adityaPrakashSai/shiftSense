@@ -434,6 +434,12 @@ class AgentTaskOut(BaseModel):
     cascade: CascadeProgress | None = None
 
 
+class ConditionIn(BaseModel):
+    kind: str  # day_off | avoid_shift
+    day: date
+    shift: str | None = None  # M | E | N, required for avoid_shift
+
+
 class NurseMessageOut(BaseModel):
     id: str
     nurse_id: str
@@ -446,13 +452,25 @@ class NurseMessageOut(BaseModel):
     text: str
     language: str | None
     source: str | None  # model | template
-    status: str  # asked | accepted | declined | withdrawn | expired
+    status: str  # asked | accepted | declined | withdrawn | expired | conditional
     created_at: str
     answered_at: str | None
+    condition: ConditionIn | None = None  # the counter-offer, when status is conditional
+    can_condition: bool = True  # a fresh ask takes "yes, if..."; a follow-up does not
+
+
+class ConditionCheckBody(BaseModel):
+    text: str
+
+
+class ConditionCheckOut(BaseModel):
+    condition: ConditionIn
+    chip: str  # the confirm chip, from templates: "Mon 9 Nov off. Correct?"
 
 
 class RespondBody(BaseModel):
     accept: bool
+    condition: ConditionIn | None = None  # "yes, if...": exactly one condition
 
 
 class ProposalRespondBody(BaseModel):

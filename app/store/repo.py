@@ -858,3 +858,14 @@ def set_nurse_message_status(conn: sqlite3.Connection, message_id: str, status: 
         (status, now_iso_ms(), message_id),
     )
     conn.commit()
+
+
+def redraft_nurse_message(conn: sqlite3.Connection, message_id: str, text: str) -> None:
+    """Reopen an answered ask with new template text (a condition follow-up reuses its ask,
+    so the conditional round still counts as one message)."""
+    conn.execute(
+        "UPDATE nurse_message SET text = ?, source = 'template', status = 'asked', "
+        "answered_at = NULL WHERE id = ?",
+        (text, message_id),
+    )
+    conn.commit()

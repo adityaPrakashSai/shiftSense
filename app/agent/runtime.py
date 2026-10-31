@@ -165,3 +165,25 @@ def answers_for_reply(
                 )
             )
     return out
+
+
+def answers_for_conditional(
+    conn: sqlite3.Connection, ward_id: str, message_id: str, condition: dict[str, Any]
+) -> list[Answer]:
+    """The task waiting on this message (if any still is) gets the "yes, if..."."""
+    out: list[Answer] = []
+    for t in _waiting(conn, ward_id, "waiting_reply"):
+        w = t["state"].get("waiting") or {}
+        if w.get("message_id") == message_id:
+            out.append(
+                (
+                    t["id"],
+                    {
+                        "reply": "conditional",
+                        "nurse_id": w.get("nurse_id"),
+                        "message_id": message_id,
+                        "condition": condition,
+                    },
+                )
+            )
+    return out

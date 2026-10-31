@@ -23,7 +23,15 @@ import time
 from typing import Any
 
 from app.agent import fallback
-from app.agent.tools import ALLOWLIST, REGISTRY, AgentCtx, Forbidden, ToolError, specs
+from app.agent.tools import (
+    ALLOWLIST,
+    REGISTRY,
+    AgentCtx,
+    Forbidden,
+    ToolError,
+    flip_condition_followup,
+    specs,
+)
 from app.config import get_settings
 from app.intake.dates import ward_now
 from app.llm.cache import PROMPTS
@@ -154,7 +162,19 @@ def outcome_line(ctx: AgentCtx) -> str:
         r = c.get("result") or {}
         if c["tool"] == "wait_for_reply" and r.get("reply"):
             who = str(r.get("nurse_id"))
-            return f"{names.get(who, who)} {r['reply']}"
+            rep = str(r["reply"])
+            if rep == "conditional":  # an already-granted condition is a plain accept
+                for e in reversed(calls):
+                    er = e.get("result") or {}
+                    if (
+                        e["tool"] == "evaluate_condition"
+                        and str((e.get("args") or {}).get("nurse_id")) == who
+                        and "feasible" in er
+                    ):
+                        if er.get("already_true"):
+                            rep = "accepted"
+                        break
+            return f"{names.get(who, who)} {rep}"
         if c["tool"] == "request_approval" and r.get("decision"):
             what = "published" if r["decision"] == "approved" else r["decision"]
             return f"{what} by the charge nurse" if r["decision"] != "superseded" else (
@@ -423,6 +443,11 @@ def apply_answer(ctx: AgentCtx, answer: dict[str, Any]) -> dict[str, Any]:
         ctx.state["counters"]["declines"] += 1
         c = ctx.state["counters"]
         c["timeouts"] = c.get("timeouts", 0) + 1  # tasks saved before Task A lack the key
+    if answer.get("reply") == "conditional" and answer.get("condition"):
+        st = ctx.state
+        st.setdefault("conditions", {})[answer.get("message_id")] = answer["condition"]
+        rounds = st.setdefault("condition_rounds", {})
+        rounds[answer.get("nurse_id")] = rounds.get(answer.get("nurse_id"), 0) + 1
     return answer
 
 
@@ -433,6 +458,30 @@ async def resume(ctx: AgentCtx, answer: dict[str, Any]) -> None:
         return
     call = next(c for c in ctx.state["calls"] if c["call_id"] == pc["call_id"])
     answer = apply_answer(ctx, answer)
+    if answer.get("decision") == "rejected" and answer.get("run_id"):
+        cond_runs = {
+            str(c["result"].get("run_id")): (str(c["args"].get("nurse_id")), c["call_id"])
+            for c in ctx.state["calls"]
+            if c["tool"] == "evaluate_condition"
+            and isinstance(c.get("result"), dict)
+            and c["result"].get("feasible")
+            and not c["result"].get("already_true")
+        }  # a rejected conditional deal reopens the ask as a plain follow-up
+        if str(answer["run_id"]) in cond_runs:
+            nurse, _ = cond_runs[str(answer["run_id"])]
+            cond = next(
+                (
+                    w["result"].get("condition")
+                    for w in ctx.state["calls"]
+                    if w["tool"] == "wait_for_reply"
+                    and isinstance(w.get("result"), dict)
+                    and w["result"].get("reply") == "conditional"
+                    and str(w["result"].get("nurse_id")) == nurse
+                ),
+                None,
+            )
+            if cond is not None:
+                await flip_condition_followup(ctx, nurse, cond)
     cell = ctx.state.get("open_cell") or {}
     if answer.get("reply") == "accepted" and cell.get("day") and cell.get("shift"):
         for m in withdraw_open_asks(ctx.conn, ctx.ward.id, ctx.log, _actor(ctx),

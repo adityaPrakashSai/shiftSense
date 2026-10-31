@@ -36,6 +36,7 @@ swap_cells = "The published roster does not show {who} on {cell}. Could you chec
 unknown_request = "I could not find request {request_id} among your open requests. Which one should I cancel?"
 demand_target = "How many nurses should that shift have?"
 outside_period = "{day} is outside the current roster period ({first} to {last})."
+condition_scope = "A counter-offer can only ask for one day off or one shift to avoid."
 
 [reply]
 greeting = "Hello! Tell me about a sick call, a day off, leave or a swap, and I will pass it on."
@@ -63,3 +64,8 @@ reason_standby = "You are on standby, and with you on it no other nurse's duty c
 reason_no_change = "With you on it, no other nurse's duty changes."
 reason_changes = "It is the option that changes the fewest other duties ({cells} other cells)."
 reason_tie = "Several nurses were equally good; you were picked by {tie_break}."
+condition_followup = "Sorry, {condition} isn't possible this time. Can you still take the {shift} shift on {date}? Please tap Accept or Decline."
+condition_day_off = "{date} off"
+condition_avoid = "no {shift} on {date}"
+chip_day_off = "{date} off. Correct?"
+chip_avoid = "No {shift} on {date}. Correct?"

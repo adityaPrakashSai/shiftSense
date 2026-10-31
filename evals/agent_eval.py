@@ -182,6 +182,13 @@ async def answer(conn: sqlite3.Connection, env: LocalEnv, task: dict[str, Any],
         if reply.startswith("redeliver:"):  # the duplicate, against the moved-on task
             _, mid, inner = reply.split(":", 2)
             return runtime.answers_for_reply(conn, ward.id, mid, inner == "accept")
+        if reply.startswith("conditional:"):  # "yes, if...": kind:day[:shift]
+            _, kind, day, *rest = reply.split(":")
+            cond: dict[str, Any] = {"kind": kind, "day": day}
+            if rest:
+                cond["shift"] = rest[0]
+            repo.set_nurse_message_status(conn, w["message_id"], "conditional")
+            return runtime.answers_for_conditional(conn, ward.id, w["message_id"], cond)
         repo.set_nurse_message_status(conn, w["message_id"], f"{reply}ed".replace("eed", "ed"))
         return runtime.answers_for_reply(conn, ward.id, w["message_id"], reply == "accept")
     choice = script["approvals"].pop(0)
@@ -294,6 +301,15 @@ def score(case: dict[str, Any], got: dict[str, Any]) -> dict[str, Any]:
         reasons.append(f"outcome {t['outcome']!r} lacks {exp['outcome']!r}")
     if "messages" in exp and len(got["messages"]) != exp["messages"]:
         reasons.append(f"{len(got['messages'])} messages != {exp['messages']}")
+    if "conditional" in exp:  # the evaluate_condition verdicts, in order
+        seen = []
+        for c in t["state"].get("calls", []):
+            r = c.get("result") or {}
+            if c["tool"] == "evaluate_condition" and isinstance(r, dict) and "feasible" in r:
+                seen.append("already_true" if r.get("already_true") else
+                            "feasible" if r.get("feasible") else "infeasible")  # fmt: skip
+        if seen != exp["conditional"]:
+            reasons.append(f"conditional path {seen} != {exp['conditional']}")
     if not got["respected"]:
         reasons.append("a replacement was messaged before the charge nurse published the run")
     if c.get("forbidden", 0):

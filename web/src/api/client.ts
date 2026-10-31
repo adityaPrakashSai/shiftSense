@@ -30,6 +30,8 @@ export type AgentTaskOut = S["AgentTaskOut"];
 export type TraceStep = S["TraceStep"];
 export type ApprovalAsk = S["ApprovalAsk"];
 export type NurseMessageOut = S["NurseMessageOut"];
+export type ConditionIn = S["ConditionIn"];
+export type ConditionCheckOut = S["ConditionCheckOut"];
 export type FairnessOut = S["FairnessOut"];
 export type FairnessRow = S["FairnessRow"];
 export type VersionsOut = S["VersionsOut"];
@@ -144,11 +146,18 @@ export const api = {
   skipTask: (id: string) => request<AgentTaskOut>(`/api/agent/tasks/${id}/skip`, { method: "POST" }),
   cancelTask: (id: string) =>
     request<AgentTaskOut>(`/api/agent/tasks/${id}/cancel`, { method: "POST" }),
+  rejectApproval: (id: string) =>
+    request<AgentTaskOut>(`/api/agent/tasks/${id}/reject`, { method: "POST" }),
   inbox: (nurseId?: string) => request<NurseMessageOut[]>(`/api/inbox${qs({ nurse_id: nurseId })}`),
-  respond: (messageId: string, accept: boolean) =>
+  respond: (messageId: string, accept: boolean, condition?: ConditionIn) =>
     request<NurseMessageOut>(`/api/inbox/${messageId}/respond`, {
       method: "POST",
-      body: JSON.stringify({ accept }),
+      body: JSON.stringify({ accept, condition }),
+    }),
+  checkCondition: (messageId: string, text: string) =>
+    request<ConditionCheckOut>(`/api/inbox/${messageId}/condition/check`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
     }),
   fairness: () => request<FairnessOut>("/api/fairness"),
   versions: () => request<VersionsOut>("/api/versions"),

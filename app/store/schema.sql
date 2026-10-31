@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS nurse_message(  -- replacement asks and swap asks (7.
   id TEXT PRIMARY KEY, ward_id TEXT, nurse_id TEXT, kind TEXT,   -- replacement | swap
   run_id TEXT, request_id TEXT, task_id TEXT, day TEXT, shift TEXT,
   text TEXT, language TEXT, source TEXT,                         -- model | template
-  status TEXT,                -- asked | accepted | declined | withdrawn | expired
+  status TEXT,                -- asked | accepted | declined | withdrawn | expired | conditional
   created_at TEXT, answered_at TEXT);
 
 CREATE INDEX IF NOT EXISTS ix_assignment_day ON assignment(run_id, day, shift);

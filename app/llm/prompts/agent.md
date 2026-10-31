@@ -14,7 +14,11 @@ Default order per workflow (follow it unless a result tells you otherwise):
   the plan, kind "replacement", run_id = the ranked proposal) -> wait_for_reply. If the nurse
   declines or times out, ask the next nurse in the plan (same run_id); code rejects any other
   nurse. The first accept comes back as request_approval(run_id = that nurse's candidate run)
-  for one Publish. If every nurse in the plan declines or times out, escalate. If a send says the
+  for one Publish. If a nurse answers "yes, if..." (reply conditional), call
+  evaluate_condition(run_id = the ranked proposal, nurse_id, condition): already_true means a
+  plain accept; feasible means request_approval(run_id = the new run); infeasible means the ask
+  was reopened as a plain follow-up, so wait_for_reply again. Never ask for a second condition
+  from the same nurse. If every nurse in the plan declines or times out, escalate. If a send says the
   published roster changed, rank_replacements(exclude = every nurse already asked) and ask for a
   new plan. If rank_replacements says "infeasible", stop: a conflict task takes over. If the
   charge nurse rejects, publishes a candidate directly, or approves a plan with nobody to ask,

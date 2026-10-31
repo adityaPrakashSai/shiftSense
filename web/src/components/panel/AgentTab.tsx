@@ -99,13 +99,34 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
   const qc = useQueryClient();
   const st = STATUS[t.status] ?? { text: t.status, tone: "bg-slate-100 text-slate-700" };
   const who = nurses.find((n) => n.id === t.waiting_on)?.name ?? t.waiting_on;
-  const w = t.waiting as { kind?: string; since?: string; summary?: string } | null;
+  const w = t.waiting as {
+    kind?: string;
+    since?: string;
+    summary?: string;
+    approval_kind?: string;
+    ref?: string;
+    cascade?: string[] | null;
+  } | null;
   const settled = () => {
     void qc.invalidateQueries({ queryKey: ["agent"] });
     void qc.invalidateQueries({ queryKey: ["inbox"] });
   };
   const skip = useMutation({ mutationFn: () => api.skipTask(t.id), onSettled: settled });
   const cancel = useMutation({ mutationFn: () => api.cancelTask(t.id), onSettled: settled });
+  const publish = useMutation({
+    mutationFn: () => api.publish(w?.ref ?? ""),
+    onSettled: () => {
+      settled();
+      void qc.invalidateQueries({ queryKey: ["proposals"] });
+      void qc.invalidateQueries({ queryKey: ["roster"] });
+    },
+  });
+  const reject = useMutation({
+    mutationFn: () => api.rejectApproval(t.id),
+    onSettled: settled,
+  });
+  const runApproval =
+    t.status === "waiting_approval" && w?.approval_kind === "run" && !(w?.cascade?.length ?? 0);
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm" data-testid="agent-task">
       <header className="flex flex-wrap items-center gap-2">
@@ -151,9 +172,35 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
         </div>
       )}
       {t.status === "waiting_approval" && w?.summary && (
-        <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">
-          Approval needed: {w.summary}
-        </p>
+        <div className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">
+          <p>Approval needed: {w.summary}</p>
+          {runApproval && (
+            <div className="mt-1 flex gap-2">
+              <button
+                onClick={() => publish.mutate()}
+                disabled={publish.isPending || reject.isPending}
+                data-testid="approval-publish"
+                className="rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                Publish
+              </button>
+              <button
+                onClick={() => reject.mutate()}
+                disabled={publish.isPending || reject.isPending}
+                data-testid="approval-reject"
+                title="Turn down this roster: a conditional deal reopens the nurse's ask"
+                className="rounded border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:opacity-60"
+              >
+                Reject
+              </button>
+              {(publish.error ?? reject.error) && (
+                <span className="text-[11px] text-red-600">
+                  {(publish.error ?? reject.error)?.message}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       )}
       <CascadeLine t={t} nurses={nurses} now={now} />
       {t.outcome && <p className="mt-1 text-xs text-slate-600">Outcome: {t.outcome}</p>}

@@ -561,6 +561,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/tasks/{task_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Approval
+         * @description Turn down the run the task proposed: a conditional deal reopens the nurse's ask
+         *     as a plain follow-up, a plain accept ends the task. Publishes nothing.
+         */
+        post: operations["reject_approval_api_agent_tasks__task_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/tasks": {
         parameters: {
             query?: never;
@@ -618,6 +639,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inbox/{message_id}/condition/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Condition
+         * @description Parse a "yes, if..." text through intake, restricted to one day off or one
+         *     shift to avoid for this nurse; answers the confirm chip, or a clarification.
+         */
+        post: operations["check_condition_api_inbox__message_id__condition_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/inbox/{message_id}/respond": {
         parameters: {
             query?: never;
@@ -629,7 +671,7 @@ export interface paths {
         put?: never;
         /**
          * Respond
-         * @description The nurse taps Accept or Decline; the waiting agent task continues (6.5).
+         * @description The nurse taps Accept or Decline (or "yes, if..."); the waiting agent task continues.
          */
         post: operations["respond_api_inbox__message_id__respond_post"];
         delete?: never;
@@ -975,6 +1017,29 @@ export interface components {
             path: string;
             /** Value */
             value?: unknown;
+        };
+        /** ConditionCheckBody */
+        ConditionCheckBody: {
+            /** Text */
+            text: string;
+        };
+        /** ConditionCheckOut */
+        ConditionCheckOut: {
+            condition: components["schemas"]["ConditionIn"];
+            /** Chip */
+            chip: string;
+        };
+        /** ConditionIn */
+        ConditionIn: {
+            /** Kind */
+            kind: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Shift */
+            shift?: string | null;
         };
         /** ConflictOption */
         ConflictOption: {
@@ -1510,6 +1575,12 @@ export interface components {
             created_at: string;
             /** Answered At */
             answered_at: string | null;
+            condition?: components["schemas"]["ConditionIn"] | null;
+            /**
+             * Can Condition
+             * @default true
+             */
+            can_condition: boolean;
         };
         /** OpenCell */
         OpenCell: {
@@ -1736,6 +1807,7 @@ export interface components {
         RespondBody: {
             /** Accept */
             accept: boolean;
+            condition?: components["schemas"]["ConditionIn"] | null;
         };
         /**
          * Role
@@ -3060,6 +3132,37 @@ export interface operations {
             };
         };
     };
+    reject_approval_api_agent_tasks__task_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_tasks_api_agent_tasks_get: {
         parameters: {
             query?: {
@@ -3141,6 +3244,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NurseMessageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_condition_api_inbox__message_id__condition_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConditionCheckBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionCheckOut"];
                 };
             };
             /** @description Validation Error */
