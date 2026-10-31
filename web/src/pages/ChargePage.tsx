@@ -6,7 +6,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, ApiError, type Cell, type EventOut } from "../api/client";
+import { api, ApiError, type Cell, type EventOut, type Ward } from "../api/client";
 import { useWardSocket, type SocketMode, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
 import ProviderBadge from "../components/common/ProviderBadge";
@@ -52,6 +52,18 @@ function fmtRange(start: string, days: number): string {
   e.setDate(s.getDate() + days - 1);
   const f = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   return `${f(s)} – ${f(e)} ${e.getFullYear()}`;
+}
+
+/** Horizon days from the ward (the empty-period grid needs dates with no roster behind them). */
+function horizonDays(ward: Ward): string[] {
+  const out: string[] = [];
+  const d = new Date(`${ward.horizon_start}T00:00:00`);
+  const n = ward.horizon_days ?? 14;
+  for (let i = 0; i < n; i++) {
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
 }
 
 function SocketDot({ mode }: { mode: SocketMode }) {
@@ -185,6 +197,25 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
   const run = roster.data?.run;
   const isDraft = run?.status === "proposed";
   const noRoster = roster.error instanceof ApiError && roster.error.status === 404;
+  // an unpublished period is an empty state, not an error: the grid below handles it
+  const emptyPeriod = roster.error instanceof ApiError && roster.error.code === "NO_PUBLISHED_RUN";
+  const emptyDays = ward.data ? horizonDays(ward.data) : [];
+  const emptyGrid: Cell[] = ward.data
+    ? ward.data.nurses.flatMap((n) =>
+        emptyDays.map(
+          (day): Cell => ({
+            nurse_id: n.id,
+            day,
+            shift: null,
+            display: "",
+            leave_type: null,
+            prev_shift: null,
+            changed: null,
+            cause: null,
+          }),
+        ),
+      )
+    : [];
   // the legend explains the diff styling, so it shows exactly when styled cells do
   const hasDiff = roster.data?.grid.some((c) => c.changed) ?? false;
 
@@ -268,7 +299,33 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
           </div>
         )}
         {roster.data && <StageStrip stages={roster.data.stages} detail={detail.data} />}
-        {noRoster && (
+        {emptyPeriod && ward.data && (
+          <div className="relative">
+            <RosterGrid
+              roster={{ days: emptyDays, today: null, grid: emptyGrid, totals: [] }}
+              nurses={ward.data.nurses}
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-50/70 p-4">
+              <div
+                data-testid="empty-roster"
+                className="max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center shadow-lg"
+              >
+                <h2 className="text-lg font-semibold">
+                  No roster for {fmtRange(ward.data.horizon_start, ward.data.horizon_days ?? 14)} yet
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">By hand this takes about 2 hours</p>
+                <button
+                  onClick={() => generate.mutate()}
+                  disabled={generate.isPending || solving !== null}
+                  className="mt-4 rounded-lg bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {solving ? "Solving…" : "Generate roster"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {!emptyPeriod && noRoster && (
           <p className="rounded border border-slate-200 bg-white p-4 text-sm text-slate-600">
             No published roster yet. Click Generate to build one.
           </p>
@@ -339,6 +396,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
               timer={timer}
               viewing={viewRunId}
               onView={setViewRunId}
+              emptyPeriod={emptyPeriod}
             />
           )}
         </div>

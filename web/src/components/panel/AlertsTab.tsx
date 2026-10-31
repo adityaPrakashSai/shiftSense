@@ -17,12 +17,14 @@ export default function AlertsTab({
   timer,
   viewing,
   onView,
+  emptyPeriod = false,
 }: {
   nurses: Nurse[];
   solving: boolean;
   timer: SolvingTimer;
   viewing: string | null;
   onView: (runId: string) => void;
+  emptyPeriod?: boolean;
 }) {
   const proposals = useQuery({ queryKey: ["proposals"], queryFn: api.proposals });
   const conflicts = useQuery({ queryKey: ["conflicts"], queryFn: api.conflicts });
@@ -50,7 +52,9 @@ export default function AlertsTab({
               <ReplacementMessages nurses={nurses} />
               {!solving && rows.length === 0 && open.length === 0 && (
                 <p className="rounded border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">
-                  No open alerts. Sick calls and requests confirmed by nurses show up here.
+                  {emptyPeriod
+                    ? "Generate and publish a roster to start handling sick calls."
+                    : "No open alerts. Sick calls and requests confirmed by nurses show up here."}
                 </p>
               )}
             </>
