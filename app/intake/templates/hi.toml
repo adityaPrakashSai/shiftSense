@@ -10,6 +10,7 @@ avoid_shift = "Request: {days} ko {shifts} shift nahi, agar ho sake."
 propose_swap = "Swap: aapki {mine} {counterpart} ko, aur unki {theirs} aapko. Iske liye charge nurse ki approval chahiye."
 cancel_request = "Request {request_id} ({summary}) cancel ho jayegi."
 change_demand = "{days} ki {shifts} shift ka target {target} nurse ho jayega."
+unpublished = "Note ho gaya. Is period ka roster abhi publish nahi hua hai, isliye aapki request tab shamil hogi jab in-charge roster banayenge."
 question = "Confirm karein?"
 
 [duty]

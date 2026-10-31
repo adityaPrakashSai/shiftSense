@@ -4,7 +4,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import { useWardSocket, type WardMessage } from "../api/ws";
 import ModeBadge from "../components/common/ModeBadge";
 import QueryState from "../components/common/QueryState";
@@ -132,11 +132,15 @@ export function NurseView({
           </div>
         ) : (
           <div className="h-full overflow-y-auto p-3">
-            <QueryState query={roster} label="my shifts">
-              {roster.data && (
-                <MyShifts roster={roster.data} nurseId={nurseId} lang={lang} shiftNames={shiftNames} />
-              )}
-            </QueryState>
+            {roster.error instanceof ApiError && roster.error.code === "NO_PUBLISHED_RUN" ? (
+              <p className="p-4 text-center text-sm text-slate-500">{L.rosterUnpublished}</p>
+            ) : (
+              <QueryState query={roster} label="my shifts">
+                {roster.data && (
+                  <MyShifts roster={roster.data} nurseId={nurseId} lang={lang} shiftNames={shiftNames} />
+                )}
+              </QueryState>
+            )}
           </div>
         )}
       </main>

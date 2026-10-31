@@ -13,9 +13,10 @@ from app.api.deps import Conn, require_ward
 from app.api.errors import ApiError
 from app.api.schemas import MessageRecord, MessageReply, RequestAction, RequestOut
 from app.api.ws import hub
-from app.domain.edits import CHARGE_ID
+from app.domain.edits import CHARGE_ID, EditOp
 from app.domain.models import Request, RequestStatus, Ward
 from app.explain.agent import get_explanation
+from app.intake import templates as tpl
 from app.intake import voice
 from app.intake.pipeline import handle_message
 from app.llm.gateway import get_gateway
@@ -24,6 +25,20 @@ from app.planner.runs import start_full, start_resolve
 from app.store import repo
 
 router = APIRouter(prefix="/api", tags=["intake"])
+
+# Edits that queue for the next Generate when nothing is published yet, instead of starting a
+# solve of their own: hard time-off plus every preference. Demand changes are charge-side and
+# keep their current behavior.
+QUEUED_WHEN_UNPUBLISHED = frozenset(
+    {
+        EditOp.MARK_UNAVAILABLE,
+        EditOp.REQUEST_LEAVE,
+        EditOp.PROPOSE_SWAP,
+        EditOp.REQUEST_DAY_OFF,
+        EditOp.REQUEST_SHIFT,
+        EditOp.AVOID_SHIFT,
+    }
+)
 
 
 def request_out(r: Request, outcomes: dict[str, dict[str, Any]]) -> RequestOut:
@@ -59,6 +74,26 @@ async def post_message(
         conn, ward, sender_id, text, gateway=get_gateway(), log=jobs.live_log(conn, ward.id),
         channel=channel,
     )  # fmt: skip
+    if (
+        res.reply_kind == "confirm"
+        and res.parse is not None
+        and any(e.op in QUEUED_WHEN_UNPUBLISHED for e in res.parse.edits)
+        and repo.get_published_run(conn, ward.id) is None
+    ):
+        lang = tpl.reply_lang(res.language)
+        res.reply = "\n".join(
+            [tpl.text(lang, "confirm", "unpublished"), tpl.text(lang, "confirm", "question")]
+        )
+        repo.set_message_reply(
+            conn,
+            res.message_id,
+            language=res.language,
+            parse=res.parse.model_dump(mode="json"),
+            reply=res.reply,
+            reply_kind=res.reply_kind,
+            request_ids=res.request_ids,
+            explanation_id=res.explanation_id,
+        )
     for rid in res.request_ids:
         await hub.broadcast(ward.id, {"type": "request_updated", "request_id": rid})
     return MessageReply(
@@ -110,7 +145,12 @@ Action = Callable[..., lifecycle.Transition]
 
 
 async def _act(
-    conn: sqlite3.Connection, ward: Ward, request_id: str, action: Action
+    conn: sqlite3.Connection,
+    ward: Ward,
+    request_id: str,
+    action: Action,
+    *,
+    allow_solve: bool = True,
 ) -> RequestAction:
     try:
         t = action(conn, ward, request_id, log=jobs.live_log(conn, ward.id))
@@ -119,7 +159,7 @@ async def _act(
     except lifecycle.RequestStateError as exc:
         raise ApiError(409, "REQUEST_STATE", str(exc)) from exc
     run_id = None
-    if t.solve:
+    if t.solve and allow_solve:
         run_id = await start_solve(conn, ward, request_id, t.requests)
     for r in t.requests:
         await hub.broadcast(ward.id, {"type": "request_updated", "request_id": r.id})
@@ -177,9 +217,11 @@ def start_agent(conn: sqlite3.Connection, ward: Ward, out: RequestAction) -> str
 @router.post("/requests/{request_id}/confirm", response_model=RequestAction)
 async def confirm_request(conn: Conn, request_id: str) -> RequestAction:
     """The sender confirms (7.3 step 7); a re-solve starts when the roster inputs changed, and
-    the roster agent takes over the workflow."""
+    the roster agent takes over the workflow. With nothing published yet the request just queues
+    for the next Generate."""
     ward = require_ward(conn)
-    out = await _act(conn, ward, request_id, lifecycle.confirm)
+    queued = repo.get_published_run(conn, ward.id) is None
+    out = await _act(conn, ward, request_id, lifecycle.confirm, allow_solve=not queued)
     start_agent(conn, ward, out)
     return out
 

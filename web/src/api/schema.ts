@@ -280,7 +280,8 @@ export interface paths {
         /**
          * Confirm Request
          * @description The sender confirms (7.3 step 7); a re-solve starts when the roster inputs changed, and
-         *     the roster agent takes over the workflow.
+         *     the roster agent takes over the workflow. With nothing published yet the request just queues
+         *     for the next Generate.
          */
         post: operations["confirm_request_api_requests__request_id__confirm_post"];
         delete?: never;
