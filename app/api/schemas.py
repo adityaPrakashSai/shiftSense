@@ -436,7 +436,7 @@ class NurseMessageOut(BaseModel):
     text: str
     language: str | None
     source: str | None  # model | template
-    status: str  # asked | accepted | declined | withdrawn
+    status: str  # asked | accepted | declined | withdrawn | expired
     created_at: str
     answered_at: str | None
 

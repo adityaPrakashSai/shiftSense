@@ -39,8 +39,17 @@ MAX_STEPS = 40  # loop iterations per advance, a backstop
 
 
 def new_state(**trigger: Any) -> dict[str, Any]:
-    counters = {"tool_calls": 0, "messages": 0, "declines": 0, "model_ms": 0, "turns": 0,
-                "failures": 0, "forbidden": 0, "approval_violations": 0}  # fmt: skip
+    counters = {
+        "tool_calls": 0,
+        "messages": 0,
+        "declines": 0,
+        "timeouts": 0,
+        "model_ms": 0,
+        "turns": 0,
+        "failures": 0,
+        "forbidden": 0,
+        "approval_violations": 0,
+    }
     return {"calls": [], "trace": [], "counters": counters, "approved_runs": [], **trigger}
 
 
@@ -230,7 +239,8 @@ def _wait(ctx: AgentCtx, cid: str, name: str, args: dict[str, Any], w: dict[str,
     else:
         ctx.state["waiting"] = {"kind": "reply", "nurse_id": w["on"],
                                 "message_id": w["message_id"], "call_id": cid,
-                                "since": repo.now_iso_ms()}  # fmt: skip
+                                "since": repo.now_iso_ms(),
+                                "deadline_at": w.get("deadline_at")}  # fmt: skip
         ctx.task.update(status="waiting_reply", waiting_on=w["on"])
     ctx.task["pending_call"] = {"call_id": cid, "name": name, "args": args,
                                 "model_call_id": model_call_id}  # fmt: skip
@@ -371,6 +381,11 @@ def apply_answer(ctx: AgentCtx, answer: dict[str, Any]) -> dict[str, Any]:
         ctx.state["last_run"] = answer["run_id"]
     if answer.get("reply") == "declined":
         ctx.state["counters"]["declines"] += 1
+    elif answer.get("reply") == "timeout":
+        # a silence counts like a decline against the budget, and is recorded separately
+        ctx.state["counters"]["declines"] += 1
+        c = ctx.state["counters"]
+        c["timeouts"] = c.get("timeouts", 0) + 1  # tasks saved before Task A lack the key
     return answer
 
 

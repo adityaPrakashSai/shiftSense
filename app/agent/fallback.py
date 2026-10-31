@@ -62,6 +62,14 @@ def declined(calls: list[Call]) -> list[str]:
     ]
 
 
+def timed_out(calls: list[Call]) -> list[str]:
+    return [
+        str(c["result"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "wait_for_reply" and _ok(c) and c["result"].get("reply") == "timeout"
+    ]
+
+
 def _approve(calls: list[Call], **target: Any) -> Step:
     text, claims = approval_summary(calls)
     return "request_approval", {**target, "summary": text, "claims": claims}
@@ -94,9 +102,13 @@ def _replacement(calls: list[Call]) -> Step | None:
     if rep[1].get("reply") == "accepted":
         return None
     no = declined(calls)
-    if len(no) >= MAX_DECLINES:
-        return "escalate", {"reason": f"{len(no)} nurses declined the shift: {', '.join(no)}"}
-    return "rank_replacements", {"exclude": no}
+    late = timed_out(calls)
+    if len(no) + len(late) >= MAX_DECLINES:
+        parts = [f"{n} declined" for n in no] + [f"{n} timed out" for n in late]
+        if not late:
+            return "escalate", {"reason": f"{len(no)} nurses declined the shift: {', '.join(no)}"}
+        return "escalate", {"reason": f"{len(parts)} nurses unavailable: {', '.join(parts)}"}
+    return "rank_replacements", {"exclude": no + late}
 
 
 def _conflict(calls: list[Call], state: dict[str, Any]) -> Step | None:

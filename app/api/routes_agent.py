@@ -75,6 +75,8 @@ def inbox(conn: Conn, nurse_id: str | None = None) -> list[NurseMessageOut]:
 
 async def answer(conn: sqlite3.Connection, ward_id: str, m: dict[str, Any],
                  accept: bool) -> NurseMessageOut:  # fmt: skip
+    if m["status"] == "expired":
+        raise ApiError(409, "ASK_EXPIRED", f"Message {m['id']} expired without an answer.")
     if m["status"] != "asked":
         raise ApiError(409, "ALREADY_ANSWERED", f"Message {m['id']} is {m['status']}.")
     status = "accepted" if accept else "declined"

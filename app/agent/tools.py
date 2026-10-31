@@ -28,6 +28,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any
 
+from app.agent import timeouts
 from app.agent.env import Env
 from app.agent.writer import short_date, write
 from app.config import get_settings
@@ -510,8 +511,12 @@ async def wait_for_reply(
                              "message_id": mid}}  # fmt: skip
     if m["status"] != "asked":
         raise ToolError(f"message {mid} is {m['status']}")
+    # the model may ask for a shorter wait, never a longer one; the deadline is authoritative
+    cap = get_settings().agent_reply_timeout_seconds
+    secs = min(max(1, int(timeout_minutes or 30)) * 60, cap)
     return {"wait": "reply", "on": str(m["nurse_id"]), "message_id": mid,
-            "timeout_minutes": int(timeout_minutes or 30)}  # fmt: skip
+            "timeout_minutes": (secs + 59) // 60,
+            "deadline_at": timeouts.deadline_after(secs)}  # fmt: skip
 
 
 async def request_approval(
