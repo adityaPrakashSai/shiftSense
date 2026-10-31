@@ -163,7 +163,7 @@ function Task({ t, nurses, now }: { t: AgentTaskOut; nurses: Nurse[]; now: numbe
         </span>
       </header>
       {t.status === "waiting_reply" && (
-        <p className="mt-1 text-xs text-sky-800">
+        <p className="mt-1 text-xs text-sky-800" data-testid="waiting-line">
           Waiting for {who}'s reply, {since(w?.since ?? t.updated_at, now)}
         </p>
       )}
