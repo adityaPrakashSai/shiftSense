@@ -8,6 +8,10 @@ const TONE: Record<string, string> = {
   asked: "bg-sky-100 text-sky-900",
   accepted: "bg-emerald-100 text-emerald-800",
   declined: "bg-red-100 text-red-800",
+  noted: "bg-slate-100 text-slate-600",
+  expired: "bg-amber-100 text-amber-900",
+  withdrawn: "bg-slate-100 text-slate-600",
+  conditional: "bg-sky-100 text-sky-900",
 };
 
 export default function ReplacementMessages({ nurses }: { nurses: Nurse[] }) {

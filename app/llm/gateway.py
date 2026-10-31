@@ -139,7 +139,7 @@ class LLMGateway:
                     if spent >= cap:
                         raise SpendCapReached(f"spent ${spent:.2f} of the ${cap:.2f} cap")
 
-            pinned = self.mock.pinned_result(key) if self.mode == "mock" else None
+            pinned = self.mock.pinned_result(key, req) if self.mode == "mock" else None
             jp = req.role in self.json_protocol_roles
             result = pinned or await self._call(provider, req, jp)
             jp = jp or req.role in self.json_protocol_roles

@@ -152,6 +152,18 @@ def list_requests(
     return [_request_row(r) for r in conn.execute(sql + " ORDER BY id", args)]
 
 
+def set_swap_counterpart(
+    conn: sqlite3.Connection, request_id: str, nurse_id: str, day: date, shift: str
+) -> None:
+    """An open swap gains its partner: the accepter's cell becomes the return leg."""
+    conn.execute(
+        "UPDATE request SET counterpart_id = ?, counterpart_dates_json = ?, "
+        "counterpart_shifts_json = ? WHERE id = ?",
+        (nurse_id, json.dumps([day.isoformat()]), json.dumps([shift]), request_id),
+    )
+    conn.commit()
+
+
 def set_request_status(conn: sqlite3.Connection, request_id: str, status: RequestStatus) -> None:
     confirmed = now_iso() if status is RequestStatus.ACTIVE else None
     cur = conn.execute(
@@ -856,5 +868,16 @@ def set_nurse_message_status(conn: sqlite3.Connection, message_id: str, status: 
     conn.execute(
         "UPDATE nurse_message SET status = ?, answered_at = ? WHERE id = ?",
         (status, now_iso_ms(), message_id),
+    )
+    conn.commit()
+
+
+def redraft_nurse_message(conn: sqlite3.Connection, message_id: str, text: str) -> None:
+    """Reopen an answered ask with new template text (a condition follow-up reuses its ask,
+    so the conditional round still counts as one message)."""
+    conn.execute(
+        "UPDATE nurse_message SET text = ?, source = 'template', status = 'asked', "
+        "answered_at = NULL WHERE id = ?",
+        (text, message_id),
     )
     conn.commit()

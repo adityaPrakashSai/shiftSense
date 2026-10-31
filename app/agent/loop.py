@@ -20,11 +20,22 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import date
 from typing import Any
 
 from app.agent import fallback
-from app.agent.tools import ALLOWLIST, REGISTRY, AgentCtx, Forbidden, ToolError, specs
+from app.agent.tools import (
+    ALLOWLIST,
+    REGISTRY,
+    AgentCtx,
+    Forbidden,
+    ToolError,
+    flip_condition_followup,
+    recorded_swap_pair,
+    specs,
+)
 from app.config import get_settings
+from app.domain.models import RequestKind
 from app.intake.dates import ward_now
 from app.llm.cache import PROMPTS
 from app.llm.types import LLMError, LLMRequest, Role
@@ -39,15 +50,24 @@ MAX_STEPS = 40  # loop iterations per advance, a backstop
 
 
 def new_state(**trigger: Any) -> dict[str, Any]:
-    counters = {"tool_calls": 0, "messages": 0, "declines": 0, "model_ms": 0, "turns": 0,
-                "failures": 0, "forbidden": 0, "approval_violations": 0}  # fmt: skip
+    counters = {
+        "tool_calls": 0,
+        "messages": 0,
+        "declines": 0,
+        "timeouts": 0,
+        "model_ms": 0,
+        "turns": 0,
+        "failures": 0,
+        "forbidden": 0,
+        "approval_violations": 0,
+    }
     return {"calls": [], "trace": [], "counters": counters, "approved_runs": [], **trigger}
 
 
 def context(ctx: AgentCtx) -> dict[str, Any]:
     st, w = ctx.state, ctx.ward
-    trigger = {k: st[k] for k in ("request_id", "conflict_id", "run_id", "counterpart")
-               if st.get(k)}  # fmt: skip
+    trigger = {k: st[k] for k in ("request_id", "conflict_id", "run_id", "counterpart",
+                                 "goal") if st.get(k)}  # fmt: skip
     r = repo.get_request(ctx.conn, st["request_id"]) if st.get("request_id") else None
     if r is not None:
         trigger |= {
@@ -103,7 +123,33 @@ def _names(ctx: AgentCtx) -> dict[str, str]:
     return {n.id: n.name for n in ctx.ward.nurses}
 
 
+def withdraw_open_asks(
+    conn: Any, ward_id: str, log: Any, actor: str, *, day: Any = None, shift: Any = None,
+    except_id: Any = None, task_id: Any = None,
+) -> list[dict[str, Any]]:  # fmt: skip
+    """Withdraw open replacement asks (an accept made them moot); returns what changed."""
+    out = []
+    for m in repo.list_nurse_messages(conn, ward_id):
+        if m["kind"] != "replacement" or m["status"] != "asked":
+            continue
+        if (day is not None or shift is not None) and (m["day"], m["shift"]) != (day, shift):
+            continue
+        if except_id is not None and m["id"] == except_id:
+            continue
+        if task_id is not None and m["task_id"] != task_id:
+            continue
+        repo.set_nurse_message_status(conn, m["id"], "withdrawn")
+        log.emit("replacement.withdrawn", actor, None, None, message_id=m["id"],
+                 nurse=m["nurse_id"], task_id=m["task_id"])  # fmt: skip
+        out.append(m)
+    return out
+
+
 async def _finish(ctx: AgentCtx, status: str, outcome: str) -> None:
+    for m in withdraw_open_asks(ctx.conn, ctx.ward.id, ctx.log, _actor(ctx),
+                                task_id=ctx.task["id"]):  # fmt: skip
+        await ctx.env.broadcast(ctx.ward.id, {"type": "message_for_nurse",
+                                              "nurse_id": m["nurse_id"]})  # fmt: skip
     ctx.task.update(status=status, waiting_on=None, pending_call=None, outcome=outcome)
     _trace(ctx, status, brief=outcome)
     kind = "agent.escalated" if status == "escalated" else "agent.done"
@@ -115,11 +161,29 @@ async def _finish(ctx: AgentCtx, status: str, outcome: str) -> None:
 
 def outcome_line(ctx: AgentCtx) -> str:
     calls, names = ctx.state["calls"], _names(ctx)
+    if ctx.task["workflow"] == "command":
+        # the read-only agent always answers deterministically: the model's own text is
+        # never shown, so a suggestion is only ever built from checked tool results
+        text, claims = fallback.command_answer(calls, ctx.state)
+        ctx.state["answer_claims"] = claims
+        return text
     for c in reversed(calls):
         r = c.get("result") or {}
         if c["tool"] == "wait_for_reply" and r.get("reply"):
             who = str(r.get("nurse_id"))
-            return f"{names.get(who, who)} {r['reply']}"
+            rep = str(r["reply"])
+            if rep == "conditional":  # an already-granted condition is a plain accept
+                for e in reversed(calls):
+                    er = e.get("result") or {}
+                    if (
+                        e["tool"] == "evaluate_condition"
+                        and str((e.get("args") or {}).get("nurse_id")) == who
+                        and "feasible" in er
+                    ):
+                        if er.get("already_true"):
+                            rep = "accepted"
+                        break
+            return f"{names.get(who, who)} {rep}"
         if c["tool"] == "request_approval" and r.get("decision"):
             what = "published" if r["decision"] == "approved" else r["decision"]
             return f"{what} by the charge nurse" if r["decision"] != "superseded" else (
@@ -225,12 +289,14 @@ def _wait(ctx: AgentCtx, cid: str, name: str, args: dict[str, Any], w: dict[str,
         ctx.state["waiting"] = {"kind": "approval", "approval_kind": ap["kind"], "ref": ap["ref"],
                                 "runs": ap.get("runs", []), "summary": summary,
                                 "claims": claims, "summary_source": source,
+                                "cascade": ap.get("cascade"), "parent_run": ap.get("parent_run"),
                                 "problems": w["problems"], "call_id": cid}  # fmt: skip
         ctx.task.update(status="waiting_approval", waiting_on="charge")
     else:
         ctx.state["waiting"] = {"kind": "reply", "nurse_id": w["on"],
                                 "message_id": w["message_id"], "call_id": cid,
-                                "since": repo.now_iso_ms()}  # fmt: skip
+                                "since": repo.now_iso_ms(),
+                                "deadline_at": w.get("deadline_at")}  # fmt: skip
         ctx.task.update(status="waiting_reply", waiting_on=w["on"])
     ctx.task["pending_call"] = {"call_id": cid, "name": name, "args": args,
                                 "model_call_id": model_call_id}  # fmt: skip
@@ -306,6 +372,7 @@ def _over_budget(ctx: AgentCtx) -> str | None:
 async def advance(ctx: AgentCtx) -> None:
     """Run the task until it waits, finishes or escalates."""
     st = ctx.state
+    st["published_now"] = ctx.published_id()  # the fallback compares it to the ranking's parent
     for _ in range(MAX_STEPS):
         if ctx.task["status"] != "running":
             return
@@ -367,11 +434,56 @@ def apply_answer(ctx: AgentCtx, answer: dict[str, Any]) -> dict[str, Any]:
     if prefetch:
         ctx.state["prefetch"] = prefetch
     if answer.get("decision") == "approved" and answer.get("run_id"):
-        ctx.state["approved_runs"].append(answer["run_id"])
         ctx.state["last_run"] = answer["run_id"]
+        if answer.get("cascade") and not answer.get("nurse"):
+            w = ctx.state.get("waiting") or {}
+            ctx.state["approved_cascade"] = {
+                "run_id": answer["run_id"],
+                "request_id": answer["run_id"] if w.get("approval_kind") == "request" else None,
+                "order": [str(n) for n in answer["cascade"]],
+                "open_cell": ctx.state.get("open_cell"),
+                "parent_run": answer.get("parent_run"),
+            }  # a plan approval publishes nothing, so the run stays out of approved_runs:
+            # cascade sends go through the order check, never the publish-first path
+        else:
+            ctx.state["approved_runs"].append(answer["run_id"])
     if answer.get("reply") == "declined":
         ctx.state["counters"]["declines"] += 1
+    elif answer.get("reply") == "timeout":
+        # a silence counts like a decline against the budget, and is recorded separately
+        ctx.state["counters"]["declines"] += 1
+        c = ctx.state["counters"]
+        c["timeouts"] = c.get("timeouts", 0) + 1  # tasks saved before Task A lack the key
+    if answer.get("reply") == "conditional" and answer.get("condition"):
+        st = ctx.state
+        st.setdefault("conditions", {})[answer.get("message_id")] = answer["condition"]
+        rounds = st.setdefault("condition_rounds", {})
+        rounds[answer.get("nurse_id")] = rounds.get(answer.get("nurse_id"), 0) + 1
+    if answer.get("reply") == "accepted" and ctx.task.get("workflow") == "swap":
+        _pair_request(ctx, answer)
     return answer
+
+
+def _pair_request(ctx: AgentCtx, answer: dict[str, Any]) -> None:
+    """An open swap's accepter becomes its counterpart: the ranked return cell is written
+    onto the request, so what_if and the re-solve treat it like a named swap."""
+    r = repo.get_request(ctx.conn, str(ctx.state.get("request_id") or ""))
+    if r is None or r.kind is not RequestKind.SWAP or r.counterpart_id is not None:
+        return
+    try:
+        pair = recorded_swap_pair(ctx, r.id, str(answer.get("nurse_id")))
+    except ToolError:
+        return  # no ranked pair (a re-rank dropped her): leave the request open
+    gives = pair["gives"]
+    repo.set_swap_counterpart(
+        ctx.conn,
+        r.id,
+        str(answer.get("nurse_id")),
+        date.fromisoformat(str(gives["day"])),
+        str(gives["shift"]),
+    )
+    ctx.log.emit("swap.paired", _actor(ctx), None, None, request_id=r.id,
+                 nurse=str(answer.get("nurse_id")), gives=dict(gives))  # fmt: skip
 
 
 async def resume(ctx: AgentCtx, answer: dict[str, Any]) -> None:
@@ -381,6 +493,37 @@ async def resume(ctx: AgentCtx, answer: dict[str, Any]) -> None:
         return
     call = next(c for c in ctx.state["calls"] if c["call_id"] == pc["call_id"])
     answer = apply_answer(ctx, answer)
+    if answer.get("decision") == "rejected" and answer.get("run_id"):
+        cond_runs = {
+            str(c["result"].get("run_id")): (str(c["args"].get("nurse_id")), c["call_id"])
+            for c in ctx.state["calls"]
+            if c["tool"] == "evaluate_condition"
+            and isinstance(c.get("result"), dict)
+            and c["result"].get("feasible")
+            and not c["result"].get("already_true")
+        }  # a rejected conditional deal reopens the ask as a plain follow-up
+        if str(answer["run_id"]) in cond_runs:
+            nurse, _ = cond_runs[str(answer["run_id"])]
+            cond = next(
+                (
+                    w["result"].get("condition")
+                    for w in ctx.state["calls"]
+                    if w["tool"] == "wait_for_reply"
+                    and isinstance(w.get("result"), dict)
+                    and w["result"].get("reply") == "conditional"
+                    and str(w["result"].get("nurse_id")) == nurse
+                ),
+                None,
+            )
+            if cond is not None:
+                await flip_condition_followup(ctx, nurse, cond)
+    cell = ctx.state.get("open_cell") or {}
+    if answer.get("reply") == "accepted" and cell.get("day") and cell.get("shift"):
+        for m in withdraw_open_asks(ctx.conn, ctx.ward.id, ctx.log, _actor(ctx),
+                                    day=cell["day"], shift=cell["shift"],
+                                    except_id=answer.get("message_id")):  # fmt: skip
+            await ctx.env.broadcast(ctx.ward.id, {"type": "message_for_nurse",
+                                                  "nurse_id": m["nurse_id"]})  # fmt: skip
     call["result"] = answer
     ctx.task.update(status="running", waiting_on=None, pending_call=None)
     ctx.state.pop("waiting", None)

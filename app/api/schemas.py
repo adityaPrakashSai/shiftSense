@@ -393,6 +393,7 @@ class ApprovalAsk(BaseModel):
     summary: str
     claims: list[dict[str, Any]] = []
     summary_source: str  # agent | describe (the agent's claims failed the check)
+    cascade: list[str] | None = None  # the contact plan, when the approval is for one
 
 
 class TraceStep(BaseModel):
@@ -404,6 +405,15 @@ class TraceStep(BaseModel):
     plan: str | None = None
     brief: str | None = None
     call_id: str | None = None
+
+
+class CascadeProgress(BaseModel):
+    order: list[str]  # the approved (or proposed) contact plan, in order
+    asked: dict[str, str]  # nurse id -> accepted | declined | timeout | waiting
+    approved: bool
+    deadline_at: str | None = None  # the open ask's real-UTC deadline, when waiting
+    since: str | None = None  # when the open ask was sent, for the countdown
+    ref: str | None = None  # the run (or swap request) the plan was requested for
 
 
 class AgentTaskOut(BaseModel):
@@ -422,6 +432,26 @@ class AgentTaskOut(BaseModel):
     counters: dict[str, int]
     fallback_reason: str | None
     calls: list[ToolCallOut] = []
+    cascade: CascadeProgress | None = None
+
+
+class CommandBody(BaseModel):
+    goal: str  # the charge nurse's goal, e.g. "tonight looks thin"
+
+
+class CommandOut(BaseModel):
+    task_id: str
+    answer: str
+    claims: list[ClaimOut]
+    tool_calls: list[ToolCallOut]
+    status: str  # done | escalated
+    outcome: str | None
+
+
+class ConditionIn(BaseModel):
+    kind: str  # day_off | avoid_shift
+    day: date
+    shift: str | None = None  # M | E | N, required for avoid_shift
 
 
 class NurseMessageOut(BaseModel):
@@ -436,13 +466,25 @@ class NurseMessageOut(BaseModel):
     text: str
     language: str | None
     source: str | None  # model | template
-    status: str  # asked | accepted | declined | withdrawn
+    status: str  # asked | accepted | declined | withdrawn | expired | conditional
     created_at: str
     answered_at: str | None
+    condition: ConditionIn | None = None  # the counter-offer, when status is conditional
+    can_condition: bool = True  # a fresh ask takes "yes, if..."; a follow-up does not
+
+
+class ConditionCheckBody(BaseModel):
+    text: str
+
+
+class ConditionCheckOut(BaseModel):
+    condition: ConditionIn
+    chip: str  # the confirm chip, from templates: "Mon 9 Nov off. Correct?"
 
 
 class RespondBody(BaseModel):
     accept: bool
+    condition: ConditionIn | None = None  # "yes, if...": exactly one condition
 
 
 class ProposalRespondBody(BaseModel):

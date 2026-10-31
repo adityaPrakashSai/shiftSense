@@ -16,6 +16,8 @@ from app.main import app
 def client(db_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setenv("SEED", "mini")
     monkeypatch.setenv("DEMO_NOW", "2026-11-03T06:05:00+05:30")
+    # this file pins the old publish-first flow; the cascade has its own API test
+    monkeypatch.setenv("AGENT_CASCADE", "0")
     with TestClient(app) as c:
         yield c
 

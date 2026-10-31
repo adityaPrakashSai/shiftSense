@@ -94,6 +94,16 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
   const [tab, setTab] = useState<Tab>("alerts");
   const [cell, setCell] = useState<Cell | null>(null);
   const [prefill, setPrefill] = useState<AskPrefill | null>(null);
+  const agentTasks = useQuery({ queryKey: ["agent"], queryFn: api.agentTasks });
+  // the run the charge nurse is being asked to publish (an accept, not rank 1)
+  const openApprovalRef =
+    (agentTasks.data ?? []).find((t) => {
+      const w = t.waiting as { approval_kind?: string; cascade?: string[] | null; ref?: string } | null;
+      return t.status === "waiting_approval" && w?.approval_kind === "run" && !(w?.cascade?.length ?? 0);
+    })?.waiting?.ref ?? null;
+  useEffect(() => {
+    if (typeof openApprovalRef === "string" && openApprovalRef) setViewRunId(openApprovalRef);
+  }, [openApprovalRef]);
 
   const roster = useQuery({
     queryKey: ["roster", viewRunId],

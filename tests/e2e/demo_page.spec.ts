@@ -24,7 +24,7 @@ test("demo page: chip to accepted replacement, then reset", async ({ page, reque
   await page.getByLabel("Phone", { exact: true }).selectOption("S01");
   await expect(phone.getByTestId("inbox-badge")).toHaveText("1");
   await phone.getByRole("button", { name: /Inbox/ }).click();
-  await phone.getByRole("button", { name: /Haan|Accept/ }).click();
+  await phone.getByRole("button", { name: "Haan, kar lungi", exact: true }).click();
   await expect(phone.getByTestId("inbox-item")).toContainText(/accept/i);
 
   await page.getByRole("button", { name: "Reset demo" }).click();

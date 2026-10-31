@@ -32,7 +32,10 @@ def workflow_for(r: Request, sender: str | None = None) -> str | None:
         return "sick_call"
     if r.kind is RequestKind.LEAVE and r.status is RequestStatus.PENDING_APPROVAL:
         return "leave"
-    if r.kind is RequestKind.SWAP and r.status is RequestStatus.PENDING_APPROVAL:
+    if r.kind is RequestKind.SWAP and (
+        r.status is RequestStatus.PENDING_APPROVAL
+        or (r.status is RequestStatus.ACTIVE and r.counterpart_id is None)
+    ):
         return "swap"
     return None
 
@@ -161,6 +164,28 @@ def answers_for_reply(
                         "reply": "accepted" if accepted else "declined",
                         "nurse_id": w.get("nurse_id"),
                         "message_id": message_id,
+                    },
+                )
+            )
+    return out
+
+
+def answers_for_conditional(
+    conn: sqlite3.Connection, ward_id: str, message_id: str, condition: dict[str, Any]
+) -> list[Answer]:
+    """The task waiting on this message (if any still is) gets the "yes, if..."."""
+    out: list[Answer] = []
+    for t in _waiting(conn, ward_id, "waiting_reply"):
+        w = t["state"].get("waiting") or {}
+        if w.get("message_id") == message_id:
+            out.append(
+                (
+                    t["id"],
+                    {
+                        "reply": "conditional",
+                        "nurse_id": w.get("nurse_id"),
+                        "message_id": message_id,
+                        "condition": condition,
                     },
                 )
             )

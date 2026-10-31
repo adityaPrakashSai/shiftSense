@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import (
     errors,
+    jobs,
     routes_agent,
     routes_conflicts,
     routes_explain,
@@ -49,7 +50,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         llm_cache.import_jsonl(conn, LLM_CACHE_FILE)
     finally:
         conn.close()
-    yield
+    tick = asyncio.get_running_loop().create_task(jobs.timeout_tick_loop(), name="timeout-tick")
+    try:
+        yield
+    finally:
+        tick.cancel()
+        await asyncio.gather(tick, return_exceptions=True)
 
 
 app = FastAPI(title="ShiftSense", version="0.0.0", lifespan=lifespan)

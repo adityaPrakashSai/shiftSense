@@ -12,13 +12,24 @@ with `describe()` sentences, so every claim passes the claim check.
 
 from __future__ import annotations
 
+import re
+from datetime import date
 from typing import Any
 
+from app.config import get_settings
 from app.explain import describe
+from app.intake.dates import fmt_day
 
 Call = dict[str, Any]
 Step = tuple[str, dict[str, Any]]
 MAX_DECLINES = 3
+MAX_CASCADE = 3  # a contact plan names between 1 and 3 nurses, in order
+_PLAIN = object()  # _conditional_post: this approval is not about a conditional run
+_HANDLED = object()  # _conditional_post: the rejection's follow-up already ran its course
+
+
+def cascade_enabled() -> bool:
+    return get_settings().agent_cascade
 
 
 def _ok(c: Call) -> bool:
@@ -62,13 +73,358 @@ def declined(calls: list[Call]) -> list[str]:
     ]
 
 
+def timed_out(calls: list[Call]) -> list[str]:
+    return [
+        str(c["result"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "wait_for_reply" and _ok(c) and c["result"].get("reply") == "timeout"
+    ]
+
+
+def accepted(calls: list[Call]) -> list[str]:
+    return [
+        str(c["result"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "wait_for_reply" and _ok(c) and c["result"].get("reply") == "accepted"
+    ]
+
+
 def _approve(calls: list[Call], **target: Any) -> Step:
     text, claims = approval_summary(calls)
     return "request_approval", {**target, "summary": text, "claims": claims}
 
 
-def _replacement(calls: list[Call]) -> Step | None:
-    """Sick call and demand change: rank, approval, message, reply; a decline ranks again."""
+def contacted(calls: list[Call]) -> list[str]:
+    """Nurses this task already sent a replacement ask to, in order."""
+    return [
+        str(c["result"].get("nurse_id") or c["args"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "send_message"
+        and _ok(c)
+        and c["args"].get("kind", "replacement") == "replacement"
+    ]
+
+
+def swap_contacted(calls: list[Call]) -> list[str]:
+    """Nurses this task already sent a swap ask to, in order (notes excluded)."""
+    return [
+        str(c["result"].get("nurse_id") or c["args"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "send_message" and _ok(c) and c["args"].get("kind") == "swap"
+    ]
+
+
+def _plain_run_approval(calls: list[Call], after: int) -> tuple[int, dict[str, Any]] | None:
+    """The answered run approval after `after` that proposed no cascade (the old path)."""
+    for i in range(len(calls) - 1, after, -1):
+        c = calls[i]
+        if c["tool"] != "request_approval" or not _ok(c) or "decision" not in c["result"]:
+            continue
+        if _approval_kind(c["args"]) == "run" and not c["args"].get("cascade"):
+            return i, c["result"]
+    return None
+
+
+def _cascade_approval(
+    calls: list[Call], after: int, kind: str = "run"
+) -> tuple[int, dict[str, Any], list[str]] | None:
+    """The answered cascade approval after `after`: index, answer, and the approved order."""
+    for i in range(len(calls) - 1, after, -1):
+        c = calls[i]
+        if c["tool"] != "request_approval" or not _ok(c) or "decision" not in c["result"]:
+            continue
+        order = c["result"].get("cascade") or c["args"].get("cascade") or []
+        if _approval_kind(c["args"]) == kind and order:
+            return i, c["result"], [str(n) for n in order]
+    return None
+
+
+def _escalate_unavailable(calls: list[Call]) -> Step:
+    no = declined(calls) + _spent_conditionals(calls)
+    late = timed_out(calls)
+    parts = [f"{n} declined" for n in no] + [f"{n} timed out" for n in late]
+    if not late:
+        return "escalate", {"reason": f"{len(no)} nurses declined the shift: {', '.join(no)}"}
+    return "escalate", {"reason": f"{len(parts)} nurses unavailable: {', '.join(parts)}"}
+
+
+def _conditional_waits(calls: list[Call], nurse: str | None = None) -> list[Call]:
+    out = [
+        c
+        for c in calls
+        if c["tool"] == "wait_for_reply" and _ok(c) and c["result"].get("reply") == "conditional"
+    ]
+    if nurse is not None:
+        out = [c for c in out if str(c["result"].get("nurse_id")) == nurse]
+    return out
+
+
+def _latest_evaluate(calls: list[Call], nurse: str) -> Call | None:
+    for c in reversed(calls):
+        if c["tool"] == "evaluate_condition" and _ok(c) and str(c["args"].get("nurse_id")) == nurse:
+            return c
+    return None
+
+
+def _evaluated_nurses(calls: list[Call]) -> set[str]:
+    return {
+        str(c["args"].get("nurse_id"))
+        for c in calls
+        if c["tool"] == "evaluate_condition" and _ok(c)
+    }
+
+
+def _spent_conditionals(calls: list[Call]) -> list[str]:
+    """Nurses whose condition round is over without an answer: a second conditional counts
+    as a decline, so they move the cascade on exactly like one."""
+    cond = {str(c["result"].get("nurse_id")) for c in _conditional_waits(calls)}
+    done = set(declined(calls)) | set(timed_out(calls)) | set(accepted(calls))
+    return sorted(n for n in (cond & _evaluated_nurses(calls)) if n not in done)
+
+
+def _conditional_runs(calls: list[Call]) -> dict[str, tuple[str, str | None]]:
+    """New run id -> (nurse, evaluate call id), for conditions that solved and matter."""
+    out = {}
+    for c in calls:
+        r = c.get("result") or {}
+        if (
+            c["tool"] == "evaluate_condition"
+            and _ok(c)
+            and r.get("feasible")
+            and not r.get("already_true")
+        ):
+            out[str(r.get("run_id"))] = (str(c["args"].get("nurse_id")), c.get("call_id"))
+    return out
+
+
+def _conditional_post(calls: list[Call], a: dict[str, Any]) -> Step | None | object:
+    """An answered plain approval for a conditional run: approved or superseded ends the
+    task; rejected reopens the ask as a plain follow-up and waits for it."""
+    runs = _conditional_runs(calls)
+    if str(a.get("run_id")) not in runs:
+        return _PLAIN
+    if a.get("decision") != "approved":
+        if a.get("decision") != "rejected":
+            return None
+        nurse, _ = runs[str(a["run_id"])]
+        rej = max(
+            (
+                i
+                for i, c in enumerate(calls)
+                if c["tool"] == "request_approval"
+                and (c.get("result") or {}).get("decision") == "rejected"
+                and str((c.get("result") or {}).get("run_id")) == str(a["run_id"])
+            ),
+            default=-1,
+        )
+        if any(
+            i > rej
+            and c["tool"] == "wait_for_reply"
+            and str((c.get("args") or {}).get("nurse_id")) == nurse
+            for i, c in enumerate(calls)
+        ):
+            return _HANDLED
+        waits = _conditional_waits(calls, nurse)
+        if not waits:
+            return None
+        last = waits[-1]["result"]
+        return "wait_for_reply", {"nurse_id": nurse, "message_id": last["message_id"]}
+    return None
+
+
+def _condition_text(condition: dict[str, Any]) -> str:
+    day = fmt_day(date.fromisoformat(str(condition.get("day"))), "en")
+    if condition.get("kind") == "day_off":
+        return f"{day} off"
+    shift = describe.SHIFT.get(str(condition.get("shift")), str(condition.get("shift")))
+    return f"no {shift} on {day}"
+
+
+def _conditional_approval(
+    calls: list[Call], rk_call: str, eval_call: str, nurse: str, condition: dict[str, Any]
+) -> Step:
+    """The condition holds: ask the charge nurse to publish the conditional variant."""
+    e = next(c for c in calls if c.get("call_id") == eval_call)["result"]
+    rk = next(c for c in calls if c.get("call_id") == rk_call)
+    cands = (rk["result"] or {}).get("candidates", [])
+    hit = next(c for c in cands if c.get("nurse") == nurse)
+    d = int(e.get("changed_cells", 0)) - int(hit.get("changed_cells", 0))
+    if d == 0:
+        cells = "no more cells change"
+    else:
+        word = "more" if d > 0 else "fewer"
+        cells = f"{abs(d)} {word} cell changes" if abs(d) == 1 else f"{abs(d)} {word} cells change"
+    cov = int((e.get("delta") or {}).get("coverage", 0))
+    cover = (
+        "coverage unchanged"
+        if cov == 0
+        else (f"coverage {abs(cov)} {'worse' if cov > 0 else 'better'}")
+    )
+    text = (
+        f"{hit.get('name') or nurse} accepts with {_condition_text(condition)}: {cells}, {cover}."
+    )
+    wid = _conditional_waits(calls, nurse)[-1]["call_id"]
+    claims = [
+        describe.claim(str(nurse), wid, "nurse_id", nurse),
+        describe.claim(str(condition.get("day")), wid, "condition.day", condition.get("day")),
+        describe.claim(
+            f"{e.get('changed_cells')} changed", eval_call, "changed_cells", e.get("changed_cells")
+        ),
+        describe.claim(
+            f"{hit.get('changed_cells')} changed",
+            rk_call,
+            f"candidates.{cands.index(hit)}.changed_cells",
+            hit.get("changed_cells"),
+        ),
+        describe.claim("coverage", eval_call, "delta.coverage", cov),
+    ]
+    return "request_approval", {"run_id": e["run_id"], "summary": text, "claims": claims}
+
+
+def _conditional_round(
+    calls: list[Call],
+    rk_call: str,
+    run_id: str,
+    nurse: str,
+    message_id: str,
+    condition: dict[str, Any],
+    *,
+    need_publish: bool,
+) -> Step | None:
+    """After a "yes, if...": evaluate once, then follow the verdict; a second "yes, if..."
+    after the verdict counts as declined (None: the caller falls through to its normal
+    decline path)."""
+    ev = _latest_evaluate(calls, nurse)
+    if ev is None:
+        return "evaluate_condition", {"run_id": run_id, "nurse_id": nurse, "condition": condition}
+    waits = _conditional_waits(calls, nurse)
+    pos = {id(c): i for i, c in enumerate(calls)}
+    if waits and pos[id(waits[-1])] > pos[id(ev)]:
+        return None
+    res = ev["result"]
+    if res.get("already_true"):
+        return _accept_approval(calls, rk_call, nurse) if need_publish else None
+    if res.get("feasible"):
+        return _conditional_approval(calls, rk_call, str(ev.get("call_id")), nurse, condition)
+    return "wait_for_reply", {"nurse_id": nurse, "message_id": message_id}
+
+
+def _legacy_tail(
+    calls: list[Call], rk_call: str, r: dict[str, Any], j: int, a: dict[str, Any]
+) -> Step | None:
+    """Publish-first: ask the approved nurse; a decline ranks again for a new approval."""
+    post = _conditional_post(calls, a)
+    if post is _HANDLED:
+        pass  # the deal was rejected but the follow-up ran: handle the reply below
+    else:
+        if post is not _PLAIN:
+            return post  # type: ignore[return-value]
+        if a.get("decision") != "approved" or not a.get("nurse"):
+            return None  # rejected, superseded, or a plain re-plan with nobody to ask
+    msg = _last(calls, "send_message", j)
+    if msg is None:
+        return "send_message", {
+            "nurse_id": a["nurse"],
+            "kind": "replacement",
+            "run_id": a["run_id"],
+        }
+    k, m = msg
+    rep = _last(calls, "wait_for_reply", k)
+    if rep is None:
+        return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
+    if rep[1].get("reply") == "accepted":
+        return None
+    if rep[1].get("reply") == "conditional":
+        st = _conditional_round(calls, rk_call, r["run_id"], str(m["nurse_id"]),
+                                str(m["message_id"]), rep[1].get("condition") or {},
+                                need_publish=False)  # fmt: skip
+        if st is not None:
+            return st
+    no = declined(calls) + _spent_conditionals(calls)
+    late = timed_out(calls)
+    if len(no) + len(late) >= MAX_DECLINES:
+        return _escalate_unavailable(calls)
+    return "rank_replacements", {"exclude": no + late}
+
+
+def _accept_approval(calls: list[Call], rank_call: str, nurse: str) -> Step | None:
+    """After an accept: ask the charge nurse to publish that nurse's candidate run."""
+    rk = next((c for c in calls if c.get("call_id") == rank_call), None)
+    cands = [] if rk is None else (rk["result"] or {}).get("candidates", [])
+    hit = next((c for c in cands if c.get("nurse") == nurse), None)
+    if hit is None:
+        return "escalate", {"reason": f"{nurse} accepted but is no longer a candidate"}
+    n = hit.get("changed_cells", 0)
+    wid = next(
+        (c["call_id"] for c in reversed(calls) if c["tool"] == "wait_for_reply" and _ok(c)),
+        None,
+    )
+    path = f"candidates.{cands.index(hit)}.changed_cells"
+    claims = [describe.claim(f"{n} changed", rank_call, path, n)]
+    if wid is not None:
+        claims.insert(0, describe.claim(str(nurse), wid, "nurse_id", nurse))
+    text = (
+        f"{hit.get('name') or nurse} accepted; publishing changes {n} cell{'s' if n != 1 else ''}."
+    )
+    return "request_approval", {"run_id": hit["run_id"], "summary": text, "claims": claims}
+
+
+def _cascade_tail(
+    calls: list[Call], state: dict[str, Any], rk_call: str, r: dict[str, Any], j: int,
+    a: dict[str, Any], order: list[str],
+) -> Step | None:  # fmt: skip
+    """Ask the approved order in turn; an accept comes back as one publish approval."""
+    if a.get("decision") != "approved":
+        return None  # the charge nurse rejected the plan
+    if a.get("nurse"):
+        if a.get("cascade"):
+            return _legacy_tail(calls, rk_call, r, j, a)  # published before the plan: ask
+        return None  # the charge nurse published a candidate directly instead
+    post = _plain_run_approval(calls, j)
+    if post is not None:
+        cp = _conditional_post(calls, post[1])
+        if cp is _HANDLED:
+            pass  # the deal was rejected but the follow-up ran: handle the reply below
+        elif cp is not _PLAIN:
+            return cp  # type: ignore[return-value]
+        else:
+            return None  # a publish approval answered: done
+    msg = _last(calls, "send_message", j)
+    if msg is not None:
+        rep = _last(calls, "wait_for_reply", msg[0])
+        if rep is None:
+            m = msg[1]
+            return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
+        if rep[1].get("reply") == "accepted":
+            return _accept_approval(calls, rk_call, str(msg[1].get("nurse_id")))
+        if rep[1].get("reply") == "conditional":
+            st = _conditional_round(calls, rk_call, r["run_id"], str(msg[1].get("nurse_id")),
+                                    str(msg[1].get("message_id")), rep[1].get("condition") or {},
+                                    need_publish=True)  # fmt: skip
+            if st is not None:
+                return st
+    no, late = declined(calls), timed_out(calls)
+    spent = _spent_conditionals(calls)
+    if len(no) + len(late) + len(spent) >= MAX_DECLINES:
+        return _escalate_unavailable(calls)
+    answered = set(no) | set(late) | set(accepted(calls)) | set(spent)
+    nxt = next((n for n in order if n not in answered), None)
+    if nxt is None:
+        return _escalate_unavailable(calls)
+    ac = state.get("approved_cascade") or {}
+    pub_now = state.get("published_now")
+    if pub_now and ac.get("parent_run") and pub_now != ac["parent_run"]:
+        # the roster moved under this ranking: rank again, then ask for a new plan
+        return "rank_replacements", {"exclude": contacted(calls)}
+    return "send_message", {"nurse_id": nxt, "kind": "replacement", "run_id": r["run_id"]}
+
+
+def _replacement(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    """Sick call and demand change: rank, approval, message, reply; a decline ranks again.
+
+    With the cascade, the approval is for a contact plan (ask B, then C, then D) and the
+    first accept comes back as one publish approval; without it, each round publishes first.
+    """
     if _last(calls, "get_open_cells") is None:
         return "get_open_cells", {}
     rk = _last(calls, "rank_replacements")
@@ -77,26 +433,17 @@ def _replacement(calls: list[Call]) -> Step | None:
     i, r = rk
     if r.get("status") != "proposed":
         return None  # infeasible: the conflict task takes over
-    ap = _approval(calls, i, "run")
-    if ap is None:
+    cap = _cascade_approval(calls, i)
+    if cap is not None:
+        j, a, order = cap
+        return _cascade_tail(calls, state, calls[i]["call_id"], r, j, a, order)
+    pap = _plain_run_approval(calls, i)
+    if pap is None:
+        cands = [str(c["nurse"]) for c in r.get("candidates", [])][:MAX_CASCADE]
+        if cascade_enabled() and cands:
+            return _approve(calls, run_id=r["run_id"], cascade=cands)
         return _approve(calls, run_id=r["run_id"])
-    j, a = ap
-    if a.get("decision") != "approved" or not a.get("nurse"):
-        return None  # rejected, superseded, or a plain re-plan with nobody to ask
-    msg = _last(calls, "send_message", j)
-    if msg is None:
-        return "send_message", {"nurse_id": a["nurse"], "kind": "replacement",
-                                "run_id": a["run_id"]}  # fmt: skip
-    k, m = msg
-    rep = _last(calls, "wait_for_reply", k)
-    if rep is None:
-        return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
-    if rep[1].get("reply") == "accepted":
-        return None
-    no = declined(calls)
-    if len(no) >= MAX_DECLINES:
-        return "escalate", {"reason": f"{len(no)} nurses declined the shift: {', '.join(no)}"}
-    return "rank_replacements", {"exclude": no}
+    return _legacy_tail(calls, calls[i]["call_id"], r, *pap)
 
 
 def _conflict(calls: list[Call], state: dict[str, Any]) -> Step | None:
@@ -141,6 +488,12 @@ def _leave(calls: list[Call], state: dict[str, Any]) -> Step | None:
 
 
 def _swap(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    if state.get("counterpart"):
+        return _swap_named(calls, state)
+    return _swap_open(calls, state)
+
+
+def _swap_named(calls: list[Call], state: dict[str, Any]) -> Step | None:
     rid = state.get("request_id")
     if _last(calls, "rule_check_swap") is None:
         return "rule_check_swap", {"request_id": rid}
@@ -164,6 +517,308 @@ def _swap(calls: list[Call], state: dict[str, Any]) -> Step | None:
     return _resolve_then_approve(calls, ap[0])
 
 
+def _swap_open(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    """An open swap: rank partners, approve the plan once, ask in order. The first accept
+    (or already-granted condition) comes back as one publish approval; an exhausted plan
+    notes the requester and escalates."""
+    rid = str(state.get("request_id") or "")
+    fp = _last(calls, "find_swap_partners")
+    if fp is None:
+        return "find_swap_partners", {"request_id": rid}
+    fi, fr = fp
+    pairs = fr.get("pairs", []) if isinstance(fr, dict) else []
+    if not pairs:
+        return _swap_exhausted(calls, state)
+    cap = _cascade_approval(calls, fi, kind="request")
+    if cap is None:
+        if not cascade_enabled():
+            return "escalate", {"reason": "open swaps need a contact plan (AGENT_CASCADE=0)"}
+        cands = [str(p["nurse"]) for p in pairs if p["nurse"] not in swap_contacted(calls)]
+        if not cands:
+            return _swap_exhausted(calls, state)
+        return _swap_plan_approval(calls, fi, rid, cands[:MAX_CASCADE])
+    j, a, order = cap
+    if a.get("decision") != "approved":
+        return None  # the plan was rejected: done
+    post = _plain_run_approval(calls, j)
+    if post is not None:
+        cp = _conditional_post(calls, post[1])
+        if cp is _HANDLED:
+            pass  # the deal was rejected but the follow-up ran: handle the reply below
+        elif cp is not _PLAIN:
+            return cp  # type: ignore[return-value]
+        else:
+            return None  # a publish approval answered: done
+    msg = _last_send(calls, j)
+    if msg is not None:
+        rep = _last(calls, "wait_for_reply", msg[0])
+        if rep is None:
+            m = msg[1]
+            return "wait_for_reply", {"nurse_id": m["nurse_id"], "message_id": m["message_id"]}
+        nurse = str(rep[1].get("nurse_id"))
+        if rep[1].get("reply") == "accepted":
+            return _swap_accepted(calls, rid, rep[0])
+        if rep[1].get("reply") == "conditional":
+            st = _swap_conditional_round(calls, fi, rid, rep[0], nurse,
+                                         str(rep[1].get("message_id")),
+                                         dict(rep[1].get("condition") or {}))  # fmt: skip
+            if st is not None:
+                return st
+    no, late = declined(calls), timed_out(calls)
+    spent = _spent_conditionals(calls)
+    if len(no) + len(late) + len(spent) >= MAX_DECLINES:
+        return _swap_exhausted(calls, state)
+    answered = set(no) | set(late) | set(accepted(calls)) | set(spent)
+    nxt = next((n for n in order if n not in answered), None)
+    if nxt is None:
+        return _swap_exhausted(calls, state)
+    ac = state.get("approved_cascade") or {}
+    if state.get("published_now") and ac.get("parent_run") != state.get("published_now"):
+        return "find_swap_partners", {"request_id": rid}  # re-rank, then a new plan
+    return "send_message", {"nurse_id": nxt, "kind": "swap", "request_id": rid}
+
+
+def _last_send(calls: list[Call], after: int) -> tuple[int, dict[str, Any]] | None:
+    """The latest swap ask (notes to the requester are not asks)."""
+    for i in range(len(calls) - 1, after, -1):
+        c = calls[i]
+        if c["tool"] == "send_message" and _ok(c) and c["args"].get("kind") == "swap":
+            return i, c["result"]
+    return None
+
+
+def _swap_plan_approval(calls: list[Call], fi: int, rid: str, cands: list[str]) -> Step:
+    fr = calls[fi]["result"] or {}
+    pairs = fr.get("pairs", [])
+    names = {p["nurse"]: p.get("name") or p["nurse"] for p in pairs}
+    order = " → ".join(names.get(n, n) for n in cands)
+    gives = fr.get("gives", {})
+    req = fr.get("requester_name") or fr.get("requester") or "the nurse"
+    text = (
+        f"Ask {order} about {req}'s swap ({gives.get('day')} {gives.get('shift')}) in turn; "
+        "the first accept comes back for one Publish."
+    )
+    idx = {str(p["nurse"]): k for k, p in enumerate(pairs)}
+    claims = [
+        describe.claim(names.get(n, n), calls[fi]["call_id"], f"pairs.{idx[n]}.nurse", n)
+        for n in cands
+    ]
+    return "request_approval", {"request_id": rid, "cascade": cands, "summary": text,
+                                "claims": claims}  # fmt: skip
+
+
+def _swap_accepted(calls: list[Call], rid: str, after: int) -> Step | None:
+    wi = _last(calls, "what_if", after)
+    if wi is None:
+        return "what_if", {"request_id": rid}
+    return _resolve_then_approve(calls, wi[0])
+
+
+def _swap_conditional_round(
+    calls: list[Call],
+    fi: int,
+    rid: str,
+    after: int,
+    nurse: str,
+    message_id: str,
+    condition: dict[str, Any],
+) -> Step | None:
+    """After a swap partner's "yes, if...": evaluate once on top of the swap moves, then
+    follow the verdict; a second "yes, if..." counts as a decline."""
+    ev = _latest_evaluate(calls, nurse)
+    if ev is None:
+        return "evaluate_condition", {"request_id": rid, "nurse_id": nurse,
+                                      "condition": condition}  # fmt: skip
+    waits = _conditional_waits(calls, nurse)
+    pos = {id(c): i for i, c in enumerate(calls)}
+    if waits and pos[id(waits[-1])] > pos[id(ev)]:
+        return None
+    res = ev["result"]
+    if res.get("already_true"):
+        return _swap_accepted(calls, rid, after)
+    if res.get("feasible"):
+        return _swap_conditional_approval(calls, fi, ev, rid, nurse, condition)
+    return "wait_for_reply", {"nurse_id": nurse, "message_id": message_id}
+
+
+def _swap_conditional_approval(
+    calls: list[Call], fi: int, ev: Call, rid: str, nurse: str, condition: dict[str, Any]
+) -> Step:
+    fr = calls[fi]["result"] or {}
+    pairs = fr.get("pairs", [])
+    hit: dict[str, Any] = next((p for p in pairs if p["nurse"] == nurse), {})
+    name = hit.get("name") or nurse
+    req = fr.get("requester_name") or fr.get("requester") or "the nurse"
+    e = ev["result"] or {}
+    n = e.get("changed_cells", 0)
+    cells = f"{n} cells change" if n != 1 else "1 cell changes"
+    cov = (e.get("delta") or {}).get("coverage", 0)
+    cover = (
+        "coverage unchanged"
+        if cov == 0
+        else (f"coverage {abs(cov)} {'worse' if cov > 0 else 'better'}")
+    )
+    text = f"{name} swaps with {req} if {name} gets {_condition_text(condition)}: {cells}, {cover}."
+    day = str(condition.get("day"))
+    wid = _conditional_waits(calls, nurse)[-1]["call_id"]
+    claims = [
+        describe.claim(name, wid, "nurse_id", nurse),
+        describe.claim(day, wid, "condition.day", day),
+        describe.claim(f"{n} changed", ev["call_id"], "changed_cells", n),
+        describe.claim("coverage", ev["call_id"], "delta.coverage", cov),
+    ]
+    return "request_approval", {"run_id": e["run_id"], "summary": text, "claims": claims}
+
+
+def _swap_exhausted(calls: list[Call], state: dict[str, Any]) -> Step:
+    rid = state.get("request_id")
+    fp = _last(calls, "find_swap_partners")
+    requester = fp[1].get("requester") if fp else None
+    noted = any(
+        c["tool"] == "send_message" and _ok(c) and c["args"].get("kind") == "note" for c in calls
+    )
+    if requester and not noted:
+        return "send_message", {"nurse_id": requester, "kind": "note", "request_id": rid}
+    no = declined(calls) + _spent_conditionals(calls)
+    late = timed_out(calls)
+    if not no and not late:
+        return "escalate", {"reason": "no legal partner for this swap"}
+    parts = [f"{n} declined" for n in no] + [f"{n} timed out" for n in late]
+    return "escalate", {"reason": f"nobody could swap: {', '.join(parts)}"}
+
+
+_CHANGE = (  # stems that ask to change, message or decide something
+    ("publish", "publish"),
+    ("approv", "approve"),
+    ("send", "send messages"),
+    ("message", "send messages"),
+    ("generat", "generate rosters"),
+    ("resolv", "re-solve"),
+    ("solve", "solve"),
+    ("chang", "change the roster"),
+    ("edit", "edit the roster"),
+    ("grant", "grant requests"),
+    ("reject", "decide requests"),
+)
+_STAFFING = (
+    "thin",
+    "shortfall",
+    "short",
+    "tonight",
+    "cover",
+    "standby",
+    "stand-by",
+    "hire",
+    "hiring",
+    "headcount",
+    "enough",
+    "minimum",
+    "strength",
+)
+_IMPACT = ("what if", "what chang", "impact", "would", "cost", "show", "means", "happen")
+
+
+def _refused_verb(goal: str) -> str | None:
+    low = goal.lower()
+    for stem, word in _CHANGE:
+        if stem in low:
+            return word
+    return None
+
+
+def _command_goal(state: dict[str, Any]) -> str:
+    return str(state.get("goal") or "")
+
+
+def _tried(calls: list[Call], tool: str) -> bool:
+    return any(c["tool"] == tool for c in calls)
+
+
+def _command(calls: list[Call], state: dict[str, Any]) -> Step | None:
+    """The read-only command agent: investigate the charge nurse's goal with read-only
+    tools (one round each; a failed check ends the answer, it is never retried). The
+    answer itself is built by `command_answer`."""
+    goal = _command_goal(state)
+    low = goal.lower()
+    rid = re.search(r"R-[A-Za-z0-9-]+", goal)
+    impact = rid is not None and any(k in low for k in _IMPACT)
+    if _refused_verb(goal) is not None and not impact:
+        return None  # a change, not a question: refuse without calling anything
+    if not _tried(calls, "staffing_check") and any(k in low for k in _STAFFING):
+        return "staffing_check", {}
+    if impact and not _tried(calls, "what_if"):
+        assert rid is not None
+        return "what_if", {"request_id": rid.group(0)}
+    if not _tried(calls, "get_fairness_history") and "fair" in low:
+        return "get_fairness_history", {}
+    nid = re.search(r"\b([NS]\d\d)\b", goal)
+    if nid and not _tried(calls, "get_nurse"):
+        return "get_nurse", {"nurse": nid.group(1)}
+    if not _tried(calls, "get_run_summary") and not any(_ok(c) for c in calls):
+        return "get_run_summary", {}
+    return None
+
+
+def command_answer(calls: list[Call], state: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+    """The read-only agent's answer: suggestions built only from checked tool results,
+    with claims citing them. Evidence always wins over the goal's wording."""
+    ok = [c for c in calls if _ok(c)]
+    if not ok:
+        verb = _refused_verb(_command_goal(state))
+        if verb is not None:
+            return (
+                f"I can't {verb}: this assistant only reads the roster, it never "
+                "changes it, messages nurses or decides anything. Ask about cover "
+                "('tonight looks thin') or the impact of a request id instead.",
+                [],
+            )
+        err = next(
+            (str(c["result"].get("error", "")).rstrip(".") for c in calls if not _ok(c)),
+            "",
+        )
+        return (f"I couldn't check that ({err[:160]})." if err else "I couldn't check that."), []
+    staff = _last(calls, "staffing_check")
+    if staff is not None:
+        _, r = staff
+        cid = calls[staff[0]]["call_id"]
+        short = r.get("shortfall", 0)
+        cells = [f"{c['day']} {c['shift']}" for c in r.get("short_cells", [])]
+        text = (
+            f"Minimum {r.get('headcount')} nurses for the period; "
+            f"shortfall {short} ({', '.join(cells) if cells else 'no cell short'}); "
+            f"standby covers {r.get('standby_shifts')} shifts; "
+            f"{r.get('hires_needed')} hires needed."
+        )
+        claims = [
+            describe.claim("headcount", cid, "headcount", r.get("headcount")),
+            describe.claim("shortfall", cid, "shortfall", short),
+            describe.claim("standby", cid, "standby_shifts", r.get("standby_shifts")),
+            describe.claim("hires", cid, "hires_needed", r.get("hires_needed")),
+        ]
+        wi = _last(calls, "what_if")
+        if wi is not None:  # the goal also asked about a request: join both findings
+            wtext, wclaims = _what_if_summary(wi[1], calls[wi[0]]["call_id"])
+            return f"{text} {wtext}", claims + wclaims
+        return text, claims
+    text, claims = approval_summary(calls)
+    if text != "Ready for your decision.":
+        return text, claims
+    first = ok[0]
+    return f"I checked {first['tool']}: {brief(first['tool'], first['result'], {})}.", [
+        _first_claim(first)
+    ]
+
+
+def _first_claim(c: Call) -> dict[str, Any]:
+    """A claim citing the call's most headline-like scalar, for tools with no summary."""
+    r = c["result"]
+    for path in ("status", "verdict", "shortfall", "headcount", "changed_cells", "name"):
+        if isinstance(r.get(path), (str, int, float)) and not isinstance(r.get(path), bool):
+            return describe.claim(str(path), c["call_id"], path, r[path])
+    key = next((k for k, v in r.items() if isinstance(v, (str, int, float))), "status")
+    return describe.claim(str(key), c["call_id"], key, r.get(key))
+
+
 def _new_period(calls: list[Call]) -> Step | None:
     full = _last(calls, "run_full")
     if full is None:
@@ -183,11 +838,15 @@ def _new_period(calls: list[Call]) -> Step | None:
 def next_call(workflow: str, calls: list[Call], state: dict[str, Any]) -> Step | None:
     if any(c["tool"] == "escalate" for c in calls):
         return None
+    if workflow == "command":
+        # read-only: a failed check ends the answer, it never escalates (escalate is not
+        # in this workflow's allowlist, so the failed-twice guard below must not fire)
+        return _command(calls, state)
     for tool in {c["tool"] for c in calls}:
         if _errors(calls, tool) >= 2 and _last(calls, tool) is None:
             return "escalate", {"reason": f"{tool} failed twice"}
     if workflow in ("sick_call", "demand_change"):
-        return _replacement(calls)
+        return _replacement(calls, state)
     if workflow == "conflict":
         return _conflict(calls, state)
     if workflow == "leave":
@@ -206,6 +865,7 @@ def finished(workflow: str, calls: list[Call], state: dict[str, Any]) -> bool:
 PLAN = {
     "get_open_cells": "Find the shifts this request opens.",
     "rank_replacements": "Re-solve and rank replacements.",
+    "evaluate_condition": "Check whether the roster can grant the condition.",
     "request_approval": "Ask the charge nurse to approve.",
     "send_message": "Ask the chosen nurse to cover.",
     "wait_for_reply": "Wait for the nurse's answer.",
@@ -217,8 +877,12 @@ PLAN = {
     "run_full": "Build the roster for the period.",
     "what_if": "Check what granting it would change.",
     "rule_check_swap": "Check the swap against the hard rules.",
+    "find_swap_partners": "Rank nurses who could take this swap.",
     "explain_denied_requests": "Find why requests were denied.",
     "get_run_summary": "Summarise the roster.",
+    "staffing_check": "Check cover for the period.",
+    "get_nurse": "Look up the nurse.",
+    "get_fairness_history": "Check the fairness balance.",
 }
 
 
@@ -256,18 +920,22 @@ def approval_summary(calls: list[Call]) -> tuple[str, list[dict[str, Any]]]:
                       for i, o in enumerate(opts)]  # fmt: skip
             return text, claims
         if tool == "what_if":
-            kind = str(r.get("kind", "")).replace("_", " ")
-            text = (
-                f"Granting {r.get('name')}'s {kind}: {r.get('verdict')} "
-                f"({r.get('reason_code')}), {r.get('changed_cells')} changed cells."
-            )
-            claims = [
-                describe.claim("verdict", cid, "verdict", r.get("verdict")),
-                describe.claim("reason", cid, "reason_code", r.get("reason_code")),
-                describe.claim("changed", cid, "changed_cells", r.get("changed_cells")),
-            ]
-            return text, claims
+            return _what_if_summary(r, cid)
     return "Ready for your decision.", []
+
+
+def _what_if_summary(r: dict[str, Any], cid: str) -> tuple[str, list[dict[str, Any]]]:
+    kind = str(r.get("kind", "")).replace("_", " ")
+    text = (
+        f"Granting {r.get('name')}'s {kind}: {r.get('verdict')} "
+        f"({r.get('reason_code')}), {r.get('changed_cells')} changed cells."
+    )
+    claims = [
+        describe.claim("verdict", cid, "verdict", r.get("verdict")),
+        describe.claim("reason", cid, "reason_code", r.get("reason_code")),
+        describe.claim("changed", cid, "changed_cells", r.get("changed_cells")),
+    ]
+    return text, claims
 
 
 def _join(sents: list[describe.Sentence]) -> tuple[str, list[dict[str, Any]]]:
@@ -311,6 +979,36 @@ def brief(tool: str, result: dict[str, Any], names: dict[str, str]) -> str:
         return f"{len(result.get('denied', []))} denied requests explained"
     if tool == "rule_check_swap":
         return "legal" if result.get("legal") else f"breaks {result.get('broken')}"
+    if tool == "find_swap_partners":
+        pairs = result.get("pairs", [])
+        if not pairs:
+            return "no legal partner"
+        top = pairs[0]
+        return (
+            f"{len(pairs)} partners; top {nm(top['nurse'])} "
+            f"(takes {top['takes']['day']} {top['takes']['shift']}), "
+            f"{len(result.get('excluded', []))} excluded"
+        )
+    if tool == "staffing_check":
+        return (
+            f"shortfall {result.get('shortfall')}, "
+            f"{result.get('hires_needed')} hires needed, "
+            f"{result.get('standby_shifts')} standby shifts"
+        )
+    if tool == "get_nurse":
+        standby = ", standby" if result.get("standby") else ""
+        return (
+            f"{result.get('name')} ({result.get('grade')}, "
+            f"{result.get('shifts_this_period')} shifts this period{standby})"
+        )
+    if tool == "get_fairness_history":
+        return str(result.get("summary", "fairness history"))
     if tool == "escalate":
         return str(result.get("reason", ""))
+    if tool == "evaluate_condition":
+        if result.get("already_true"):
+            return "already granted: a plain accept"
+        if not result.get("feasible"):
+            return "not possible: plain follow-up sent"
+        return f"holds in {result.get('run_id')} ({result.get('changed_cells')} changed cells)"
     return ", ".join(f"{k}" for k in list(result)[:4])

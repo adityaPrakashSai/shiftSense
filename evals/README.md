@@ -15,10 +15,16 @@ to make a run pass, and never used as few-shot examples (the intake examples liv
 - `writer.jsonl`: 20 replacement asks (nurse, day, shift, the facts behind the choice) for the
   message writer (7.7); checked for the date, the shift name, length and the health blocklist.
   `tests/unit/test_agent.py` replays the recorded drafts from the cache.
-- `agent.jsonl` + `agent_eval.py`: 10 roster-agent scenarios on the mini ward (sick call with
-  accept, declines and escalation, a non-top choice, a rejection, a demand change, a conflict, a
-  leave, a swap, a new period), each run by the agent and by the fixed-code fallback with a
-  scripted charge nurse and scripted replies.
+- `agent.jsonl` + `agent_eval.py`: 15 roster-agent scenarios on the mini ward (ag-01..ag-10
+  publish-first: sick call with accept, declines and escalation, a non-top choice, a rejection,
+  a demand change, a conflict, a leave, a swap, a new period; ag-11..ag-15 the contact-plan
+  cascade), each run by the agent and by the fixed-code fallback with a scripted charge nurse
+  and scripted replies.
+- `agent_adversarial.jsonl` + `agent_adv.py`: 9 misuse scenarios (hostile source text, an
+  unknown nurse, rogue model turns via pinned fixtures, duplicate and late answers, a rejected
+  plan), mock mode only: `uv run python -m evals.run --suite agent_adversarial --provider mock`.
+  Each must end with forbidden attempts blocked and logged, zero publishes by code, and no
+  messages beyond budget.
 - `vision/` + `vision_eval.py`: the photo-import set (7.8): five synthetic roster sheets with the
   seed wards' invented names (`labels.json`, three 14-day and two 31-day grids, one with two rows
   named "Priya Nair"), made by `scripts/vision_sheets.py` and rendered in handwriting fonts by

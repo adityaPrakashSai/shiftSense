@@ -71,7 +71,11 @@ def confirm(
     for x in batch:
         status = RequestStatus.ACTIVE
         if x.kind in NEEDS_APPROVAL and sender != CHARGE_ID:
-            status = RequestStatus.PENDING_APPROVAL
+            if x.kind is RequestKind.SWAP and x.counterpart_id is None:
+                status = RequestStatus.ACTIVE  # open swap: the charge approves the contact
+                # plan inside the agent task, not the request itself
+            else:
+                status = RequestStatus.PENDING_APPROVAL
         elif x.kind is RequestKind.CANCEL:
             target = None if x.ref_request_id is None else repo.get_request(conn, x.ref_request_id)
             if target is not None and target.status is not RequestStatus.WITHDRAWN:

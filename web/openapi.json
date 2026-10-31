@@ -1314,6 +1314,220 @@
     }
    }
   },
+  "/api/agent/tasks/{task_id}/approve-cascade": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Approve Cascade",
+    "description": "Approve the task's contact plan (\"ask B, then C, then D\"). This publishes nothing:\nthe first accept still comes back for one Publish.",
+    "operationId": "approve_cascade_api_agent_tasks__task_id__approve_cascade_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agent/tasks/{task_id}/skip": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Skip Task",
+    "description": "Treat the task's open ask as timed out now; the cascade moves to the next nurse.",
+    "operationId": "skip_task_api_agent_tasks__task_id__skip_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agent/tasks/{task_id}/cancel": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Cancel Task",
+    "description": "End the task without publishing: withdraw its open asks, mark it cancelled.",
+    "operationId": "cancel_task_api_agent_tasks__task_id__cancel_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agent/tasks/{task_id}/reject": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Reject Approval",
+    "description": "Turn down the run the task proposed: a conditional deal reopens the nurse's ask\nas a plain follow-up, a plain accept ends the task. Publishes nothing.",
+    "operationId": "reject_approval_api_agent_tasks__task_id__reject_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AgentTaskOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agent/command": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Ask Command",
+    "description": "The read-only command agent: investigate the charge nurse's goal with read-only\ntools and answer with suggestions and claim chips. It cannot publish, message,\napprove or change anything; the allowlist enforces that.",
+    "operationId": "ask_command_api_agent_command_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CommandBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CommandOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/agent/tasks": {
    "get": {
     "tags": [
@@ -1474,13 +1688,66 @@
     }
    }
   },
+  "/api/inbox/{message_id}/condition/check": {
+   "post": {
+    "tags": [
+     "agent"
+    ],
+    "summary": "Check Condition",
+    "description": "Parse a \"yes, if...\" text through intake, restricted to one day off or one\nshift to avoid for this nurse; answers the confirm chip, or a clarification.",
+    "operationId": "check_condition_api_inbox__message_id__condition_check_post",
+    "parameters": [
+     {
+      "name": "message_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Message Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConditionCheckBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConditionCheckOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/inbox/{message_id}/respond": {
    "post": {
     "tags": [
      "agent"
     ],
     "summary": "Respond",
-    "description": "The nurse taps Accept or Decline; the waiting agent task continues (6.5).",
+    "description": "The nurse taps Accept or Decline (or \"yes, if...\"); the waiting agent task continues.",
     "operationId": "respond_api_inbox__message_id__respond_post",
     "parameters": [
      {
@@ -1924,6 +2191,16 @@
       "type": "array",
       "title": "Calls",
       "default": []
+     },
+     "cascade": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CascadeProgress"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -1979,6 +2256,20 @@
      "summary_source": {
       "type": "string",
       "title": "Summary Source"
+     },
+     "cascade": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cascade"
      }
     },
     "type": "object",
@@ -2173,6 +2464,68 @@
      "proven"
     ],
     "title": "Candidate"
+   },
+   "CascadeProgress": {
+    "properties": {
+     "order": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Order"
+     },
+     "asked": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Asked"
+     },
+     "approved": {
+      "type": "boolean",
+      "title": "Approved"
+     },
+     "deadline_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deadline At"
+     },
+     "since": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Since"
+     },
+     "ref": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ref"
+     }
+    },
+    "type": "object",
+    "required": [
+     "order",
+     "asked",
+     "approved"
+    ],
+    "title": "CascadeProgress"
    },
    "Cell": {
     "properties": {
@@ -2385,6 +2738,130 @@
      "path"
     ],
     "title": "ClaimOut"
+   },
+   "CommandBody": {
+    "properties": {
+     "goal": {
+      "type": "string",
+      "title": "Goal"
+     }
+    },
+    "type": "object",
+    "required": [
+     "goal"
+    ],
+    "title": "CommandBody"
+   },
+   "CommandOut": {
+    "properties": {
+     "task_id": {
+      "type": "string",
+      "title": "Task Id"
+     },
+     "answer": {
+      "type": "string",
+      "title": "Answer"
+     },
+     "claims": {
+      "items": {
+       "$ref": "#/components/schemas/ClaimOut"
+      },
+      "type": "array",
+      "title": "Claims"
+     },
+     "tool_calls": {
+      "items": {
+       "$ref": "#/components/schemas/ToolCallOut"
+      },
+      "type": "array",
+      "title": "Tool Calls"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "outcome": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Outcome"
+     }
+    },
+    "type": "object",
+    "required": [
+     "task_id",
+     "answer",
+     "claims",
+     "tool_calls",
+     "status",
+     "outcome"
+    ],
+    "title": "CommandOut"
+   },
+   "ConditionCheckBody": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "text"
+    ],
+    "title": "ConditionCheckBody"
+   },
+   "ConditionCheckOut": {
+    "properties": {
+     "condition": {
+      "$ref": "#/components/schemas/ConditionIn"
+     },
+     "chip": {
+      "type": "string",
+      "title": "Chip"
+     }
+    },
+    "type": "object",
+    "required": [
+     "condition",
+     "chip"
+    ],
+    "title": "ConditionCheckOut"
+   },
+   "ConditionIn": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "day": {
+      "type": "string",
+      "format": "date",
+      "title": "Day"
+     },
+     "shift": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Shift"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "day"
+    ],
+    "title": "ConditionIn"
    },
    "ConflictOption": {
     "properties": {
@@ -3948,6 +4425,21 @@
        }
       ],
       "title": "Answered At"
+     },
+     "condition": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ConditionIn"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "can_condition": {
+      "type": "boolean",
+      "title": "Can Condition",
+      "default": true
      }
     },
     "type": "object",
@@ -4733,6 +5225,16 @@
      "accept": {
       "type": "boolean",
       "title": "Accept"
+     },
+     "condition": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ConditionIn"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",

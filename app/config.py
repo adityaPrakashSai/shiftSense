@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     log_dir: str = "logs"  # per-stage CP-SAT search logs: logs/{run_id}/{tier}.solver.log
     explain_denied: bool = True  # after each solve, find why each denied request was denied (M8)
     agent_enabled: bool = True  # the roster agent runs sick calls, conflicts, ... (7.10)
+    agent_reply_timeout_seconds: int = 1800  # a nurse ask expires after this long unanswered
+    agent_cascade: bool = True  # one approved contact plan (0: the old publish-first)
 
     def model_for(self, provider: ProviderName) -> str | None:
         return {

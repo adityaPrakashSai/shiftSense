@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from typing import Any
 
+from app.agent import timeouts
 from app.api.ws import hub
 from app.config import get_settings
 from app.domain.models import RunStatus
@@ -291,3 +292,79 @@ def agent_answer(ward_id: str, answers: list[tuple[str, dict[str, Any]]]) -> Non
             await rt.resume(conn, ward, task_id, answer, env=env, gateway=get_gateway(), log=lg)
 
         _spawn_agent(_run_agent(ward_id, task_id, go))
+
+
+TIMEOUT_TICK_SECONDS = 5
+
+
+def expire_open_ask(
+    conn: sqlite3.Connection, task: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """Expire the task's open ask and answer it as a timeout (None: nothing open to expire,
+    so a second call finds nothing). Shared by the timeout tick and Skip to next."""
+    w = task["state"].get("waiting") or {}
+    if task["status"] != "waiting_reply" or w.get("kind") != "reply":
+        return None
+    m = repo.get_nurse_message(conn, str(w.get("message_id") or ""))
+    if m is None or m["status"] != "asked":
+        return None
+    repo.set_nurse_message_status(conn, m["id"], "expired")
+    return m, {"reply": "timeout", "nurse_id": m["nurse_id"], "message_id": m["id"]}
+
+
+def collect_due_timeouts(
+    conn: sqlite3.Connection, ward_id: str
+) -> list[tuple[str, dict[str, Any]]]:
+    """Expire past-deadline asks still waiting for a reply; returns timeout answers, one per
+    task. Idempotent: only messages still `asked` fire, so a second call finds nothing."""
+    out: list[tuple[str, dict[str, Any]]] = []
+    for t in repo.list_agent_tasks(conn, ward_id, status="waiting_reply", limit=200):
+        w = t["state"].get("waiting") or {}
+        if w.get("kind") != "reply" or not w.get("deadline_at"):
+            continue
+        if not timeouts.past(str(w["deadline_at"])):
+            continue
+        hit = expire_open_ask(conn, t)
+        if hit is None:
+            continue
+        m, ans = hit
+        live_log(conn, ward_id).emit(
+            "agent.timeout",
+            "system",
+            None,
+            None,
+            task_id=t["id"],
+            message_id=m["id"],
+            nurse_id=m["nurse_id"],
+        )
+        out.append((t["id"], ans))
+    return out
+
+
+async def fire_due_timeouts_once() -> None:
+    """One timeout sweep: expire, log, resume, and tell the nurses' inboxes to refresh."""
+    conn = connect(get_settings().db_path)
+    try:
+        ward = repo.get_ward(conn)
+        if ward is None:
+            return
+        async with ward_lock(ward.id):
+            due = collect_due_timeouts(conn, ward.id)
+        if due:
+            agent_answer(ward.id, due)
+            for _, ans in due:
+                await hub.broadcast(
+                    ward.id, {"type": "message_for_nurse", "nurse_id": ans["nurse_id"]}
+                )
+    finally:
+        conn.close()
+
+
+async def timeout_tick_loop() -> None:
+    """Lifespan task: sweep for expired nurse waits every few seconds, forever."""
+    while True:
+        await asyncio.sleep(TIMEOUT_TICK_SECONDS)
+        try:
+            await fire_due_timeouts_once()
+        except Exception:  # noqa: BLE001 - one bad sweep must not kill the tick
+            log.exception("timeout tick failed")
