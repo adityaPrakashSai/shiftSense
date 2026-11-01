@@ -57,3 +57,8 @@ shortfall / nurses used / standby shifts / balance, hire symmetry breaking), `pl
 (the what-if from the database, read-only), `api/routes_staffing.py` and the agent's
 `staffing_check` compute tool (conflict and leave workflows).
 
+Agentic upgrade (Muse Code, PR #2): the reply-timeout tick in `api/jobs.py` (deadlines in
+`agent/timeouts.py`), the contact-plan cascade in `agent/tools.py`, `agent/loop.py` and
+`agent/fallback.py`, Skip/Cancel in `api/routes_agent.py`, `evaluate_condition` (counter-offers) and
+`find_swap_partners` (open swaps) in `agent/tools.py`, and the read-only command agent
+(`POST /api/agent/command` in `api/routes_agent.py`).

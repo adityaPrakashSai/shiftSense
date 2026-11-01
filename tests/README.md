@@ -8,6 +8,7 @@ what the mock provider "hears" from it. `fixtures/mini_expected.json` holds the 
 expected values to make a test pass.
 
 `e2e/demo.spec.ts` is the Playwright demo script (design doc 2.2); `make e2e` builds the web app,
-starts the API in mock mode on the mini ward and runs it (browsers: `npx --prefix web playwright
+starts the API in mock mode on the mini ward and runs 6 spec files (8 tests) on two servers:
+publish-first on :8765 and the cascade on :8766 (browsers: `npx --prefix web playwright
 install chromium` once).
 

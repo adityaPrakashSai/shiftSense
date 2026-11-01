@@ -58,9 +58,9 @@ solver and published only by the charge nurse.
   stop / escalate          ──►   budgets (12 calls, 4 msgs, 3 declines), tick
 
   Nothing in app/agent, app/api/jobs or any tick sets run.status =
-  published or calls the publish route. Publishing is exactly one
-  thing: POST /api/runs/{id}/publish (or choose → same publish) from
-  the charge nurse's button. A test walks the AST to prove it.
+  published or calls the publish route. Publishing happens only by a
+  person's click: POST /api/runs/{id}/publish, POST
+  /api/proposals/{id}/choose, or Import on the photo preview. A test walks the AST to prove it.
 ```
 
 ## 3. Module map
@@ -141,7 +141,7 @@ solver and published only by the charge nurse.
     │                   │                  │──────────────────────────────▶│
     │◄── run_finished (socket) ───────────────────────────────────────────│
     │ grid shows draft  │                  │                  │             │
-    │ POST /runs/{id}/publish (the ONLY publish path)                     │
+    │ POST /runs/{id}/publish (a person's click; all routes in §2)        │
     │──────────────────▶│ publish(): status=published + event         │
 ```
 
@@ -411,7 +411,8 @@ weekends?) gated on a published roster.
     2-thread executor with their own connections; CP-SAT stage
     events cross threads via run_coroutine_threadsafe; sockets
     fall back to 3 s polling (event cursor replays the gap).
-  DEPLOY: Docker on Railway, /api/health check, /data volume
+  DEPLOY (optional, not used): one Docker container, /api/health
+    check, /data volume
     (db + logs + cache-carrying image), SOLVER_WORKERS=4,
     LLM_MODE=live. Snapshots carry the baseline hash.
   VERIFY: make test = ruff + format + mypy + pytest (326);

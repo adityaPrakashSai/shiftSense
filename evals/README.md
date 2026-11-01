@@ -15,10 +15,11 @@ to make a run pass, and never used as few-shot examples (the intake examples liv
 - `writer.jsonl`: 20 replacement asks (nurse, day, shift, the facts behind the choice) for the
   message writer (7.7); checked for the date, the shift name, length and the health blocklist.
   `tests/unit/test_agent.py` replays the recorded drafts from the cache.
-- `agent.jsonl` + `agent_eval.py`: 15 roster-agent scenarios on the mini ward (ag-01..ag-10
+- `agent.jsonl` + `agent_eval.py`: 25 roster-agent scenarios on the mini ward (ag-01..ag-10
   publish-first: sick call with accept, declines and escalation, a non-top choice, a rejection,
   a demand change, a conflict, a leave, a swap, a new period; ag-11..ag-15 the contact-plan
-  cascade), each run by the agent and by the fixed-code fallback with a scripted charge nurse
+  cascade; ag-cond-01..04 counter-offers, ag-sw-01..03 open swaps, ag-cmd-01..03 the read-only
+  command agent), each run by the agent and by the fixed-code fallback with a scripted charge nurse
   and scripted replies.
 - `agent_adversarial.jsonl` + `agent_adv.py`: 9 misuse scenarios (hostile source text, an
   unknown nurse, rogue model turns via pinned fixtures, duplicate and late answers, a rejected

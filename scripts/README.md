@@ -7,7 +7,7 @@
 - `cache_export.py` / `cache_import.py`: LLM response cache to and from `data/llm_cache.jsonl`;
   `cache_prune.py` drops entries for prompts that no longer exist.
 - `demo_check.py`: runs the demo script (design doc 2.2, steps 2-9, then the other two /demo chips)
-  over HTTP against a running server (`--base`, `--reset`), e.g. the deployed URL; in live mode it
+  over HTTP against a running server (`--base`, `--reset`), e.g. http://localhost:8000; in live mode it
   spends credits only for messages not already cached.
 - `vision_sheets.py` + `render_sheets.mjs`: the synthetic roster sheets for the photo eval
   (`evals/vision/`): labels and printable HTML, then JPEG renders with the e2e Chromium.

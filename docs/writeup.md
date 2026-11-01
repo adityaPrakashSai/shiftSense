@@ -16,7 +16,7 @@ and nights), and the charge nurse has nothing but memory to answer with.
 
 ## 2. User research
 
-Everything here comes from interviews with nurses on 26 and 27 Oct 2026 and from photos of real
+Everything here comes from interviews with a charge nurse, a nurse and a nursing student on 26 and 27 Oct 2026 and from photos of real
 paper rosters from two hospitals (pseudonymized before use; no real names, photos or patient data
 are in this repository).
 
@@ -96,20 +96,22 @@ This is the rule the whole design follows, and it is enforced in code:
 
 All scoring is code, no LLM judge. Reports with every case are in `evals/reports/`; the table
 below is the latest live run of each suite. All $ figures reported before 2026-11-01 used
-placeholder prices; `app/llm/prices.toml` now carries Baseten's listed rate.
+placeholder prices; `app/llm/prices.toml` now carries Baseten's and Meta's listed rates. Meta's $0.0079 was computed at the `[default]` placeholder rate, before `prices.toml` had a Meta
+entry. At Meta's listed $1.25 / $4.25 per million tokens, the same run's 4357 in / 887 out tokens
+come to about $0.0092 per call, so Meta is not cheaper than Baseten here.
 
 | Suite | Provider | Result | Latency per call (p50 / p95) | Cost per call | Report |
 | --- | --- | --- | --- | --- | --- |
-| intake: 50 messages → ConstraintEdit | Muse Spark Open (Baseten) | 100% first pass, 100% after repair | 3.9 / 13.7 s | $0.0085 | `2026-11-01-intake-baseten-live` |
-| intake: 50 messages → ConstraintEdit | Muse Spark (Meta Model API) | not run (key not available) | | | |
+| intake: 50 messages → ConstraintEdit | Muse Spark Open (Baseten) | 100% first pass, 100% after repair | 3.4 / 5.8 s | $0.0086 | `2026-11-02-intake-baseten-live` |
+| intake: 50 messages → ConstraintEdit | Muse Spark 1.3 (Meta Model API) | 100% first pass, 100% after repair | 3.6 / 5.2 s | $0.0079 | `2026-11-02-intake-meta-live` |
 | explain: 15 why-questions, claim-checked | Muse Spark Open (Baseten) | 93% pass, 100% grounded first time | 2.1 / 6.7 s | $0.0032 | `2026-10-29-explain-baseten-live` |
-| explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | not run (key not available) | | | |
+| explain: 15 why-questions, claim-checked | Muse Spark 1.3 (Meta Model API) | not run | | | |
 | writer: 20 replacement asks | Muse Spark Open (Baseten) | 20/20 pass, 90% model drafts kept | 7.5 / 10.5 s | $0.0054 | `2026-10-29-writer-baseten-live` |
-| writer: 20 replacement asks | Muse Spark (Meta Model API) | not run (key not available) | | | |
+| writer: 20 replacement asks | Muse Spark 1.3 (Meta Model API) | not run | | | |
 | agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.4 / 6.9 s | $0.0032 | `2026-10-29-agent-baseten-live` |
-| agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | not run (key not available) | | | |
+| agent: 10 roster-agent workflows | Muse Spark 1.3 (Meta Model API) | not run | | | |
 | vision: 5 roster sheets, per cell | Muse Spark Open (Baseten) | 98.2% of cells, 5/5 (>= 95%) sheets | 16.0 / 57.3 s | $0.0222 | `2026-10-29-vision-baseten-live` |
-| vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | not run (key not available) | | | |
+| vision: 5 roster sheets, per cell | Muse Spark 1.3 (Meta Model API) | not run | | | |
 
 Sick calls (solver only, no model; 20 random sick calls on the default ward, `2026-10-29-sickcall-stats`): 20/20 re-solved, with every tier proven optimal in 100% of them, 0.13 s median and 0.14 s at most. Changed cells besides the sick nurse's own: median 1 (max 1) with the stability tier, median 50.5 (max 69) without it.
 
@@ -143,9 +145,8 @@ How to read it:
 
 ## 6. Honest limitations
 
-- **Not deployed yet; one provider measured.** The live URL is added after the Railway deployment.
-  The Meta Model API (Muse Spark) is wired in and selectable per role, but its key was not
-  available while these evals ran, so the provider comparison has only the Baseten column.
+- **Not deployed; runs locally.** The Meta Model API (Muse Spark 1.3) was measured on intake
+  only (50/50); explain, writer, agent and vision were run on Baseten only.
 - **Synthetic data.** Every ward is synthetic or pseudonymized. Staffing numbers and contract
   ranges in the default ward are estimates from the interviews, not a ward's actual rules.
 - **The photo eval uses rendered sheets.** The five sheets are generated from the seed wards and
@@ -164,7 +165,7 @@ How to read it:
 - **Full rosters are not proven optimal on the lower tiers.** In the 9 s cap, the requests and
   fairness tiers of a full 24-nurse solve are the best found, not proven (re-solves after a sick
   call are proven in a fraction of a second).
-- **No accounts.** Anyone with the demo URL can act as any nurse; the app is a single-ward
+- **No accounts.** Anyone using the app can act as any nurse; the app is a single-ward
   prototype on one process and one SQLite file.
 - **Fairness is measured over two prior periods with raw counts** (not normalised by contract
   size), as decided in the design.
@@ -177,5 +178,6 @@ at M2 — and merged both feature branches. The M0–M14 code (15 commits, one p
 written by Claude Code from that design. The remaining 25 commits, all marked "(Muse Code)" in
 the message, were written by Muse Code: the UI polish (8), the empty-start opening (7) and the
 agentic branch (10) — the replacement cascade, counter-offers, open swap, the read-only command
-agent and the review fixes. Every commit is authored by Aditya; non-obvious choices from both
+agent and the review fixes. Later commits are docs and eval updates. Every commit is authored by
+Aditya; non-obvious choices from both
 agents are logged with reasons in `docs/decisions.md`.

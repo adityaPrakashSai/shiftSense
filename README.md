@@ -29,8 +29,8 @@ and explains every decision from the solver's own results. It never edits the ro
 4. **Why?** Click any cell, or ask "Why Arun and not Priya?". The answer cites the solver's
    evidence, and code checks every claim before it is shown.
 
-On the demo ward a sick call changes **1 cell** besides the sick nurse's own; without the stability
-tier the same sick call moves 41.
+On the demo ward, Meena's sick call changes 1 cell besides her own; without the stability tier it
+moves 27. Across 20 random sick calls on the 24-nurse ward: 1 vs a median of 50.5.
 
 ## The problem
 
@@ -78,8 +78,8 @@ No API keys needed. Requirements: Python 3.12 via [uv](https://docs.astral.sh/uv
 
 ```bash
 git clone https://github.com/adityaPrakashSai/shiftSense && cd shiftSense
-make setup                                      # deps + .env from .env.example
-DEMO_START=empty LLM_MODE=mock make dev         # open http://localhost:5173/demo
+make setup   # deps + .env from .env.example
+DEMO_START=empty AGENT_REPLY_TIMEOUT_SECONDS=60 LLM_MODE=mock make dev   # open http://localhost:5173/demo
 ```
 
 - `LLM_MODE=mock` runs everything offline with a rule-based stand-in for the model.
@@ -90,7 +90,7 @@ DEMO_START=empty LLM_MODE=mock make dev         # open http://localhost:5173/dem
   (`LLM_SPEND_CAP_USD`) stops live calls.
 
 With Docker: `make docker && docker run --rm -p 8000:8000 -e LLM_MODE=mock -e DEMO_START=empty
-shiftsense`, then open http://localhost:8000/demo.
+-e AGENT_REPLY_TIMEOUT_SECONDS=60 shiftsense`, then open http://localhost:8000/demo.
 
 ## Demo walkthrough
 
@@ -128,6 +128,11 @@ Fixed eval sets, scored by code (no LLM judge); reports in `evals/reports/`.
 Sick calls (solver only, no model; 20 random sick calls on the default ward, `2026-10-29-sickcall-stats`): 20/20 re-solved, with every tier proven optimal in 100% of them, 0.13 s median and 0.14 s at most. Changed cells besides the sick nurse's own: median 1 (max 1) with the stability tier, median 50.5 (max 69) without it.
 <!-- /eval-table -->
 
+Meta's $0.0079 was computed at the `[default]` placeholder rate, before `prices.toml` had a Meta
+entry. At Meta's listed $1.25 / $4.25 per million tokens, the same run's 4357 in / 887 out tokens
+come to about $0.0092 per call, so Meta is not cheaper than Baseten here.
+Cost figures from reports dated before 2026-11-01 were computed at placeholder prices.
+
 The agent suite adds 15 cascade, counter-offer, open-swap and command cases, and an adversarial
 suite of 9 (prompt injection, out-of-order sends, off-allowlist tools, extra asks, late replies);
 they run in the test suite in mock mode, and every forbidden attempt is blocked with 0 publishes
@@ -160,18 +165,19 @@ make eval      # live intake eval on Baseten (needs a key)
 make dev       # API on :8000, Vite on :5173
 ```
 
-Deployment (optional): one Docker service with a volume for SQLite; see `railway.toml` and
-[`docs/deploy.md`](docs/deploy.md).
+Not deployed: run it locally. The repo still carries a `Dockerfile` and `railway.toml` for a
+one-container deploy with a volume for SQLite.
 
 ## How it was built
 
 Designed by the author from the interviews above. The solver, planner, intake, explainer,
-first roster agent, evals and initial UI were built by user with help from **Claude Code**. 
+first roster agent, evals and initial UI were built with **Claude Code** from the author's design,
+with the author reviewing every milestone.
 **Muse Code** built the UI polish pass, the empty-fortnight opening, and the agentic upgrade: reply
 timeouts, the replacement cascade, steering, the adversarial eval, "Yes, if…" counter-offers, open
 swaps, the read-only command agent and their review fixes (25 commits marked "(Muse Code)").
-Additionally, **Muse Code** was used to create decision logs, document architecture and system design.  
-All data is synthetic or pseudonymized. 
+Additionally, **Muse Code** was used to create decision logs, document architecture and system design.
+All data is synthetic or pseudonymized.
 
 ## Credits
 

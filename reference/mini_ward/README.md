@@ -8,7 +8,7 @@ it leaves out is scale. It uses the design doc's data model, so the app uses it 
 |---|---|---|
 | `mini_ward.json` | Instance: ward, nurses, demand, 9 requests, 2-period history, rules and weights, 2 sick-call scenarios, 1 demand-change scenario and 1 leave-extension scenario | `data/seed/mini_ward.json` (M1). `make seed SEED=mini` loads it instead of the 24-nurse ward |
 | `expected.json` | Golden results: published baseline roster, proven tier vectors, every soft term, trade-off runs, sick-call results and candidate ranking | `tests/fixtures/mini_expected.json` |
-| `mini_solver.py` | Reference CP-SAT model (doc sections 5.2–6.4) plus an independent pure-Python evaluator. Every solve is cross-checked against the evaluator | `scripts/mini_reference.py`. It is a spec to diff `app/solver` against, not the app's solver |
+| `mini_solver.py` | Reference CP-SAT model (doc sections 5.2–6.4) plus an independent pure-Python evaluator. Every solve is cross-checked against the evaluator | `reference/mini_ward/mini_solver.py` (`make reference`). It is a spec to diff `app/solver` against, not the app's solver |
 | `test_mini_ward.py` | 10 golden tests | `tests/solver/test_mini_ward.py` (M2/M3), and the sick-call and demand-change tests at M7 |
 
 Run it: `pip install ortools==9.15.6755 pytest`, then

@@ -2,8 +2,8 @@
 
 ShiftSense is one FastAPI process. It serves the REST API, the WebSocket and the built React app,
 runs the OR-Tools CP-SAT solver in-process, and calls Meta's Muse Spark models over HTTPS. All
-state lives in one SQLite file. A deploy is one container (Docker on Railway, with a volume for the
-database), so nothing can fail between services during a live demo. The design is in
+state lives in one SQLite file. It can deploy as one container (Docker, with a volume for the
+database), so nothing can fail between services; the submission runs locally. The design is in
 [`DESIGN.md`](DESIGN.md) section 3; the reasons for choices made while building are in
 [`decisions.md`](decisions.md).
 
@@ -139,8 +139,8 @@ Every step is an event in the decision log, shown in the Log tab and per task in
 | Message | Muse Spark Open | message text | Date, shift, length, health-word blocklist |
 | Agent | Muse Spark Open, tool calling | tool calls | Per-workflow allowlist, budgets, approval rules |
 
-The Meta Model API (Muse Spark) is configured from `META_BASE_URL`, `META_MODEL` and `META_API_KEY`
-and can take any role (`LLM_PROVIDER_*`). The `openai` Python package is used only as the HTTP
+The Meta Model API (Muse Spark 1.3 measured) is configured from `META_BASE_URL`, `META_MODEL` and
+`META_API_KEY` and can take any role (`LLM_PROVIDER_*`). Meta uses JSON mode, not strict json_schema. The `openai` Python package is used only as the HTTP
 client for these OpenAI-compatible endpoints (class `OpenAICompatProvider`); no OpenAI or other
 non-Meta model is ever called. Muse Spark Open always reasons before answering; the gateway keeps
 the reasoning in `llm_call` for the Log and parses only the final content and tool calls.
@@ -171,16 +171,16 @@ it changed. The Versions tab diffs the planned run against the current one.
 - A lifespan timeout tick checks every 5 s for nurse asks past their deadline, expires them, and
   resumes the task through the normal answer path. Deadlines use the real wall clock, never the
   frozen `DEMO_NOW`.
-- CP-SAT workers come from `SOLVER_WORKERS` (8 locally, 4 on Railway).
+- CP-SAT workers come from `SOLVER_WORKERS` (default 8).
 
-## Deployment
+## Deployment (optional, not used for the submission)
 
 `Dockerfile` builds the web app and the Python environment (`uv sync --frozen`) into one image;
 `railway.toml` sets the health check (`/api/health`). The Railway service mounts a volume at
 `/data` for the database and solver logs. An empty database seeds itself (`SEED`); the mini ward
 loads its committed solved baseline so every deployment starts from the same roster as the
 committed cache. `POST /api/demo/reset` restores that baseline in under a second. The demo
-deployment opens on an empty fortnight (`DEMO_START=empty`) with one-minute cascade replies
+settings open on an empty fortnight (`DEMO_START=empty`) with one-minute cascade replies
 (`AGENT_REPLY_TIMEOUT_SECONDS=60`).
 
 ## Tests
