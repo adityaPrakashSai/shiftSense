@@ -24,7 +24,7 @@ SUITES = {  # suite -> (what it checks, the role whose calls it times)
     "vision": ("5 roster sheets, per cell", "vision"),
 }
 PROVIDERS = ("baseten", "meta")
-NAMES = {"baseten": "Muse Spark Open (Baseten)", "meta": "Muse Spark (Meta Model API)"}
+NAMES = {"baseten": "Muse Spark Open (Baseten)", "meta": "Muse Spark 1.3 (Meta Model API)"}
 START, END = "<!-- eval-table -->", "<!-- /eval-table -->"
 
 
@@ -67,7 +67,7 @@ def table() -> str:
         for prov in PROVIDERS:
             r = latest(suite, prov)
             if r is None:
-                lines.append(f"| {suite}: {what} | {NAMES[prov]} | pending (no key yet) | | | |")
+                lines.append(f"| {suite}: {what} | {NAMES[prov]} | not run | | | |")
                 continue
             s = r["summary"]
             lat, cost = per_call(s, role)
