@@ -178,6 +178,5 @@ at M2 — and merged both feature branches. The M0–M14 code (15 commits, one p
 written by Claude Code from that design. The remaining 25 commits, all marked "(Muse Code)" in
 the message, were written by Muse Code: the UI polish (8), the empty-start opening (7) and the
 agentic branch (10) — the replacement cascade, counter-offers, open swap, the read-only command
-agent and the review fixes. Later commits are docs and eval updates. Every commit is authored by
-Aditya; non-obvious choices from both
-agents are logged with reasons in `docs/decisions.md`.
+agent and the review fixes. Later commits are docs, eval updates and one Meta provider fix. Every
+commit is authored by Aditya; non-obvious choices from both agents are logged with reasons in `docs/decisions.md`.

@@ -176,7 +176,7 @@ it changed. The Versions tab diffs the planned run against the current one.
 ## Deployment (optional, not used for the submission)
 
 `Dockerfile` builds the web app and the Python environment (`uv sync --frozen`) into one image;
-`railway.toml` sets the health check (`/api/health`). The Railway service mounts a volume at
+`railway.toml` sets the health check (`/api/health`). A Railway service would mount a volume at
 `/data` for the database and solver logs. An empty database seeds itself (`SEED`); the mini ward
 loads its committed solved baseline so every deployment starts from the same roster as the
 committed cache. `POST /api/demo/reset` restores that baseline in under a second. The demo

@@ -412,9 +412,8 @@ weekends?) gated on a published roster.
     events cross threads via run_coroutine_threadsafe; sockets
     fall back to 3 s polling (event cursor replays the gap).
   DEPLOY (optional, not used): one Docker container, /api/health
-    check, /data volume
-    (db + logs + cache-carrying image), SOLVER_WORKERS=4,
-    LLM_MODE=live. Snapshots carry the baseline hash.
+    check, /data volume (db + logs + cache-carrying image).
+    Snapshots carry the baseline hash.
   VERIFY: make test = ruff + format + mypy + pytest (326);
     make e2e = build + 8 Playwright tests (6 files) on 2
     servers (publish-first :8765, cascade :8766); evals/run

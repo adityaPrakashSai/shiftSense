@@ -176,7 +176,7 @@ with the author reviewing every milestone.
 **Muse Code** built the UI polish pass, the empty-fortnight opening, and the agentic upgrade: reply
 timeouts, the replacement cascade, steering, the adversarial eval, "Yes, if…" counter-offers, open
 swaps, the read-only command agent and their review fixes (25 commits marked "(Muse Code)").
-Additionally, **Muse Code** was used to create decision logs, document architecture and system design.
+**Muse Code** also wrote `docs/system-design.md` and updated the architecture doc and decision log.
 All data is synthetic or pseudonymized.
 
 ## Credits
