@@ -1,217 +1,162 @@
 # ShiftSense
 
-A nurse scheduling assistant. Meta's Muse Spark models handle the plain-language, voice and
-photo requests; an OR-Tools CP-SAT solver builds every roster; every decision is explained from
-the solver's actual results.
+**A charge nurse spends about two hours building each fortnight's roster by hand, then rebuilds it
+over the phone every time someone calls in sick. ShiftSense builds the roster in seconds and
+handles the sick call with an AI agent, while a person approves every change.**
 
-- **Live demo:** _(URL added after the Railway deployment)_ · open `/demo`
-- **Video (3 min):** _(link to come)_
-- **Write-up:** [`docs/writeup.md`](docs/writeup.md) · **Architecture:**
-  [`docs/architecture.md`](docs/architecture.md) · **Design:** [`docs/DESIGN.md`](docs/DESIGN.md)
+An OR-Tools CP-SAT solver builds every roster. Meta's **Muse Spark** understands nurses' messages
+in Hindi or English (typed or spoken), writes each nurse's message, runs the replacement workflow
+and explains every decision from the solver's own results. It never edits the roster.
 
-> **Status:** feature freeze (milestone M13 of the plan in the design doc, section 12). The build
-> started on 28 Oct 2026.
+- **Video (3 min):** _(link)_
+- **Run it locally:** [Quick start](#quick-start), no API keys needed
+- **Docs:** [Architecture](docs/architecture.md) · [System design](docs/system-design.md) ·
+  [Decision log](docs/decisions.md) · [Design doc](docs/DESIGN.md)
+
+## What it does
+
+1. **Generate.** The ward opens on an empty fortnight. One click builds the full roster in seconds,
+   with strict priorities: coverage, then stability, contracts, requests, then fairness of nights
+   and weekends (carried over from earlier periods).
+2. **A sick call in Hindi.** *"Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai"* ("I can't
+   make this morning's duty, I have a fever"). Muse Spark turns it into a structured request; code
+   checks it; the nurse taps Confirm.
+3. **The replacement cascade.** The solver re-plans only the future and ranks replacements, each
+   checked by a real forced re-solve. The charge nurse approves a contact plan once ("ask Arun,
+   then Ritu, then Kavya"); approving it publishes nothing. The agent asks each nurse in their
+   language. A decline, or no answer before a real deadline, moves on to the next nurse. The first
+   nurse who accepts comes back to the charge nurse, who clicks **Publish**.
+4. **Why?** Click any cell, or ask "Why Arun and not Priya?". The answer cites the solver's
+   evidence, and code checks every claim before it is shown.
+
+On the demo ward a sick call changes **1 cell** besides the sick nurse's own; without the stability
+tier the same sick call moves 41.
 
 ## The problem
 
-In a government hospital department of 24 nurses, the charge nurse builds the roster entirely by
-hand, and **one schedule takes about 2 hours**. Sudden gaps are covered by phoning standby nurses,
-and existing rostering software is hard to update when the plan changes (for example, when a shift
-suddenly needs 5 nurses instead of 4). ShiftSense aims to produce a valid draft roster in under a
-minute and absorb a sick call with as few changes as possible.
+From interviews with a charge nurse, a nurse and a nursing student at a government hospital in
+India: a department of 24 nurses works three 8-hour shifts, rostered entirely by hand. **One
+schedule takes the charge nurse about 2 hours.** Sudden gaps are covered by phoning standby
+nurses one by one, and existing software is hard to update when the plan changes.
 
-## How Meta models are used
+## How Muse Spark is used
 
-- The default live model is **Muse Spark Open** (`meta-models/muse-spark-open-1026`) served on
-  Baseten; the Meta Model API (Muse Spark) is the alternative provider.
-- The model never edits the roster. It turns messages into typed constraint edits, a person
-  confirms them, and CP-SAT re-solves.
-- The `openai` Python package is used **only as the HTTP client** for Baseten's OpenAI-compatible
-  endpoint, which serves Muse Spark Open. **No OpenAI (or any non-Meta) model is ever called.**
-- Every call goes through one gateway (`app/llm/`) with a response cache. `LLM_MODE=live` calls
-  the model on a cache miss, `replay` serves only cached answers (no keys needed), and `mock` uses
-  a rule-based stand-in for UI work and tests; the header shows which provider answered and a
-  MOCK MODE badge. A per-process spend cap (`LLM_SPEND_CAP_USD`) stops live calls.
-- **Intake** (`app/intake/`): a nurse writes "Kal mujhe off chahiye" in English, Hindi or Hinglish.
-  Muse Spark Open turns it into a `ConstraintEdit` (a closed set of operations, checked against a
-  JSON schema), code checks names, dates and the quoted evidence, and a fixed template (never the
-  model) writes the confirmation in the sender's language. Only after the nurse taps Confirm does
-  the request reach the solver. The first live run of the 50-case intake eval is in
-  `evals/reports/`.
-- **Voice notes** (`app/intake/voice.py`): the nurse taps the mic, the browser records and converts
-  to 16 kHz WAV, and Muse Spark Open's audio input transcribes it in the language and script spoken
-  (Hindi in Devanagari). The transcript then follows the typed path unchanged, so the demo sick call
-  spoken and typed store the same request.
-- **Roster photos** (`app/intake/photo.py`, `app/planner/importer.py`): the charge nurse
-  photographs the paper roster; Muse Spark Open copies each cell (M, E, N, G, N/O, off, leave codes
-  or "?") and the printed totals rows. Code maps names to nurse ids, flags duplicate names, and
-  checks the cells against the printed totals; the charge nurse fixes the highlighted cells in an
-  editable preview, and only then is the grid imported as the published, planned run. On five
-  synthetic sheets (14 and 31 days, rendered in handwriting fonts) it copied 98.2% of 1,742 cells
-  (`evals/reports/2026-10-29-vision-baseten-live.md`).
-- **Replacements are ranked by the solver, not the model.** A confirmed sick call re-plans only the
-  future from the published roster (every changed cell costs in the stability tier), and each
-  candidate replacement is a real forced re-solve, ranked by tier vector. On the demo ward the
-  proposal is on screen in about half a second with one changed cell; without the stability tier
-  the same sick call moves 41 cells.
-- **Explanations are grounded.** "Why Arun and not Priya?" goes to a Muse Spark agent with seven
-  read-only tools over the evidence store and the counterfactual service, which re-solves the
-  roster with Priya on that shift. Every fact in the answer is a claim that cites a tool result
-  by path and value; code checks each one, and an answer that fails twice is withheld in favour
-  of a deterministic explanation built from the same results.
-- **Conflicts come with options, not excuses.** When no legal roster exists (three nurses who
-  could cover tonight's night are unavailable), CP-SAT's unsat core names exactly the rules that
-  cannot all hold; code turns each waivable one into an option ("Ask Arun to come in", "Add a
-  float nurse"), Muse writes a two-sentence summary that is checked against the option list, and
-  the charge nurse's choice starts a new solve.
-- **Staffing check** (`app/solver/staffing.py`, the Staffing tab): "how many nurses does this period
-  need, and what if Kavya is out?" CP-SAT finds the minimum headcount, the shortfall cells and the
-  standby shifts for a what-if (nurses out for the period, hypothetical hires, standby, target or
-  floor coverage), without touching the published roster. The roster agent can call it in the
-  conflict and leave workflows. Requests and fairness are ignored, so the numbers are lower bounds,
-  and the panel says so.
+The live model is **Muse Spark Open** (`meta-models/muse-spark-open-1026`) on Baseten; the Meta
+Model API (Muse Spark) is configured as the alternative provider. The `openai` Python package is
+used **only as the HTTP client** for these OpenAI-compatible endpoints. **No OpenAI (or any
+non-Meta) model is ever called.**
 
-## Architecture
+| Role | What Muse Spark does | What code checks |
+| --- | --- | --- |
+| Intake | Hindi, English or Hinglish message → typed `ConstraintEdit` | schema, names, dates, quoted evidence; a template (not the model) writes the confirmation |
+| Voice | Hindi voice note → transcript (audio input) | then the same intake path |
+| Roster agent | runs sick calls, leave, swaps, conflicts and new periods with tools | per-workflow allowlist, budgets, contact order, no publish tool |
+| Messages | drafts each ask in the nurse's language | date, shift, length, no health words |
+| Explainer | answers "why?" with tool calls over the evidence | every claim checked against tool results; failures withheld |
+| Vision | copies a photographed paper roster cell by cell | name mapping, printed-totals checksum, a person corrects the preview |
 
-One FastAPI process serves the API, the WebSocket and the built React app, runs CP-SAT in-process,
-and calls Meta models over HTTPS. State lives in one SQLite file. Model calls (intake, voice,
-vision, explainer, roster agent) go through one gateway and only read, explain and draft; the
-roster is written only by the planner through CP-SAT, and only a person publishes. Diagram,
-components and the sick-call flow: [`docs/architecture.md`](docs/architecture.md).
+### The rules the code enforces (not the prompt)
 
-| Folder | Contents |
-| --- | --- |
-| `app/` | Python backend (FastAPI, solver, planner, LLM gateway) |
-| `web/` | React + TypeScript + Vite + Tailwind frontend |
-| `data/` | Seed wards (synthetic or pseudonymized) and the SQLite file at runtime |
-| `scripts/` | Seed loader, demo baseline, cache export, demo check |
-| `tests/` | pytest suite and fixtures |
-| `evals/` | Fixed LLM eval sets, runner, scorer and reports |
-| `reference/` | Pre-build reference prototypes (specs, not app code) |
-| `docs/` | Design document and design-decision log |
+- **The model never edits the roster.** Only CP-SAT writes assignments, and only a person publishes.
+  The agent's tool registry has no publish tool; a test walks the agent code's AST to prove it.
+- **Code decides who gets asked.** `send_message` rejects any nurse who is not next in the
+  approved contact plan, and allows one open ask per shift.
+- **Timeouts are real.** A deadline uses the wall clock; a background tick expires unanswered asks
+  and moves on. The charge nurse can also skip or cancel.
+- **Nothing a nurse writes reaches the agent as text.** The agent sees the structured request only;
+  an adversarial eval (prompt injection, out-of-order sends, extra asks, late replies) must end
+  with zero publishes by code.
 
-## Evals
-
-Fixed eval sets, scored by code (no LLM judge); every report is in `evals/reports/`. Latency and
-cost are per model call, from runs with the cache off (`--fresh`).
-
-<!-- eval-table -->
-| Suite | Provider | Result | Latency per call (p50 / p95) | Cost per call | Report |
-| --- | --- | --- | --- | --- | --- |
-| intake: 50 messages → ConstraintEdit | Muse Spark Open (Baseten) | 100% first pass, 100% after repair | 3.6 / 6.7 s | $0.0036 | `2026-10-29-intake-baseten-live` |
-| intake: 50 messages → ConstraintEdit | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-| explain: 15 why-questions, claim-checked | Muse Spark Open (Baseten) | 93% pass, 100% grounded first time | 2.1 / 6.7 s | $0.0032 | `2026-10-29-explain-baseten-live` |
-| explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-| writer: 20 replacement asks | Muse Spark Open (Baseten) | 20/20 pass, 90% model drafts kept | 7.5 / 10.5 s | $0.0054 | `2026-10-29-writer-baseten-live` |
-| writer: 20 replacement asks | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-| agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.4 / 6.9 s | $0.0032 | `2026-10-29-agent-baseten-live` |
-| agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-| vision: 5 roster sheets, per cell | Muse Spark Open (Baseten) | 98.2% of cells, 5/5 (>= 95%) sheets | 16.0 / 57.3 s | $0.0222 | `2026-10-29-vision-baseten-live` |
-| vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | pending (no key yet) | | | |
-
-Sick calls (solver only, no model; 20 random sick calls on the default ward, `2026-10-29-sickcall-stats`): 20/20 re-solved, with every tier proven optimal in 100% of them, 0.13 s median and 0.14 s at most. Changed cells besides the sick nurse's own: median 1 (max 1) with the stability tier, median 50.5 (max 69) without it.
-<!-- /eval-table -->
-
-```bash
-uv run python -m evals.run --suite intake --provider baseten --mode live --fresh  # one suite, live
-uv run python -m evals.run --suite intake --mode replay       # from the committed cache, no keys
-uv run python -m evals.run --suite intake --compare baseten,meta   # provider comparison table
-uv run python -m evals.sickcall_stats                         # 20 random sick calls, solver only
-uv run python -m evals.summary --readme                       # rebuild the table above
-```
-
-Suites: `intake`, `explain`, `writer`, `agent`, `vision`. Details in [`evals/README.md`](evals/README.md).
-
-## Setup
-
-Requirements: Python 3.12 via [uv](https://docs.astral.sh/uv/), Node 20+, and Docker (optional).
-
-```bash
-make setup     # uv sync, npm ci in web/, creates .env from .env.example
-make seed      # recreate data/shiftsense.db and publish a solved baseline (SEED=mini|real_a)
-uv run python -m app.solver.cli data/seed/ward.json   # solve a seed, print the grid
-uv run python -m app.tools.replay RUN_ID              # re-solve a stored run, compare tiers
-make dev       # API on :8000, Vite on :5173 (open /demo; also /charge and /nurse/N03)
-make api       # regenerate web/openapi.json and the TypeScript client types
-uv run python -m app.llm.smoke --provider baseten   # live check of Muse Spark Open (needs a key)
-make test      # ruff, mypy (strict for app/solver), pytest in mock mode
-make eval      # live intake eval on Baseten (EVAL_ARGS="--mode replay" re-runs it for free)
-uv run python -m scripts.scenarios.night_crunch   # open a conflict (SEED=mini, DEMO_NOW at 22:00)
-make e2e       # build the web app, run the Playwright demo tests in mock mode
-make docker    # build the container image
-```
-
-`curl localhost:8000/api/health` should return `{"ok": true, "llm_mode": "mock", ...}`.
-
-API keys live only in `.env` (git-ignored) and Railway variables; see `.env.example`.
+More the agent can do: **"Yes, if…"** counter-offers ("I'll take the night if I get Monday off",
+checked by a re-solve), **open swaps** ("can someone take my Saturday night?", partners found by
+code), conflict diagnosis with options when no legal roster exists, a staffing check (minimum
+headcount), and a read-only "Ask the agent" box.
 
 ## Quick start
 
-No API keys needed: the scripted demo's Muse Spark answers are committed in `data/llm_cache.jsonl`,
-and replay mode serves only those.
+No API keys needed. Requirements: Python 3.12 via [uv](https://docs.astral.sh/uv/), Node 20+.
 
 ```bash
-git clone <this repo> && cd shiftsense
-make setup                  # creates .env from .env.example (SEED=mini, "now" = Tue 3 Nov 06:05)
-LLM_MODE=replay make dev    # open http://localhost:5173/demo
+git clone https://github.com/adityaPrakashSai/shiftSense && cd shiftSense
+make setup                                      # deps + .env from .env.example
+DEMO_START=empty LLM_MODE=mock make dev         # open http://localhost:5173/demo
 ```
 
-With Docker instead (the built app is served by FastAPI on one port):
+- `LLM_MODE=mock` runs everything offline with a rule-based stand-in for the model.
+- `LLM_MODE=replay` serves recorded Muse Spark answers from `data/llm_cache.jsonl`; a call that
+  isn't recorded (for example agent turns after a prompt change) falls back to the fixed-code
+  path, so the workflow still finishes.
+- `LLM_MODE=live` with `BASETEN_API_KEY` in `.env` calls Muse Spark Open; a spend cap
+  (`LLM_SPEND_CAP_USD`) stops live calls.
+
+With Docker: `make docker && docker run --rm -p 8000:8000 -e LLM_MODE=mock -e DEMO_START=empty
+shiftsense`, then open http://localhost:8000/demo.
+
+## Demo walkthrough
+
+`/demo` shows the charge nurse view and a nurse's phone side by side (drag the divider).
+
+1. **Reset demo** with Start = **Empty**, then **Generate roster** and **Publish**.
+2. Click **Sick call (Hindi) · Meena** and **Confirm** on the phone.
+3. On the proposal card, **Approve plan**.
+4. Switch the phone to the first nurse and **Decline**. Let the second nurse's ask time out (or
+   click **Skip to next** in the Agent tab). The third nurse **Accepts**.
+5. **Publish** on the accepted nurse's card. Click the new cell and ask **Why?**.
+
+The Agent tab shows the plan, each ask and its outcome, and a live countdown; the Log tab shows
+every decision. Other chips: a voice note (synthetic Hindi speech), a day-off request, and "Why do
+I get every weekend?". **Import photo** reads a paper roster (try `evals/vision/mini-a.jpg`).
+
+## Evals
+
+Fixed eval sets, scored by code (no LLM judge); reports in `evals/reports/`.
+
+<!-- keep the generated eval table here (evals.summary --readme) -->
+
+The agent suite adds 15 cascade, counter-offer, open-swap and command cases, and an adversarial
+suite of 9 (prompt injection, out-of-order sends, off-allowlist tools, extra asks, late replies);
+they run in the test suite in mock mode, and every forbidden attempt is blocked with 0 publishes
+by code.
+
+## Architecture
+
+One FastAPI process serves the API, WebSocket and React app, runs CP-SAT in-process and calls
+Muse Spark over HTTPS; state lives in one SQLite file. Diagram and sick-call flow:
+[`docs/architecture.md`](docs/architecture.md); every module's behaviour:
+[`docs/system-design.md`](docs/system-design.md).
+
+| Folder | Contents |
+| --- | --- |
+| `app/` | backend: API, solver, planner, intake, agent, explainer, LLM gateway |
+| `web/` | React + TypeScript + Vite + Tailwind frontend |
+| `data/` | synthetic seed wards and the recorded model answers |
+| `evals/` | eval sets, runner, scorer and reports |
+| `tests/` | pytest and Playwright suites |
+| `scripts/` | seed, baseline, cache and demo scripts |
+| `reference/` | pre-build reference prototypes (specs, not app code) |
+| `docs/` | design doc, architecture, system design, decision log |
+
+## Development
 
 ```bash
-make docker
-docker run --rm -p 8000:8000 -e LLM_MODE=replay -e SEED=mini \
-  -e DEMO_NOW=2026-11-03T06:05:00+05:30 shiftsense      # open http://localhost:8000/demo
+make test      # ruff, mypy, pytest in mock mode
+make e2e       # Playwright: demo, empty start, cascade, staffing, voice, photo
+make eval      # live intake eval on Baseten (needs a key)
+make dev       # API on :8000, Vite on :5173
 ```
 
-For live Muse Spark Open calls, put `BASETEN_API_KEY` in `.env` and use `LLM_MODE=live`; answers
-already in the cache are still served from it, at no cost.
+Deployment (optional): one Docker service with a volume for SQLite; see `railway.toml` and
+[`docs/deploy.md`](docs/deploy.md).
 
-## Demo
+## How it was built
 
-Live URL: _(added after the Railway deployment)_
-
-`/` opens `/demo`: the charge nurse view on the left (65%) and a nurse's phone on the right (35%).
-The top bar has **Reset demo** (restores the published baseline in well under a second), the
-phone's identity selector, the model banner and four suggested messages:
-
-1. **Sick call (Hindi), Meena**: *"Sunita di, aaj subah ki duty nahi kar paungi, bukhar hai"*.
-   Confirm in the phone; the charge view shows the alert, the ranked replacements (Arun the standby
-   nurse first) and the roster agent's claim-checked summary. Ask *"Why Arun and not Priya?"* in
-   the Ask tab, Approve, then switch the phone to Arun (S01): his Inbox has Muse's message in Hindi
-   with Accept / Decline. The Agent and Log tabs show every step.
-2. **Day off (English), Kavya**: a soft request for Sat 7 Nov, granted or denied with a reason at
-   the next solve.
-3. **Why every weekend? Priya**: a grounded answer from her fairness history, with claim chips.
-4. **Voice note (Hindi), Meena**: the same sick call as a recorded voice note (synthetic speech,
-   `web/public/samples/sick_call_hi.wav`); the bubble shows the transcript and the same
-   confirmation. The mic button in the phone records your own. It is an alternative to chip 1:
-   in replay mode, press Reset demo between the two (the cached answers assume a fresh ward).
-
-**Import photo** in the charge view reads a photo of a paper roster into an editable preview
-(try `evals/vision/mini-a.jpg`, cached for replay mode).
-
-On a phone, `/demo` shows one view at a time with a switch at the top.
-`uv run python -m scripts.demo_check --base <url> --reset` runs the same script over HTTP.
-
-## Deploy to Railway
-
-One Docker service (`railway.toml`: Dockerfile build, health check on `/api/health`), one Uvicorn
-worker, and a volume for SQLite:
-
-```bash
-railway login && railway init        # or link an existing project: railway link
-railway volume add --mount-path /data
-railway variables --set LLM_MODE=live --set SEED=mini \
-  --set DEMO_NOW=2026-11-03T06:05:00+05:30 --set DB_PATH=/data/shiftsense.db \
-  --set LOG_DIR=/data/logs --set SOLVER_WORKERS=4 --set LLM_SPEND_CAP_USD=5.00
-railway variables --set BASETEN_API_KEY=...   # the key goes only here and in .env
-make deploy                                    # railway up
-railway domain                                 # public URL
-```
-
-The first boot loads the committed baseline and saves the reset snapshot on the volume; later boots
-keep the database as it is (use Reset demo).
+Designed by the author from the interviews above. The solver, planner, intake, explainer,
+first roster agent, evals and initial UI were built by user with help from **Claude Code**. 
+**Muse Code** built the UI polish pass, the empty-fortnight opening, and the agentic upgrade: reply
+timeouts, the replacement cascade, steering, the adversarial eval, "Yes, if…" counter-offers, open
+swaps, the read-only command agent and their review fixes (25 commits marked "(Muse Code)").
+Additionally, **Muse Code** was used to create decision logs, document architecture and system design.  
+All data is synthetic or pseudonymized. 
 
 ## Credits
 

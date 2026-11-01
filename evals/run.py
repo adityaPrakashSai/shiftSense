@@ -386,10 +386,15 @@ def markdown(suite: str, provider: str, mode: str, summary: dict[str, Any], rows
 
 def compare_table(results: dict[str, dict[str, Any]]) -> str:
     providers = list(results)
-    keys = [k for k in next(iter(results.values())) if k != "by_tag"]
+    # union of every provider's keys, first-seen order: a run where every call failed has no
+    # latency or token stats, and must not crash the table
+    keys = list(dict.fromkeys(k for r in results.values() for k in r if k != "by_tag"))
     head = "| Metric | " + " | ".join(providers) + " |"
     sep = "| --- |" + " --- |" * len(providers)
-    body = [f"| {k} | " + " | ".join(str(results[p][k]) for p in providers) + " |" for k in keys]
+    body = [
+        f"| {k} | " + " | ".join(str(results[p].get(k, "–")) for p in providers) + " |"
+        for k in keys
+    ]
     return "\n".join([head, sep, *body]) + "\n"
 
 

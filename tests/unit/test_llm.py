@@ -154,7 +154,7 @@ def test_spend_cap_blocks_live_calls_but_not_cache_or_mock(tmp_path: Path) -> No
     db = tmp_path / "a.db"
     big = ProviderResult(text="x", prompt_tokens=1_000_000, completion_tokens=0)
     fake = FakeProvider(big)
-    gw = gateway(db, fake, cap=0.10)  # one call costs $0.50 at the placeholder price
+    gw = gateway(db, fake, cap=0.10)  # one call costs $1.25 at the listed price
     run(gw.complete(req("first")))
     assert gw.spent_usd >= 0.10
     with pytest.raises(SpendCapReached):

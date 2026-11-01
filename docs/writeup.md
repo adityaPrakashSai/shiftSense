@@ -95,20 +95,21 @@ This is the rule the whole design follows, and it is enforced in code:
 ## 5. Evals
 
 All scoring is code, no LLM judge. Reports with every case are in `evals/reports/`; the table
-below is the latest live run of each suite.
+below is the latest live run of each suite. All $ figures reported before 2026-11-01 used
+placeholder prices; `app/llm/prices.toml` now carries Baseten's listed rate.
 
 | Suite | Provider | Result | Latency per call (p50 / p95) | Cost per call | Report |
 | --- | --- | --- | --- | --- | --- |
-| intake: 50 messages → ConstraintEdit | Muse Spark Open (Baseten) | 100% first pass, 100% after repair | 3.6 / 6.7 s | $0.0036 | `2026-10-29-intake-baseten-live` |
-| intake: 50 messages → ConstraintEdit | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| intake: 50 messages → ConstraintEdit | Muse Spark Open (Baseten) | 100% first pass, 100% after repair | 3.9 / 13.7 s | $0.0085 | `2026-11-01-intake-baseten-live` |
+| intake: 50 messages → ConstraintEdit | Muse Spark (Meta Model API) | not run (key not available) | | | |
 | explain: 15 why-questions, claim-checked | Muse Spark Open (Baseten) | 93% pass, 100% grounded first time | 2.1 / 6.7 s | $0.0032 | `2026-10-29-explain-baseten-live` |
-| explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| explain: 15 why-questions, claim-checked | Muse Spark (Meta Model API) | not run (key not available) | | | |
 | writer: 20 replacement asks | Muse Spark Open (Baseten) | 20/20 pass, 90% model drafts kept | 7.5 / 10.5 s | $0.0054 | `2026-10-29-writer-baseten-live` |
-| writer: 20 replacement asks | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| writer: 20 replacement asks | Muse Spark (Meta Model API) | not run (key not available) | | | |
 | agent: 10 roster-agent workflows | Muse Spark Open (Baseten) | 10/10 done by the agent (fallback 10/10), 0 forbidden attempts | 1.4 / 6.9 s | $0.0032 | `2026-10-29-agent-baseten-live` |
-| agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| agent: 10 roster-agent workflows | Muse Spark (Meta Model API) | not run (key not available) | | | |
 | vision: 5 roster sheets, per cell | Muse Spark Open (Baseten) | 98.2% of cells, 5/5 (>= 95%) sheets | 16.0 / 57.3 s | $0.0222 | `2026-10-29-vision-baseten-live` |
-| vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | pending (no key yet) | | | |
+| vision: 5 roster sheets, per cell | Muse Spark (Meta Model API) | not run (key not available) | | | |
 
 Sick calls (solver only, no model; 20 random sick calls on the default ward, `2026-10-29-sickcall-stats`): 20/20 re-solved, with every tier proven optimal in 100% of them, 0.13 s median and 0.14 s at most. Changed cells besides the sick nurse's own: median 1 (max 1) with the stability tier, median 50.5 (max 69) without it.
 
@@ -170,12 +171,11 @@ How to read it:
 
 ## 7. What was built with Muse Code and what by hand
 
-> **TODO (Aditya):** this section is yours to write.
->
-> Facts from the repository that may help: the design document (`docs/DESIGN.md`), the nurse
-> interviews and the pseudonymized roster data, the fixtures (`shiftsense-fixtures.zip`: seed
-> wards, the reference CP-SAT model and golden tests) predate the code. The code was written
-> milestone by milestone (M0 to M13) by a coding agent from that design, with a review stop after
-> every milestone, including the review of `app/solver/model.py` against the rule tables at M2,
-> and one commit per milestone authored by Aditya. Non-obvious choices made during the build are
-> logged with reasons in `docs/decisions.md`.
+Aditya wrote the design document and the fixtures (seed wards, the reference CP-SAT model and
+golden tests), reviewed every milestone — including `app/solver/model.py` against the rule tables
+at M2 — and merged both feature branches. The M0–M14 code (15 commits, one per milestone) was
+written by Claude Code from that design. The remaining 25 commits, all marked "(Muse Code)" in
+the message, were written by Muse Code: the UI polish (8), the empty-start opening (7) and the
+agentic branch (10) — the replacement cascade, counter-offers, open swap, the read-only command
+agent and the review fixes. Every commit is authored by Aditya; non-obvious choices from both
+agents are logged with reasons in `docs/decisions.md`.

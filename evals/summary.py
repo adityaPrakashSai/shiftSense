@@ -50,8 +50,10 @@ def headline(suite: str, s: dict[str, Any]) -> str:
 
 
 def per_call(s: dict[str, Any], role: str) -> tuple[str, str]:
-    p50, p95 = s.get(f"{role}_latency_p50_ms"), s.get(f"{role}_latency_p95_ms")
-    cost = s.get(f"{role}_cost_usd_per_call")
+    # newer reports use unprefixed keys (one timed role per suite); older ones prefix by role
+    p50 = s.get(f"{role}_latency_p50_ms", s.get("latency_p50_ms"))
+    p95 = s.get(f"{role}_latency_p95_ms", s.get("latency_p95_ms"))
+    cost = s.get(f"{role}_cost_usd_per_call", s.get("cost_usd_per_case"))
     lat = f"{p50 / 1000:.1f} / {p95 / 1000:.1f} s" if p50 is not None and p95 is not None else "n/a"
     return lat, (f"${cost:.4f}" if cost is not None else "n/a")
 

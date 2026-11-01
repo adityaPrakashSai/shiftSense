@@ -10,11 +10,11 @@ database), so nothing can fail between services during a live demo. The design i
 ## The rule that shapes everything
 
 **The language model never edits the roster.** Muse Spark reads messages, voice notes and photos,
-calls read-only tools, explains results and drafts messages. Only CP-SAT writes assignments, and
+calls tools, explains results and drafts messages. Only CP-SAT writes assignments, and
 only a person publishes. In the diagram, model calls flow down the left two columns; the roster is
 written only down the right-hand column, from the planner through CP-SAT into the evidence store.
-The explainer and the roster agent reach the evidence through tools and never call the solver to
-write.
+The explainer reaches the evidence through read-only tools; the agent can request re-solves,
+which create proposed runs, but cannot publish or change a run's status.
 
 ```mermaid
 flowchart TB
@@ -57,7 +57,7 @@ flowchart TB
     GW -->|HTTPS, OpenAI-compatible| BASETEN
     GW -.->|alternative| META
     EXPLAIN -->|read-only tools| EVID
-    AGENT -->|tools: rank, re-solve,<br/>check, message, ask approval| PLAN
+    AGENT -->|tools: rank, re-solve,<br/>check, message, wait for reply,<br/>ask approval| PLAN
     PLAN --> SOLVER
     PLAN -->|writes runs + assignments| EVID
     EVID --> DB
@@ -76,7 +76,8 @@ How the rule is enforced in code, not only by convention:
   confirmation from a template. Nothing reaches the solver until the sender taps Confirm.
 - The roster agent's tool registry has no publish tool and no tool that writes a run's status;
   `tests/unit/test_agent.py` checks the registry and scans every agent module for calls to
-  `publish`. Publishing happens only through `POST /api/runs/{id}/publish` (a person's click) or
+  `publish`. Publishing happens only through `POST /api/runs/{id}/publish` (a person's click),
+  `POST /api/proposals/{id}/choose` (the candidate's Approve/Publish button, a person's click) or
   the photo import (a person's click on Import).
 - Every factual sentence in an explanation is a claim that cites a tool result by path and value;
   the claim checker rejects answers whose claims do not match, and a deterministic explanation
@@ -93,9 +94,9 @@ How the rule is enforced in code, not only by convention:
 | Planner | `app/planner/` | Runs: full solves, re-solves from the published roster, sick-call ranking, conflict options, request lifecycle, photo import, versions, the read-only staffing check |
 | Evidence store | `app/evidence/` | Stage, cost, request-outcome and fairness rows per run; counterfactual re-solves ("what if Priya took it?"); rule checker |
 | Explainer | `app/explain/` | Muse Spark tool loop over evidence tools, claim checker, deterministic fallback, conflict narrator |
-| Roster agent | `app/agent/` | Muse Spark runs sick calls, conflicts, leave, swaps and new periods with tools; pauses for nurse replies and charge-nurse approval; fixed-code fallback |
-| LLM gateway | `app/llm/` | One interface over Baseten, the Meta Model API and an optional Modal endpoint, plus a rule-based mock; content-addressed cache; cost, latency and reasoning logged per call |
-| Decision log | `app/log/` | Append-only events (messages, parses, solver stages, proposals, approvals, publishes) |
+| Roster agent | `app/agent/` | Muse Spark runs sick calls, conflicts, leave, swaps and new periods with tools; the sick-call cascade (one approved contact plan, enforced order), enforced reply timeouts, Skip/Cancel steering, "Yes, if…" conditional accepts checked by `evaluate_condition`, open swaps via `find_swap_partners`, and a read-only command agent; fixed-code fallback |
+| LLM gateway | `app/llm/` | One interface over Baseten and the Meta Model API, plus a rule-based mock; content-addressed cache; cost, latency and reasoning logged per call |
+| Decision log | `app/log/` | Append-only events (messages, parses, solver stages, proposals, approvals, publishes, timeouts, steering) |
 | Eval harness | `evals/` | Fixed eval sets per role, code-only scoring, reports, sick-call statistics |
 
 ## A sick call, end to end
@@ -118,9 +119,11 @@ How the rule is enforced in code, not only by convention:
    nurse for approval. The WebSocket nudges every open view, which refetch over REST.
 6. The charge nurse asks "Why Arun and not Priya?" (`POST /api/explain`): the explainer calls the
    evidence and counterfactual tools, and every claim is checked before the answer is shown.
-7. The charge nurse approves → the proposal is published. The agent drafts the ask to Arun in
-   Hindi (checked for date, shift and health words, with a template fallback) and waits for his
-   reply in his inbox; a decline makes it re-rank without him.
+7. The agent proposes a contact plan (Arun → Ritu → Kavya). The charge nurse approves the
+   plan once; this publishes nothing. The agent asks each nurse in order. A decline, or no answer
+   within the deadline, moves to the next nurse, and `send_message` itself rejects anyone out
+   of order. The first nurse who accepts comes back to the charge nurse, who publishes that run. If
+   everyone declines, it escalates.
 
 Every step is an event in the decision log, shown in the Log tab and per task in the Agent tab.
 
@@ -143,10 +146,11 @@ non-Meta model is ever called. Muse Spark Open always reasons before answering; 
 the reasoning in `llm_call` for the Log and parses only the final content and tool calls.
 
 **Modes.** `LLM_MODE=live` calls the model on a cache miss and stores the answer; `replay` serves
-only cached answers and needs no keys (the committed `data/llm_cache.jsonl` covers the scripted
-demo and the eval sets); `mock` is a rule-based stand-in for tests and UI work. The cache key is a
-hash of provider, model, role, messages (images and audio by their sha256), tools, schema and the
-role's prompt files, with run ids replaced by placeholders.
+only cached answers and needs no keys (coverage follows the committed `data/llm_cache.jsonl`;
+entries are keyed by prompt text, so a prompt edit needs a live re-record, `make eval`, to stay
+green); `mock` is a rule-based stand-in for tests and UI work. The cache key is a hash of
+provider, model, role, messages (images and audio by their sha256), tools, schema and the role's
+prompt files, with run ids replaced by placeholders.
 
 ## Data
 
@@ -164,6 +168,9 @@ it changed. The Versions tab diffs the planned run against the current one.
   the GIL. A per-ward `asyncio.Lock` serialises solves that write runs, publishes, imports and
   demo resets. Counterfactual re-solves run in parallel and write only their own table.
 - Roster-agent tasks are asyncio tasks with a lock each; demo reset cancels them before restoring.
+- A lifespan timeout tick checks every 5 s for nurse asks past their deadline, expires them, and
+  resumes the task through the normal answer path. Deadlines use the real wall clock, never the
+  frozen `DEMO_NOW`.
 - CP-SAT workers come from `SOLVER_WORKERS` (8 locally, 4 on Railway).
 
 ## Deployment
@@ -172,7 +179,9 @@ it changed. The Versions tab diffs the planned run against the current one.
 `railway.toml` sets the health check (`/api/health`). The Railway service mounts a volume at
 `/data` for the database and solver logs. An empty database seeds itself (`SEED`); the mini ward
 loads its committed solved baseline so every deployment starts from the same roster as the
-committed cache. `POST /api/demo/reset` restores that baseline in under a second.
+committed cache. `POST /api/demo/reset` restores that baseline in under a second. The demo
+deployment opens on an empty fortnight (`DEMO_START=empty`) with one-minute cascade replies
+(`AGENT_REPLY_TIMEOUT_SECONDS=60`).
 
 ## Tests
 
@@ -180,5 +189,8 @@ committed cache. `POST /api/demo/reset` restores that baseline in under a second
 the independent validator, the mini ward's proven golden tiers, re-solve and ranking, intake,
 explainer, agent and API tests, and replays of the recorded live answers. `make e2e`: Playwright
 runs the demo script on `/charge`, `/nurse` and `/demo`, including reset, phone width, the voice
-chip and the photo import. `make reference`: the reference CP-SAT model and golden tests the solver
-was built against.
+chip and the photo import; `cascade.spec.ts` runs decline → skip → accept → publish-the-third on a
+second server with the cascade on. `make reference`: the reference CP-SAT model and golden tests
+the solver was built against. The agent evals add an adversarial suite: prompt injections in
+request text, out-of-order sends, off-allowlist tools, extra asks and late or duplicate replies —
+every case must end with zero publishes by code.

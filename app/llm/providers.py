@@ -166,7 +166,9 @@ def build_providers(s: Settings) -> dict[str, OpenAICompatProvider]:
             s.meta_base_url,
             s.meta_api_key,
             s.meta_model,
-            ProviderCaps(native_tools=True, json_schema=True, vision=True, audio=False),
+            # Meta's API rejects our schemas in strict mode (it requires additionalProperties: false
+            # on every object), so it uses json_object plus the schema in the prompt, like Baseten
+            ProviderCaps(native_tools=True, json_schema=False, vision=True, audio=False),
         )
     if s.modal_api_key and s.modal_base_url and s.modal_model:
         out["modal"] = OpenAICompatProvider(
