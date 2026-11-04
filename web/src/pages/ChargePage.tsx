@@ -95,15 +95,32 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
   const [cell, setCell] = useState<Cell | null>(null);
   const [prefill, setPrefill] = useState<AskPrefill | null>(null);
   const agentTasks = useQuery({ queryKey: ["agent"], queryFn: api.agentTasks });
+  const proposals = useQuery({ queryKey: ["proposals"], queryFn: api.proposals });
   // the run the charge nurse is being asked to publish (an accept, not rank 1)
   const openApprovalRef =
     (agentTasks.data ?? []).find((t) => {
       const w = t.waiting as { approval_kind?: string; cascade?: string[] | null; ref?: string } | null;
       return t.status === "waiting_approval" && w?.approval_kind === "run" && !(w?.cascade?.length ?? 0);
     })?.waiting?.ref ?? null;
+  // while a cascade waits on a nurse's reply, the grid follows the candidate run of the nurse
+  // being asked (Arun's run while Arun is asked, Kiran's while Kiran is asked)
+  const askedRunId = (() => {
+    const waiting = (agentTasks.data ?? []).find((t) => {
+      const w = t.waiting as { kind?: string } | null;
+      return t.status === "waiting_reply" && w?.kind === "reply";
+    })?.waiting as { nurse_id?: string } | null;
+    const nurse = waiting?.nurse_id;
+    if (typeof nurse !== "string") return null;
+    for (const p of proposals.data ?? []) {
+      const c = p.candidates.find((c) => c.nurse === nurse);
+      if (c) return c.run_id;
+    }
+    return null;
+  })();
   useEffect(() => {
     if (typeof openApprovalRef === "string" && openApprovalRef) setViewRunId(openApprovalRef);
-  }, [openApprovalRef]);
+    else if (askedRunId) setViewRunId(askedRunId);
+  }, [openApprovalRef, askedRunId]);
 
   const roster = useQuery({
     queryKey: ["roster", viewRunId],
