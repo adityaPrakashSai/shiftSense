@@ -8,7 +8,7 @@ An OR-Tools CP-SAT solver builds every roster. Meta's **Muse Spark** understands
 in Hindi or English (typed or spoken), writes each nurse's message, runs the replacement workflow
 and explains every decision from the solver's own results. It never edits the roster.
 
-- **Video (3 min):** _(link)_
+- **Video (3 min):** [Watch on YouTube](https://www.youtube.com/watch?v=FWtOExizEMc)
 - **Run it locally:** [Quick start](#quick-start), no API keys needed
 - **Docs:** [Architecture](docs/architecture.md) · [System design](docs/system-design.md) ·
   [Decision log](docs/decisions.md) · [Design doc](docs/DESIGN.md)
