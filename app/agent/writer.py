@@ -4,12 +4,14 @@ in that nurse's language; code checks the draft.
 Input: the nurse's name, the date, shift name and times, and the facts that explain why this nurse
 was asked (standby, changed cells, tie-break). Never the absent nurse's reason. Post-checks: valid
 JSON, at most 400 characters, contains the date and the shift name, no word from the health
-blocklist. On any failure the template from `intake/templates/{en,hi}.toml` is used.
+blocklist, no ranking details. On any failure the template from `intake/templates/{en,hi}.toml`
+is used.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -47,8 +49,6 @@ def short_date(d: date) -> str:
 
 
 def reason_text(lang: str, facts: dict[str, Any]) -> str:
-    if facts.get("tie") and facts.get("tie_break"):
-        return templates.text(lang, "message", "reason_tie", tie_break=facts["tie_break"])
     cells = int(facts.get("changed_cells") or 0)
     if cells <= 1:
         key = "reason_standby" if facts.get("standby") else "reason_no_change"
@@ -103,6 +103,8 @@ def check(text: str, ctx: dict[str, Any]) -> list[str]:
     bad = health_words(text)
     if bad:
         problems.append(f"health words {bad}")
+    if re.search(r"\brank\b|\btie\b|\bnurse id\b|\bid se\b|\b[ns]\d{2}\b", low):
+        problems.append("ranking details")
     return problems
 
 

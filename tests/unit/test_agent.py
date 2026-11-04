@@ -79,6 +79,14 @@ def test_writer_checks_and_template() -> None:
     assert health_words("Will you come?") == []  # "ill" is a whole-word match only
 
 
+def test_writer_rejects_ranking_details_and_template_hides_ties() -> None:
+    ctx = _ctx()
+    bad = "Namaste, kya aap 3 Nov ki Morning duty cover kar sakte hain? Aap rank 2 par hain."
+    assert "ranking details" in check(bad, ctx)
+    tied = template({**ctx, "facts": {**ctx["facts"], "tie": True, "tie_break": "nurse id"}})
+    assert "rank" not in tied.lower() and "tie" not in tied.lower()
+
+
 class FakeGateway:
     """Returns scripted responses in order; counts calls."""
 
