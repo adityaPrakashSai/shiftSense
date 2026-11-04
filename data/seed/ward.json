@@ -976,6 +976,24 @@
    "status": "active",
    "source_message_id": null,
    "created_at": "2026-10-20T10:00:00Z"
+  },
+  {
+   "id": "R-0013",
+   "nurse_id": "N03",
+   "kind": "shift_wanted",
+   "dates": [
+    "2026-11-03"
+   ],
+   "shifts": [
+    "M"
+   ],
+   "leave_type": null,
+   "counterpart_id": null,
+   "hard": false,
+   "weight": 5,
+   "status": "active",
+   "source_message_id": null,
+   "created_at": "2026-10-20T10:00:00Z"
   }
  ],
  "history": {
