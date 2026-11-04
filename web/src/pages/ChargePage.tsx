@@ -128,13 +128,6 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
     placeholderData: keepPreviousData,
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2,
   });
-  // the period's published roster, if any, whatever run is viewed (shares its cache entry with
-  // the roster query above, which starts on the published run, so this rarely fetches)
-  const published = useQuery({
-    queryKey: ["roster", null],
-    queryFn: () => api.roster(null),
-    retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2,
-  });
   const runId = roster.data?.run.run_id;
   const detail = useQuery({
     queryKey: ["run", runId],
@@ -245,11 +238,13 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
     },
   });
 
-  const run = roster.data?.run;
-  const isDraft = run?.status === "proposed";
   const noRoster = roster.error instanceof ApiError && roster.error.status === 404;
   // an unpublished period is an empty state, not an error: the grid below handles it
   const emptyPeriod = roster.error instanceof ApiError && roster.error.code === "NO_PUBLISHED_RUN";
+  // a failed refetch keeps the query's last data: after a reset to empty, don't show the old roster
+  const shown = emptyPeriod ? undefined : roster.data;
+  const run = shown?.run;
+  const isDraft = run?.status === "proposed";
   const emptyDays = ward.data ? horizonDays(ward.data) : [];
   const emptyGrid: Cell[] = ward.data
     ? ward.data.nurses.flatMap((n) =>
@@ -268,7 +263,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
       )
     : [];
   // the legend explains the diff styling, so it shows exactly when styled cells do
-  const hasDiff = roster.data?.grid.some((c) => c.changed) ?? false;
+  const hasDiff = shown?.grid.some((c) => c.changed) ?? false;
 
   return (
     <div className={`${embedded ? "" : "min-h-screen"} bg-slate-50 text-slate-800`}>
@@ -339,7 +334,8 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
                 >
                   Publish
                 </button>
-                {published.data && (
+                {/* a draft has a parent only when the period has a published run to go back to */}
+                {run?.parent_run && (
                   <button
                     onClick={() => setViewRunId(null)}
                     className="text-sm text-slate-600 underline-offset-2 hover:underline"
@@ -352,7 +348,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
             {publish.error && <span className="text-sm text-red-600">{publish.error.message}</span>}
           </div>
         )}
-        {roster.data && <StageStrip stages={roster.data.stages} detail={detail.data} />}
+        {shown && <StageStrip stages={shown.stages} detail={detail.data} />}
         {emptyPeriod && ward.data && (
           <div className="relative">
             <RosterGrid
@@ -385,9 +381,9 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
             No published roster yet. Click Generate to build one.
           </p>
         )}
-        {roster.data && ward.data && (
+        {shown && ward.data && (
           <RosterGrid
-            roster={roster.data}
+            roster={shown}
             nurses={ward.data.nurses}
             selected={cell ? `${cell.nurse_id}|${cell.day}` : null}
             onCell={(c) => setCell((cur) => (cur && cur.nurse_id === c.nurse_id && cur.day === c.day ? null : c))}
