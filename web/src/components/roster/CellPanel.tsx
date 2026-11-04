@@ -1,5 +1,6 @@
 // The clicked cell (design doc 10.3): its shift, whether and why it changed, its cost rows, which
 // other shifts would break a rule, and "Why?" which asks the explainer about it.
+import { Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Cell, type Nurse } from "../../api/client";
 
@@ -56,19 +57,22 @@ export default function CellPanel({
           {e.costs.length > 0 ? (
             <ul>
               {e.costs.map((c, i) => (
-                <li key={i}>
-                  <span className="font-mono">{c.rule}</span> {c.tier} · {c.amount}×{c.weight}
-                  {c.detail ? ` · ${c.detail}` : ""}
-                </li>
+                <li key={i}>{c.detail ? c.detail : c.rule.replace(/_/g, " ").toLowerCase()}</li>
               ))}
             </ul>
           ) : (
             <p>Nothing contested here: no rule or request is under pressure on this cell.</p>
           )}
           <p>
-            {e.other_shifts
-              .map((o) => `${o.shift}: ${o.allowed ? "allowed" : o.rules.map((r) => r.split(":")[0].replace(/_/g, " ")).join(", ")}`)
-              .join(" · ")}
+            Other shifts:{" "}
+            {e.other_shifts.map((o, i) => (
+              <Fragment key={o.shift}>
+                {i > 0 ? " · " : null}
+                <span title={o.allowed ? undefined : o.rules.join(", ")}>
+                  {o.shift} {o.allowed ? "allowed" : "not possible"}
+                </span>
+              </Fragment>
+            ))}
           </p>
         </div>
       )}
