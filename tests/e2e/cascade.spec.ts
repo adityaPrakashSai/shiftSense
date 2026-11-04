@@ -42,7 +42,7 @@ test("cascade: decline, skip, accept, publish the third nurse", async ({ browser
 
   // Arun declines in his inbox; Ritu is asked next
   await expect(arun.getByTestId("inbox-item")).toBeVisible();
-  await arun.getByRole("button", { name: "Nahi kar paungi", exact: true }).click();
+  await arun.getByRole("button", { name: "Nahi", exact: true }).click();
   await expect(charge.getByTestId("waiting-line")).toContainText("Ritu Singh");
 
   // skipping expires her ask mid-wait

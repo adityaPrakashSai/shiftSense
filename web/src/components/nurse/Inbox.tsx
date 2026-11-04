@@ -171,11 +171,11 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
             condOpen === m.id ? (
               <ConditionForm m={m} lang={lang} onBack={() => setCondOpen(null)} />
             ) : (
-            <div className="mt-2 flex gap-2">
+            <div className="mt-3 flex flex-col gap-2">
               <button
                 onClick={() => respond.mutate({ id: m.id, accept: true })}
                 disabled={respond.isPending}
-                className="flex-1 rounded-md bg-emerald-700 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+                className="w-full rounded-md bg-emerald-700 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
               >
                 {L.accept}
               </button>
@@ -184,7 +184,7 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
                   onClick={() => setCondOpen(m.id)}
                   disabled={respond.isPending}
                   data-testid="yes-if"
-                  className="flex-1 rounded-md border border-indigo-300 bg-indigo-50 py-1.5 text-sm font-semibold text-indigo-700 disabled:opacity-60"
+                  className="w-full rounded-md border border-indigo-300 bg-indigo-50 py-1.5 text-sm font-semibold text-indigo-700 disabled:opacity-60"
                 >
                   {L.yesIf}
                 </button>
@@ -192,7 +192,7 @@ export default function Inbox({ nurseId, lang }: { nurseId: string; lang: Lang }
               <button
                 onClick={() => respond.mutate({ id: m.id, accept: false })}
                 disabled={respond.isPending}
-                className="flex-1 rounded-md border border-slate-300 py-1.5 text-sm font-semibold text-slate-700 disabled:opacity-60"
+                className="w-full rounded-md border border-slate-300 py-1.5 text-sm font-semibold text-slate-700 disabled:opacity-60"
               >
                 {L.decline}
               </button>
