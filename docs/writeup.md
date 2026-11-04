@@ -168,7 +168,8 @@ How to read it:
 - **No accounts.** Anyone using the app can act as any nurse; the app is a single-ward
   prototype on one process and one SQLite file.
 - **Fairness is measured over two prior periods with raw counts** (not normalised by contract
-  size), as decided in the design.
+  size), as decided in the design. The prior counts come from the seed data: publishing a fortnight does not yet
+  roll its totals into the history for the next one.
 
 ## 7. What was built with Muse Code and what by hand
 

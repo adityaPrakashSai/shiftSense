@@ -32,6 +32,17 @@ and explains every decision from the solver's own results. It never edits the ro
 On the demo ward, Meena's sick call changes 1 cell besides her own; without the stability tier it
 moves 27. Across 20 random sick calls on the 24-nurse ward: 1 vs a median of 50.5.
 
+### Fairness across fortnights
+
+Each nurse carries running totals from the two previous periods (28 days): nights, weekend shifts,
+mornings, evenings and denied requests. For each of the five, the solver adds this fortnight's
+shifts to the carried-over count and minimises the gap between the nurse with the most and the
+nurse with the fewest. So whoever worked the most weekends last month gets fewer now, and a nurse
+whose requests were turned down before is less likely to be turned down again. Fairness is the
+last tier: it never costs coverage, stability, contracts or requests, and only chooses among
+rosters already equal on those. The Fairness tab shows "earlier 2 periods" next to "this period"
+for every nurse, and "Why do I get every weekend?" is answered from the same numbers.
+
 ## The problem
 
 From interviews with a charge nurse, a nurse and a nursing student at a government hospital in
