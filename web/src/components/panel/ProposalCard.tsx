@@ -266,7 +266,11 @@ export default function ProposalCard({
         </div>
       )}
       {p.candidates[0]?.tie && (
-        <p className="mt-1 text-[11px] text-violet-700">Equally good; picked by {p.candidates[0].tie_break}.</p>
+        <p className="mt-1 text-[11px] text-violet-700">
+          {p.candidates[0].tie_break === "nurse id"
+            ? "Equally good on every priority."
+            : `Equally good on every priority; ordered by ${p.candidates[0].tie_break}.`}
+        </p>
       )}
 
       {p.excluded.length > 0 && (
