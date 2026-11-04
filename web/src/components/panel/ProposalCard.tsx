@@ -82,7 +82,11 @@ export default function ProposalCard({
       : null;
   const running =
     (tasks.data ?? []).find(
-      (t) => t.status === "waiting_reply" && t.cascade?.approved && t.cascade?.ref === p.run_id,
+      // "running" too: between one nurse's answer and the next ask, the agent is drafting
+      (t) =>
+        (t.status === "waiting_reply" || t.status === "running") &&
+        t.cascade?.approved &&
+        t.cascade?.ref === p.run_id,
     ) ?? null;
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
