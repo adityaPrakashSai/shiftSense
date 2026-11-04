@@ -94,6 +94,8 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
   const [tab, setTab] = useState<Tab>("alerts");
   const [cell, setCell] = useState<Cell | null>(null);
   const [prefill, setPrefill] = useState<AskPrefill | null>(null);
+  // bumped on a demo reset, so the Ask tab starts empty instead of showing the last take's answers
+  const [resets, setResets] = useState(0);
   const agentTasks = useQuery({ queryKey: ["agent"], queryFn: api.agentTasks });
   const proposals = useQuery({ queryKey: ["proposals"], queryFn: api.proposals });
   // the run the charge nurse is being asked to publish (an accept, not rank 1)
@@ -145,6 +147,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
         setTimer(IDLE);
         setCell(null);
         setPrefill(null);
+        setResets((n) => n + 1);
         setTab("alerts");
       }
       if (m.type === "run_started") {
@@ -453,7 +456,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
           )}
         </div>
         <div className={tab === "ask" ? "" : "hidden"}>
-          <AskTab runId={run?.run_id ?? null} prefill={prefill} />
+          <AskTab key={resets} runId={run?.run_id ?? null} prefill={prefill} />
         </div>
         {tab === "agent" && ward.data && <AgentTab nurses={ward.data.nurses} />}
         {tab === "fairness" && (
