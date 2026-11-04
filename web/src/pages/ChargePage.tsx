@@ -128,6 +128,13 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
     placeholderData: keepPreviousData,
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2,
   });
+  // the period's published roster, if any, whatever run is viewed (shares its cache entry with
+  // the roster query above, which starts on the published run, so this rarely fetches)
+  const published = useQuery({
+    queryKey: ["roster", null],
+    queryFn: () => api.roster(null),
+    retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2,
+  });
   const runId = roster.data?.run.run_id;
   const detail = useQuery({
     queryKey: ["run", runId],
@@ -331,12 +338,14 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
                 >
                   Publish
                 </button>
-                <button
-                  onClick={() => setViewRunId(null)}
-                  className="text-sm text-slate-600 underline-offset-2 hover:underline"
-                >
-                  Back to published
-                </button>
+                {published.data && (
+                  <button
+                    onClick={() => setViewRunId(null)}
+                    className="text-sm text-slate-600 underline-offset-2 hover:underline"
+                  >
+                    Back to published
+                  </button>
+                )}
               </>
             )}
             {publish.error && <span className="text-sm text-red-600">{publish.error.message}</span>}
