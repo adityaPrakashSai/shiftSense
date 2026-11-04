@@ -204,8 +204,8 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
         if (e.run_id !== t.runId || e.kind !== "stage.done" || !e.stage) continue;
         const tier = e.stage.split(":").pop()!;
         if (ticks.some((x) => x.tier === tier)) continue;
-        const p = e.payload as { secs?: number; status?: string };
-        ticks.push({ tier, secs: p.secs ?? 0, skipped: p.status === "skip" });
+        const p = e.payload as { secs?: number; status?: string; proven?: boolean };
+        ticks.push({ tier, secs: p.secs ?? 0, skipped: p.status === "skip", proven: p.proven ?? p.status === "skip" });
       }
       return ticks.length === t.ticks.length ? t : { ...t, ticks };
     });
@@ -300,6 +300,7 @@ export function ChargeView({ embedded = false }: { embedded?: boolean }) {
               stoppedAt={timer.stoppedAt}
               ticks={timer.ticks}
               serverSecs={timer.serverSecs}
+              pending={(ward.data?.priorities ?? []).filter((p) => !timer.ticks.some((t) => t.tier === p))}
             />
             <button
               onClick={() => generate.mutate()}
