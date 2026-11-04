@@ -128,7 +128,10 @@ def test_fairness_and_versions(client: TestClient) -> None:
     assert v["versions"][0]["changes"] == []  # nothing published since the plan yet
     _nurse, run_id = sick_call(client)
     wait_for(lambda: client.get("/api/versions").json(), lambda v: len(v["versions"]) == 2)
-    p = client.get(f"/api/proposals/{run_id}").json()
+    # the run shows in versions a moment before its proposal (ranking) is saved: wait for both
+    p = wait_for(
+        lambda: client.get(f"/api/proposals/{run_id}"), lambda r: r.status_code == 200
+    ).json()
     client.post(f"/api/proposals/{run_id}/choose", json={"nurse_id": p["candidates"][0]["nurse"]})
     v = client.get("/api/versions").json()
     cur = v["versions"][0]
