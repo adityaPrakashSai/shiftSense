@@ -26,7 +26,7 @@ def test_default_seed_shape() -> None:
     kinds = [r.kind for r in seed.requests]
     assert kinds.count(RequestKind.LEAVE) == 3
     assert kinds.count(RequestKind.DAY_OFF) == 6
-    assert kinds.count(RequestKind.SHIFT_WANTED) + kinds.count(RequestKind.SHIFT_AVOID) == 3
+    assert kinds.count(RequestKind.SHIFT_WANTED) + kinds.count(RequestKind.SHIFT_AVOID) == 4
     assert all(
         r.hard == (r.kind in (RequestKind.LEAVE, RequestKind.UNAVAILABLE)) for r in seed.requests
     )
@@ -99,11 +99,11 @@ def test_request_crud(conn: sqlite3.Connection) -> None:
     seed = seed_db(conn, "default")
     r = seed.requests[0]
     assert repo.get_request(conn, r.id) == r
-    assert repo.next_request_id(conn) == "R-0013"
+    assert repo.next_request_id(conn) == "R-0014"
     repo.set_request_status(conn, r.id, RequestStatus.WITHDRAWN)
     assert repo.get_request(conn, r.id).status is RequestStatus.WITHDRAWN
     active = repo.list_requests(conn, seed.ward.id, status=RequestStatus.ACTIVE)
-    assert len(active) == 11
+    assert len(active) == 12
     assert [x.id for x in repo.list_requests(conn, seed.ward.id, nurse_id="N09")] == ["R-0012"]
     with pytest.raises(KeyError):
         repo.set_request_status(conn, "R-9999", RequestStatus.ACTIVE)

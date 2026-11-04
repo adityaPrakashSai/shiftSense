@@ -119,7 +119,7 @@ def req(i, nurse_id, kind, days, *, shifts=None, weight=1, leave_type=None):
     }
 
 
-# 12 requests (4.5): 3 leave, 6 day-off preferences, 3 shift preferences
+# 13 requests (4.5): 3 leave, 6 day-off preferences, 4 shift preferences
 requests = [
     req(1, "N04", "leave", [2, 3], leave_type="CL"),  # Wed-Thu 28-29 Oct
     req(2, "N13", "leave", [7, 8, 9], leave_type="EL"),  # Mon-Wed 2-4 Nov
@@ -134,6 +134,8 @@ requests = [
     req(11, "N12", "shift_wanted", [5, 6], shifts=["N"], weight=2),  # first weekend nights
     # night break announced in advance (5.3): avoid_shift N, weight 5
     req(12, "N09", "shift_avoid", list(range(7, 14)), shifts=["N"], weight=5),
+    # demo: the Hindi sick-call nurse keeps Tue 3 Nov Morning after every Generate
+    req(13, "N03", "shift_wanted", [8], shifts=["M"], weight=5),  # Tue 3 Nov
 ]
 
 # Carry-in from two prior 14-day periods (4.3, 4.5). (last_days for days -3..-1, consecutive

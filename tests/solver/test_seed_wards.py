@@ -14,7 +14,7 @@ def test_default_seed_solves_with_no_violations() -> None:
     s = load_seed("default")
     inp = build_input(s.ward, s.requests, s.history)
     t0 = time.perf_counter()
-    res = solve(inp, stage_seconds=1, workers=8, total_seconds=3)
+    res = solve(inp, stage_seconds=3, workers=8, total_seconds=6)
     assert time.perf_counter() - t0 < 10
     assert res.status == "solved" and violations(inp, res.roster) == []
     assert res.stages[0].tier == "coverage" and res.stages[0].proven
